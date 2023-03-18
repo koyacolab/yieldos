@@ -9,8 +9,8 @@
 # Loop the Python script in parallel with input arguments
 # echo "${inputs[@]}" | tr ' ' '\n' | parallel -j $parallel_jobs python AAChinaTFT-D.py {}
 
-for Yr in 2004 2005 2006 2007 2008; do
-   python AAChinaTFT-D.py train_TFT -exp_name 'RMSE_001' -predicted_year $Yr &
+for Yr in 2004 2005 2008; do
+   python AAChinaTFT-D.py train_TFT -exp_name 'Quantil_lr_finder' -predicted_year $Yr -batch_size 16 -learning_rate 0.0325 -loss_func_metric 'QuantileLoss' &
    echo $Yr
    # wait 10
 done

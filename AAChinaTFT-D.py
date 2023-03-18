@@ -61,35 +61,57 @@ from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 
+# class FineTuneLearningRateFinder(LearningRateFinder):
+#     def __init__(self, milestones, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.milestones = milestones
+#         self.gamma = 0.3
+#         self.optimizer = []
+#         self.scheduler = []
+#         # self.optimizer = []
+#         # self.scheduler = []
+
+#     def on_fit_start(self, trainer, pl_module):
+#         self.optimizer = trainer.optimizers[0]
+#         self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, self.milestones, self.gamma)
+#         # self.scheduler = torch.optim.lr_scheduler.LinearLR(self.optimizer, start_factor=0.5, total_iters=50)
+#         # StepLR(optimizer, self.step_size, self.gamma)
+#         for param_group in self.optimizer.param_groups:
+#             param_group['lr'] = self.scheduler.get_last_lr()[0]
+#         self.scheduler.step()
+#         print('on_fit_start:', self.scheduler.get_last_lr()[0])
+#         return
+
+#     def on_train_epoch_start(self, trainer, pl_module):
+#         # if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
+#         # optimizer = trainer.optimizers[0]
+#         # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, self.milestones, self.gamma)
+#         # StepLR(optimizer, self.step_size, self.gamma)
+#         for param_group in self.optimizer.param_groups:
+#             param_group['lr'] = self.scheduler.get_last_lr()[0]
+#         self.scheduler.step()
+#         print('on_train_epoch_start:', self.scheduler.get_last_lr()[0])
+        
 class FineTuneLearningRateFinder(LearningRateFinder):
     def __init__(self, milestones, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.milestones = milestones
-        self.gamma = 0.3
         self.optimizer = []
-        self.scheduler = []
-        # self.optimizer = []
-        # self.scheduler = []
 
+    # def on_fit_start(self, *args, **kwargs):
     def on_fit_start(self, trainer, pl_module):
         self.optimizer = trainer.optimizers[0]
-        self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, self.milestones, self.gamma)
-        # StepLR(optimizer, self.step_size, self.gamma)
-        for param_group in self.optimizer.param_groups:
-            param_group['lr'] = self.scheduler.get_last_lr()[0]
-        self.scheduler.step()
-        print('on_fit_start:', self.scheduler.get_last_lr()[0])
+        # self.optimizer.param_groups[0]['capturable'] = True
         return
 
     def on_train_epoch_start(self, trainer, pl_module):
-        # if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
-        # optimizer = trainer.optimizers[0]
-        # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, self.milestones, self.gamma)
-        # StepLR(optimizer, self.step_size, self.gamma)
-        for param_group in self.optimizer.param_groups:
-            param_group['lr'] = self.scheduler.get_last_lr()[0]
-        self.scheduler.step()
-        print('on_train_epoch_start:', self.scheduler.get_last_lr()[0])
+        if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
+            self.lr_find(trainer, pl_module)
+            
+    def on_train_epoch_end(self, trainer, pl_module):
+        self.optimizer = trainer.optimizers[0]
+        if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
+            self.optimizer.param_groups[0]['capturable'] = True
         
 from pytorch_forecasting.metrics import MultiHorizonMetric
 
@@ -122,9 +144,9 @@ class ModelBase:
                  # encoder_length = 20,
                  save_checkpoint = False,
                  save_checkpoint_model = 'best-model',
-                 learning_rate = 0.001,
+                 learning_rate = 0.01,
                  max_epochs = 600,
-                 lr_milestones_list = [170, 320, 500,],
+                 lr_milestones_list = [15, 30, 60, 90, 150],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -166,10 +188,12 @@ class ModelBase:
         
         self.datasetfile = datasetfile
         
+        self.lr_milestones_list = lr_milestones_list
+        
         # MOD_BINS = 512
         # FAM_BINS = 256
         
-        print('predicted_year:', self.predicted_year,'max_epochs:', max_epochs, 'batch_size:', batch_size, \
+        print('predicted_year:', self.predicted_year, 'max_epochs:', max_epochs, 'batch_size:', batch_size, \
               'loss_func_metric:', loss_func_metric, 'seed:', seed, 'lr_milestones_list:', lr_milestones_list)
         
         # sys.exit(0)
@@ -404,7 +428,7 @@ class ModelBase:
         # home_dir = '/content/gdrive/My Drive/AChina' 
         # _dir = os.path.join(home_dir, 'data')
         
-        name_for_files = f'cr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]'
+        name_for_files = f'cr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.predicted_year}]'
         
         _checkpoint_callback = ModelCheckpoint(dirpath = os.path.join(home_dir, name_for_files), every_n_epochs = 50)
 
@@ -414,7 +438,7 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        _lr_finder  = FineTuneLearningRateFinder(milestones = lr_milestones_list)
+        _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list, mode='linear')
 
         _swa = StochasticWeightAveraging(swa_lrs=1e-2, swa_epoch_start=50, device='gpu')
 
@@ -423,6 +447,7 @@ class ModelBase:
                           # fast_dev_run=True, 
                           # precision=16,
                           gradient_clip_val=0.3,
+                          # reload_dataloaders_every_epoch=True,
                           callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor])
 
         # learning_rate = 0.01
@@ -438,7 +463,7 @@ class ModelBase:
             # output_size=1,  # 7 quantiles by default
             loss=self.loss_func,
             # loss=QuantileLoss(),
-            # optimizer = 'adam',
+            optimizer = 'adam',
             # log_interval=10,  # uncomment for learning rate finder and otherwise, e.g. to 10 for logging every 10 batches
             # reduce_on_plateau_patience=4,
             )
@@ -448,6 +473,20 @@ class ModelBase:
         
         self.best_tft = self.model
         self.checkpoint = name_for_files
+        
+    def find_init_lr():
+        # find optimal learning rate
+        res = trainer.tuner.lr_find(
+            self.model,
+            train_dataloaders=self.train_dataloader,
+            val_dataloaders=self.val_dataloader,
+            max_lr=1.0,
+            min_lr=1e-5,
+        )
+
+        print(f"suggested learning rate: {res.suggestion()}")
+        fig = res.plot(show=True, suggest=True)
+        fig.show()
         
     def train(self,):
         print( time.asctime( time.localtime(time.time()) ) )
@@ -671,7 +710,8 @@ class RunTask:
     def train_TFT(exp_name, 
                   crop_name='rice', 
                   predicted_year=2004,
-                  batch_size=8, 
+                  batch_size=16,
+                  learning_rate=0.1,
                   loss_func_metric='RMSE', 
                   max_epochs=600):
         
@@ -691,6 +731,7 @@ class RunTask:
                           predicted_year=predicted_year,
                           max_epochs=max_epochs, 
                           batch_size=batch_size, 
+                          learning_rate=learning_rate,
                           loss_func_metric=loss_func_metric)
         model.train()
         model.predict()
