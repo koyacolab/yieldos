@@ -48,9 +48,9 @@ from pytorch_forecasting import TemporalFusionTransformer
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, StochasticWeightAveraging
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-
 from matplotlib import pyplot as plt
+
+from pytorch_forecasting.metrics import MultiHorizonMetric  #, CompositeMetric
 
 from multiprocessing import Pool, freeze_support
 
@@ -65,7 +65,7 @@ class FineTuneLearningRateFinder(LearningRateFinder):
     def __init__(self, milestones, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.milestones = milestones
-        self.gamma = 0.5
+        self.gamma = 0.3
         self.optimizer = []
         self.scheduler = []
         # self.optimizer = []
@@ -99,17 +99,17 @@ class Myloss(MultiHorizonMetric):
 
     Defined as ``sqrt{(y_pred - target)**2} + (y_pred - target).abs()``
     """
-
-    def __init__(self, reduction="none", **kwargs):
-        super().__init__(reduction=reduction, **kwargs)
         
-    def loss(self, y_pred: Dict[str, torch.Tensor], target):
-        loss = torch.pow(self.to_prediction(y_pred) - target, 2).sum() / \
-               torch.pow(self.to_prediction(y_pred) - target.mean(), 2).sum() 
+    def loss(self, y_pred, target):
+        loss = ( torch.pow(self.to_prediction(y_pred) - target, 2) / \
+                torch.pow(self.to_prediction(y_pred) - target.mean(), 2) )
         return loss
     
-MOD_BINS = 512
-FAM_BINS = 256
+# MOD_BINS = 512
+# FAM_BINS = 256
+
+MOD_BINS = 128
+FAM_BINS = 64
 
 class ModelBase:
     
@@ -122,9 +122,9 @@ class ModelBase:
                  # encoder_length = 20,
                  save_checkpoint = False,
                  save_checkpoint_model = 'best-model',
-                 learning_rate = 0.01,
+                 learning_rate = 0.001,
                  max_epochs = 600,
-                 lr_milestones_list = [170, 500,],
+                 lr_milestones_list = [170, 320, 500,],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -145,7 +145,7 @@ class ModelBase:
             print("crop_name is not definite")
             sys.exit(0)
             
-        self.loss_func = loss_func_metric
+        self.loss_func = RMSE()
         
         if loss_func_metric == 'RMSE':
             self.loss_func = RMSE()
@@ -156,7 +156,7 @@ class ModelBase:
         elif loss_func_metric == 'QuantileLoss':
             self.loss_func = QuantileLoss()
         elif loss_func_metric == 'Myloss':
-            self.loss_func = Myloss()
+            self.loss_func = SMAPE() + MAE()
             
         self.exp_name = exp_name
         self.crop_name = crop_name
@@ -169,8 +169,10 @@ class ModelBase:
         # MOD_BINS = 512
         # FAM_BINS = 256
         
-        print('max_epochs:', max_epochs, 'batch_size:', batch_size, 'loss_func_metric:', loss_func_metric, 'seed:', seed, \
-             'lr_milestones_list:', lr_milestones_list)
+        print('predicted_year:', self.predicted_year,'max_epochs:', max_epochs, 'batch_size:', batch_size, \
+              'loss_func_metric:', loss_func_metric, 'seed:', seed, 'lr_milestones_list:', lr_milestones_list)
+        
+        # sys.exit(0)
         # fn
         
         print(f'loading {self.datasetfile}', time.asctime( time.localtime(time.time()) ) )
@@ -181,10 +183,10 @@ class ModelBase:
         # display(alidata)
 
         del alidata['Unnamed: 0']
-        # del alidata['Unnamed: 0.1']
-        # del alidata['Unnamed: 0.2']
+        del alidata['Unnamed: 0.1']
+        del alidata['Unnamed: 0.2']
         # # del alidata['Unnamed: 0.1.1']
-        # del alidata['Unnamed: 0.1.1.1']
+        del alidata['Unnamed: 0.1.1.1']
 
         alidata['county']   = alidata['county'].astype(str)
         alidata['year']     = alidata['year'].astype(str)
@@ -669,13 +671,15 @@ class RunTask:
     def train_TFT(exp_name, 
                   crop_name='rice', 
                   predicted_year=2004,
-                  batch_size=24, 
+                  batch_size=8, 
                   loss_func_metric='RMSE', 
                   max_epochs=600):
         
+        # print('predicted year:', predicted_year, type(predicted_year))
+        
         torch.set_float32_matmul_precision('medium')
         
-#         log_file = os.path.join('/hy-tmp', f'Log-cr[{crop_name}]-yr[{predicted_year}]-en[{exp_name}]-bs[{batch_size}].log')
+        log_file = os.path.join('/hy-tmp', f'Log-cr[{crop_name}]-yr[{predicted_year}]-en[{exp_name}]-bs[{batch_size}].log')
         
 #         if os.path.exists(log_file):
 #             print(f'log file {log_file} exist')
@@ -684,6 +688,7 @@ class RunTask:
 #         sys.stdout = Logger(log_file)
         
         model = ModelBase(exp_name=exp_name, 
+                          predicted_year=predicted_year,
                           max_epochs=max_epochs, 
                           batch_size=batch_size, 
                           loss_func_metric=loss_func_metric)
