@@ -102,21 +102,25 @@ class FineTuneLearningRateFinder(LearningRateFinder):
 
     # def on_fit_start(self, *args, **kwargs):
     def on_fit_start(self, trainer, pl_module):
-        self.lr_find(trainer, pl_module)
         self.optimizer = trainer.optimizers[0]
         self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, self.milestones, self.gamma)
-        # self.optimizer.param_groups[0]['capturable'] = True
+        print('find initial lr')
+        self.lr_find(trainer, pl_module)
+        # StepLR(optimizer, self.step_size, self.gamma)
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.scheduler.get_last_lr()[0]
+        self.scheduler.step()
+        print('on_fit_start:', self.scheduler.get_last_lr()[0])
         return
 
     def on_train_epoch_start(self, trainer, pl_module):
-        if trainer.current_epoch == 0:
-            self.lr_find(trainer, pl_module)
-        if trainer.current_epoch in self.milestones:
+        # if trainer.current_epoch == 0:       
+        if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
             self.optimizer = trainer.optimizers[0]
             self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, self.milestones, self.gamma)
-            # StepLR(optimizer, self.step_size, self.gamma)
-            for param_group in self.optimizer.param_groups:
-                param_group['lr'] = self.scheduler.get_last_lr()[0]
+        # StepLR(optimizer, self.step_size, self.gamma)
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.scheduler.get_last_lr()[0]
         self.scheduler.step()
         print('on_train_epoch_start:', self.scheduler.get_last_lr()[0])
             
@@ -164,7 +168,7 @@ class ModelBase:
                  # encoder_length = 20,
                  save_checkpoint = False,
                  save_checkpoint_model = 'best-model',
-                 learning_rate = 0.01,
+                 learning_rate = 0.05,
                  max_epochs = 400,
                  lr_milestones_list = [10, 30, 70, 150, 350],
                  loss_func_metric = 'RMSE',
@@ -206,6 +210,8 @@ class ModelBase:
         self.batch_size = batch_size
         self.predicted_year = str(predicted_year)
         
+        self.learning_rate = learning_rate
+        
         self.datasetfile = datasetfile
         
         self.lr_milestones_list = lr_milestones_list
@@ -214,6 +220,7 @@ class ModelBase:
         # FAM_BINS = 256
         
         print('predicted_year:', self.predicted_year, 'max_epochs:', max_epochs, 'batch_size:', batch_size, \
+              'learning_rate', self.learning_rate, \
               'loss_func_metric:', loss_func_metric, 'seed:', seed, 'lr_milestones_list:', lr_milestones_list)
         
         # sys.exit(0)
