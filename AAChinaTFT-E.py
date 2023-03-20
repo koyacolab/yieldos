@@ -126,6 +126,8 @@ class FineTuneLearningRateFinder(LearningRateFinder):
     #         self.optimizer.param_groups[0]['capturable'] = True
         
 from pytorch_forecasting.metrics import MultiHorizonMetric
+import torch
+import torch.nn.functional as F
 
 class Myloss(MultiHorizonMetric):
     """
@@ -133,11 +135,17 @@ class Myloss(MultiHorizonMetric):
 
     Defined as ``sqrt{(y_pred - target)**2} + (y_pred - target).abs()``
     """
-        
-    def loss(self, y_pred, target):
-        loss = ( torch.pow(self.to_prediction(y_pred) - target, 2) / \
-                torch.pow(self.to_prediction(y_pred) - target.mean(), 2) )
-        return loss
+    def smape_loss(y_true, y_pred):
+        """
+        Calculates Symmetric Mean Absolute Percentage Error between y_true and y_pred.
+        """
+        return torch.mean(torch.abs(y_true - y_pred) / ((torch.abs(y_true) + torch.abs(y_pred)) / 2))
+
+    def loss(y_true, y_pred):
+        """
+        Calculates combined loss using both SMAPE and MAE.
+        """
+        return 0.5 * smape_loss(y_true, y_pred) + 0.5 * F.l1_loss(y_true, y_pred)
     
 # MOD_BINS = 512
 # FAM_BINS = 256
@@ -158,7 +166,7 @@ class ModelBase:
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
                  max_epochs = 400,
-                 lr_milestones_list = [30, 70, 150, 250, 350],
+                 lr_milestones_list = [10, 30, 70, 150, 350],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -190,15 +198,13 @@ class ModelBase:
         elif loss_func_metric == 'QuantileLoss':
             self.loss_func = QuantileLoss()
         elif loss_func_metric == 'Myloss':
-            self.loss_func = SMAPE() + MAE()
+            self.loss_func = Myloss()
             
         self.exp_name = exp_name
         self.crop_name = crop_name
         self.scrop = crop_name
         self.batch_size = batch_size
         self.predicted_year = str(predicted_year)
-        
-        self.learning_rate = learning_rate
         
         self.datasetfile = datasetfile
         
@@ -208,7 +214,6 @@ class ModelBase:
         # FAM_BINS = 256
         
         print('predicted_year:', self.predicted_year, 'max_epochs:', max_epochs, 'batch_size:', batch_size, \
-              'learning_rate', self.learning_rate, \
               'loss_func_metric:', loss_func_metric, 'seed:', seed, 'lr_milestones_list:', lr_milestones_list)
         
         # sys.exit(0)

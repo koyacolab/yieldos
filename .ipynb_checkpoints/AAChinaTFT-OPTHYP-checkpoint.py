@@ -83,42 +83,30 @@ from pytorch_lightning.callbacks import GradientAccumulationScheduler
 #         return
 
 #     def on_train_epoch_start(self, trainer, pl_module):
-#         if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
-#             optimizer = trainer.optimizers[0]
-#             scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, self.milestones, self.gamma)
-#             # StepLR(optimizer, self.step_size, self.gamma)
-#             for param_group in self.optimizer.param_groups:
-#                 param_group['lr'] = self.scheduler.get_last_lr()[0]
-#             self.scheduler.step()
-#             print('on_train_epoch_start:', self.scheduler.get_last_lr()[0])
+#         # if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
+#         # optimizer = trainer.optimizers[0]
+#         # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, self.milestones, self.gamma)
+#         # StepLR(optimizer, self.step_size, self.gamma)
+#         for param_group in self.optimizer.param_groups:
+#             param_group['lr'] = self.scheduler.get_last_lr()[0]
+#         self.scheduler.step()
+#         print('on_train_epoch_start:', self.scheduler.get_last_lr()[0])
         
 class FineTuneLearningRateFinder(LearningRateFinder):
     def __init__(self, milestones, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.milestones = milestones
-        self.gamma = 0.5
-        self.optimizer = []
-        self.scheduler = []
+        # self.optimizer = []
 
-    # def on_fit_start(self, *args, **kwargs):
-    def on_fit_start(self, trainer, pl_module):
-        self.lr_find(trainer, pl_module)
-        self.optimizer = trainer.optimizers[0]
-        self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, self.milestones, self.gamma)
+    def on_fit_start(self, *args, **kwargs):
+    # def on_fit_start(self, trainer, pl_module):
+        # self.optimizer = trainer.optimizers[0]
         # self.optimizer.param_groups[0]['capturable'] = True
         return
 
     def on_train_epoch_start(self, trainer, pl_module):
-        if trainer.current_epoch == 0:
+        if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
             self.lr_find(trainer, pl_module)
-        if trainer.current_epoch in self.milestones:
-            self.optimizer = trainer.optimizers[0]
-            self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, self.milestones, self.gamma)
-            # StepLR(optimizer, self.step_size, self.gamma)
-            for param_group in self.optimizer.param_groups:
-                param_group['lr'] = self.scheduler.get_last_lr()[0]
-        self.scheduler.step()
-        print('on_train_epoch_start:', self.scheduler.get_last_lr()[0])
             
     # def on_train_epoch_end(self, trainer, pl_module):
     #     self.optimizer = trainer.optimizers[0]
@@ -157,8 +145,8 @@ class ModelBase:
                  save_checkpoint = False,
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
-                 max_epochs = 400,
-                 lr_milestones_list = [30, 70, 150, 250, 350],
+                 max_epochs = 600,
+                 lr_milestones_list = [15, 30, 60, 90, 150],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -198,8 +186,6 @@ class ModelBase:
         self.batch_size = batch_size
         self.predicted_year = str(predicted_year)
         
-        self.learning_rate = learning_rate
-        
         self.datasetfile = datasetfile
         
         self.lr_milestones_list = lr_milestones_list
@@ -208,7 +194,6 @@ class ModelBase:
         # FAM_BINS = 256
         
         print('predicted_year:', self.predicted_year, 'max_epochs:', max_epochs, 'batch_size:', batch_size, \
-              'learning_rate', self.learning_rate, \
               'loss_func_metric:', loss_func_metric, 'seed:', seed, 'lr_milestones_list:', lr_milestones_list)
         
         # sys.exit(0)
@@ -247,7 +232,7 @@ class ModelBase:
 
         alidata = alidata[ alidata['month'] < 11 ]
 
-        # display(alidata)        
+        # display(alidata)
         
         infer_mask = alidata['year'].isin(['2019', '2020', '2021', '2022'])
 
@@ -432,7 +417,7 @@ class ModelBase:
 
         actuals = torch.cat([y for x, (y, weight) in iter(self.val_dataloader)])
         baseline_predictions = Baseline().predict(self.val_dataloader)
-        # print( 'Baseline:',type(actuals), actuals.size(), baseline_predictions.size(), actuals[0,:], baseline_predictions[0,:] )
+        print( 'Baseline:',type(actuals), actuals.size(), baseline_predictions.size(), actuals[0,:], baseline_predictions[0,:] )
         # print( torch.where(torch.isnan(actuals)), torch.where(torch.isnan(baseline_predictions)) )
         print( 'Baseline:', (actuals - baseline_predictions).abs().mean().item() )
         print( 'Baseline:', time.asctime( time.localtime(time.time()) ) )
@@ -453,8 +438,7 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list, mode='linear', early_stop_threshold=10000)
-        _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list)
+        _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list, mode='linear')
 
         _swa = StochasticWeightAveraging(swa_lrs=1e-2, swa_epoch_start=50, device='gpu')
 
@@ -462,7 +446,7 @@ class ModelBase:
                           # devices = "0",
                           # fast_dev_run=True, 
                           # precision=16,
-                          gradient_clip_val=0.2,
+                          gradient_clip_val=0.3,
                           # reload_dataloaders_every_epoch=True,
                           callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor])
 
@@ -472,11 +456,11 @@ class ModelBase:
             self.training,
             learning_rate=learning_rate,
             # # lstm_layers=2,
-            # hidden_size=60,
-            # hidden_continuous_size=30,
+            # hidden_size=16,
             # attention_head_size=4,
-            dropout=0.3,          
-            # output_size=7,  # 7 quantiles by default      
+            dropout=0.3,
+            # hidden_continuous_size=8,
+            # output_size=1,  # 7 quantiles by default
             loss=self.loss_func,
             # loss=QuantileLoss(),
             optimizer = 'adam',
@@ -503,6 +487,45 @@ class ModelBase:
         print(f"suggested learning rate: {res.suggestion()}")
         fig = res.plot(show=True, suggest=True)
         fig.show()
+        
+    def optimize(self,):
+        import pickle
+
+        from pytorch_forecasting.models.temporal_fusion_transformer.tuning import optimize_hyperparameters
+
+        print('optimize_hyperparameters start at', time.asctime( time.localtime(time.time()) ) )
+        
+        # create study
+        study = optimize_hyperparameters(
+            self.train_dataloader,
+            self.val_dataloader,
+            model_path="optuna_test",
+            n_trials=10,
+            max_epochs=20,
+            timeout=3600*48.0,
+            gradient_clip_val_range=(0.1, 1.0),
+            hidden_size_range=(8, 128),
+            hidden_continuous_size_range=(8, 128),
+            attention_head_size_range=(1, 4),
+            learning_rate_range=(0.01, 0.05),
+            dropout_range=(0.1, 0.8),
+            # trainer_kwargs=dict(limit_train_batches=60),
+            trainer_kwargs=dict(log_every_n_steps=1),
+            reduce_on_plateau_patience=10,
+            use_learning_rate_finder=False,  # use Optuna to find ideal learning rate or use in-built learning rate finder
+            verbose=2,
+        )
+
+        # save study results - also we can resume tuning at a later point in time
+        with open("test_study.pkl", "wb") as fout:
+            pickle.dump(study, fout)
+
+        # show best hyperparameters
+        print(study.best_trial.params)
+        
+        print('optimize_hyperparameters done at', time.asctime( time.localtime(time.time()) ) )
+
+        fn
         
     def train(self,):
         print( time.asctime( time.localtime(time.time()) ) )
@@ -723,11 +746,11 @@ class Logger:
 
 class RunTask:
     @staticmethod
-    def train_TFT(exp_name, 
+    def optimize(exp_name, 
                   crop_name='rice', 
                   predicted_year=2004,
                   batch_size=16,
-                  learning_rate=0.0325,
+                  learning_rate=0.1,
                   loss_func_metric='RMSE', 
                   max_epochs=600):
         
@@ -749,9 +772,11 @@ class RunTask:
                           batch_size=batch_size, 
                           learning_rate=learning_rate,
                           loss_func_metric=loss_func_metric)
-        model.train()
-        model.predict()
-        model.inference()
+        
+        model.optimize()
+        # model.train()
+        # model.predict()
+        # model.inference()
         # model.plot_predict()
 
 if __name__ == "__main__":
