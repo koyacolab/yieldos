@@ -179,7 +179,8 @@ class ModelBase:
 
         # alidata = df_not_str.join(df_str)
 
-        alidata = alidata[ alidata['month'] < 11 ]
+        # DON'T DELETE, cut dataset by month
+        # alidata = alidata[ alidata['month'] < 11 ]
 
         # display(alidata)        
         
@@ -370,8 +371,7 @@ class ModelBase:
         # print( torch.where(torch.isnan(actuals)), torch.where(torch.isnan(baseline_predictions)) )
         print( 'Baseline:', (actuals - baseline_predictions).abs().mean().item() )
         print( 'Baseline:', time.asctime( time.localtime(time.time()) ) )
-        
-        _accumulator = GradientAccumulationScheduler(scheduling={0: 1, 60: 7, 150: 4})
+    
         
         # dir = '/hy-tmp/chck/ali'
         # home_dir = '/content/gdrive/My Drive/AChina' 
@@ -389,8 +389,10 @@ class ModelBase:
 
         _lr_finder  = FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, mode='linear', early_stop_threshold=10000)
         # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list)
+        
+        _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
 
-        _swa = StochasticWeightAveraging(swa_lrs=1e-2, swa_epoch_start=50, device='gpu')
+        _SWA = StochasticWeightAveraging(swa_lrs=1e-2, swa_epoch_start=50, device='gpu')
 
         self.trainer = Trainer(accelerator='gpu', 
                                logger=_logger, 
@@ -401,11 +403,11 @@ class ModelBase:
                                # precision=16,
                                gradient_clip_val=0.2,
                                # reload_dataloaders_every_epoch=True,
-                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor])
+                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor, _GradAccumulator])
 
         # learning_rate = 0.01
 
-        self.model = TemporalFusionTransformer.from_dataset(
+        self.tft = TemporalFusionTransformer.from_dataset(
             self.training,
             learning_rate=self.learning_rate,
             # # lstm_layers=2,
@@ -420,14 +422,20 @@ class ModelBase:
             # log_interval=10,  # uncomment for learning rate finder and otherwise, e.g. to 10 for logging every 10 batches
             # reduce_on_plateau_patience=4,
             )
+
+        ####################################################################
         
+        self.best_tft = self.tft
+        self.checkpoint = name_for_files
+        
+    def init_lr_finder(self, min_lr=1e-3):
         # Run learning rate finder
         lr_finder = self.trainer.tuner.lr_find(
-            self.model,
+            self.tft,
             train_dataloaders=self.train_dataloader,
             val_dataloaders=self.val_dataloader,
             max_lr=1.0,
-            min_lr=1e-3,
+            min_lr=min_lr,
         )
 
         # Results can be found in
@@ -441,43 +449,22 @@ class ModelBase:
         new_lr = lr_finder.suggestion()
 
         # update hparams of the model
-        self.model.hparams.lr = new_lr
-        self.model.hparams.learning_rate = new_lr
-        
-        print('new_lr:', self.model.hparams)
-        
+        self.tft.hparams.lr = new_lr
+        self.tft.hparams.learning_rate = new_lr
+
+        print('new_lr:', self.tft.hparams)
+
         print(f"suggested learning rate: {lr_finder.suggestion()}")
         fig = lr_finder.plot(show=True, suggest=True)
-        fig.show()
-        
+        # fig.show()
+
         fig.tight_layout()
         fig.savefig('lr_finder.png', dpi=300, format='png')
-        
-#         # find optimal learning rate
-#         res = self.trainer.tuner.lr_find(
-#             self.model,
-#             train_dataloaders=self.train_dataloader,
-#             val_dataloaders=self.val_dataloader,
-#             max_lr=1.0,
-#             min_lr=1e-5,
-#         )
-
-#         print(f"suggested learning rate: {res.suggestion()}")
-#         fig = res.plot(show=True, suggest=True)
-#         fig.show()
-        
-#         # fn
-
-
-        ####################################################################
-        
-        self.best_tft = self.model
-        self.checkpoint = name_for_files
         
     def find_init_lr():
         # find optimal learning rate
         res = trainer.tuner.lr_find(
-            self.model,
+            self.tft,
             train_dataloaders=self.train_dataloader,
             val_dataloaders=self.val_dataloader,
             max_lr=1.0,
@@ -491,7 +478,7 @@ class ModelBase:
     def train(self,):
         print( time.asctime( time.localtime(time.time()) ) )
         self.trainer.fit(
-            self.model,
+            self.tft,
             train_dataloaders = self.train_dataloader,
             val_dataloaders   = self.val_dataloader,
         )
@@ -508,7 +495,7 @@ class ModelBase:
         # checkpoint = f"{self.crop}-{self.val_year}-{self.exp_name}.ckpt"
         self.trainer.save_checkpoint(f'{self.checkpoint}.ckpt')
         print('weights loading', time.asctime( time.localtime(time.time()) ) )
-        self.best_tft = self.model  # TemporalFusionTransformer.load_from_checkpoint(checkpoint)
+        self.best_tft = self.tft  # TemporalFusionTransformer.load_from_checkpoint(checkpoint)
         print('weights loaded', time.asctime( time.localtime(time.time()) ) )
         
         # print('Train(): learning_rate', self.model.hparams.learning_rate)
@@ -733,6 +720,8 @@ class RunTask:
                           batch_size=batch_size, 
                           learning_rate=learning_rate,
                           loss_func_metric=loss_func_metric)
+        
+        model.init_lr_finder()
         model.train()
         model.predict()
         model.inference()

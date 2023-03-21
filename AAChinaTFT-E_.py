@@ -61,8 +61,10 @@ from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, FineTuneLearningRateFinder_2
-    
+        
 from pytorch_forecasting.metrics import MultiHorizonMetric
+import torch
+import torch.nn.functional as F
 
 class Myloss(MultiHorizonMetric):
     """
@@ -70,11 +72,17 @@ class Myloss(MultiHorizonMetric):
 
     Defined as ``sqrt{(y_pred - target)**2} + (y_pred - target).abs()``
     """
-        
-    def loss(self, y_pred, target):
-        loss = ( torch.pow(self.to_prediction(y_pred) - target, 2) / \
-                torch.pow(self.to_prediction(y_pred) - target.mean(), 2) )
-        return loss
+    def smape_loss(y_true, y_pred):
+        """
+        Calculates Symmetric Mean Absolute Percentage Error between y_true and y_pred.
+        """
+        return torch.mean(torch.abs(y_true - y_pred) / ((torch.abs(y_true) + torch.abs(y_pred)) / 2))
+
+    def loss(y_true, y_pred):
+        """
+        Calculates combined loss using both SMAPE and MAE.
+        """
+        return 0.5 * smape_loss(y_true, y_pred) + 0.5 * F.l1_loss(y_true, y_pred)
     
 # MOD_BINS = 512
 # FAM_BINS = 256
@@ -93,9 +101,9 @@ class ModelBase:
                  # encoder_length = 20,
                  save_checkpoint = False,
                  save_checkpoint_model = 'best-model',
-                 learning_rate = 0.01,
-                 max_epochs = 200,
-                 lr_milestones_list = [20, 50, 80, 120, 160,],
+                 learning_rate = 0.05,
+                 max_epochs = 400,
+                 lr_milestones_list = [2, 30, 70, 150, 350],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -127,7 +135,7 @@ class ModelBase:
         elif loss_func_metric == 'QuantileLoss':
             self.loss_func = QuantileLoss()
         elif loss_func_metric == 'Myloss':
-            self.loss_func = SMAPE() + MAE()
+            self.loss_func = Myloss()
             
         self.exp_name = exp_name
         self.crop_name = crop_name
@@ -157,9 +165,12 @@ class ModelBase:
         print(f'{self.datasetfile} loaded', time.asctime( time.localtime(time.time()) ) )
         
         # display(alidata)
-        
-        # cealr unnamed fields from dataset
-        alidata = alidata.loc[:, ~alidata.columns.str.contains('^Unnamed')]
+
+        del alidata['Unnamed: 0']
+        del alidata['Unnamed: 0.1']
+        del alidata['Unnamed: 0.2']
+        # # del alidata['Unnamed: 0.1.1']
+        del alidata['Unnamed: 0.1.1.1']
 
         alidata['county']   = alidata['county'].astype(str)
         alidata['year']     = alidata['year'].astype(str)
@@ -179,8 +190,7 @@ class ModelBase:
 
         # alidata = df_not_str.join(df_str)
 
-        # DON'T DELETE, cut dataset by month
-        # alidata = alidata[ alidata['month'] < 11 ]
+        alidata = alidata[ alidata['month'] < 11 ]
 
         # display(alidata)        
         
@@ -290,7 +300,7 @@ class ModelBase:
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
         self._time_varying_unknown_reals.extend(mod_names)
-        self._time_varying_unknown_reals.extend(famine_names)
+        # self._time_varying_unknown_reals.extend(famine_names)
 
         print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
 
@@ -371,7 +381,8 @@ class ModelBase:
         # print( torch.where(torch.isnan(actuals)), torch.where(torch.isnan(baseline_predictions)) )
         print( 'Baseline:', (actuals - baseline_predictions).abs().mean().item() )
         print( 'Baseline:', time.asctime( time.localtime(time.time()) ) )
-    
+        
+        _accumulator = GradientAccumulationScheduler(scheduling={0: 1, 60: 7, 150: 4})
         
         # dir = '/hy-tmp/chck/ali'
         # home_dir = '/content/gdrive/My Drive/AChina' 
@@ -387,34 +398,28 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        _lr_finder  = FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, mode='linear', early_stop_threshold=10000)
-        # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list)
-        
-        _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
+        # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list, mode='linear', early_stop_threshold=10000)      
+        _lr_finder  = FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list)
 
-        _SWA = StochasticWeightAveraging(swa_lrs=1e-2, swa_epoch_start=50, device='gpu')
+        _swa = StochasticWeightAveraging(swa_lrs=1e-2, swa_epoch_start=50, device='gpu')
 
-        self.trainer = Trainer(accelerator='gpu', 
-                               logger=_logger, 
-                               log_every_n_steps=1, 
-                               max_epochs=max_epochs,
-                               # devices = "0",          
-                               # fast_dev_run=True, 
-                               # precision=16,
-                               gradient_clip_val=0.2,
-                               # reload_dataloaders_every_epoch=True,
-                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor, _GradAccumulator])
-        
+        self.trainer = Trainer(accelerator='gpu', logger=_logger, log_every_n_steps=1, max_epochs=max_epochs,
+                          # devices = "0",
+                          # fast_dev_run=True, 
+                          # precision=16,
+                          gradient_clip_val=0.2,
+                          # reload_dataloaders_every_epoch=True,
+                          callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor])
 
         # learning_rate = 0.01
 
-        self.tft = TemporalFusionTransformer.from_dataset(
+        self.model = TemporalFusionTransformer.from_dataset(
             self.training,
-            learning_rate=self.learning_rate,
+            learning_rate=learning_rate,
             # # lstm_layers=2,
-            hidden_size=60,
-            hidden_continuous_size=30,
-            attention_head_size=4,
+            # hidden_size=60,
+            # hidden_continuous_size=30,
+            # attention_head_size=4,
             dropout=0.3,          
             # output_size=7,  # 7 quantiles by default      
             loss=self.loss_func,
@@ -424,49 +429,16 @@ class ModelBase:
             # reduce_on_plateau_patience=4,
             )
 
+
         ####################################################################
         
-        self.best_tft = self.tft
+        self.best_tft = self.model
         self.checkpoint = name_for_files
-        
-    def init_lr_finder(self, min_lr=1e-3):
-        # Run learning rate finder
-        lr_finder = self.trainer.tuner.lr_find(
-            self.tft,
-            train_dataloaders=self.train_dataloader,
-            val_dataloaders=self.val_dataloader,
-            max_lr=1.0,
-            min_lr=min_lr,
-            mode='linear'
-        )
-
-        # Results can be found in
-        lr_finder.results
-
-        # Plot with
-        fig = lr_finder.plot(suggest=True)
-        fig.show()
-
-        # Pick point based on plot, or get suggestion
-        new_lr = lr_finder.suggestion()
-
-        # update hparams of the model
-        self.tft.hparams.lr = new_lr
-        self.tft.hparams.learning_rate = new_lr
-
-        print('new_lr:', self.tft.hparams)
-
-        print(f"suggested learning rate: {lr_finder.suggestion()}")
-        fig = lr_finder.plot(show=True, suggest=True)
-        # fig.show()
-
-        fig.tight_layout()
-        fig.savefig(f'lr_finderlr_[{self.predicted_year}].png', dpi=300, format='png')
         
     def find_init_lr():
         # find optimal learning rate
         res = trainer.tuner.lr_find(
-            self.tft,
+            self.model,
             train_dataloaders=self.train_dataloader,
             val_dataloaders=self.val_dataloader,
             max_lr=1.0,
@@ -480,7 +452,7 @@ class ModelBase:
     def train(self,):
         print( time.asctime( time.localtime(time.time()) ) )
         self.trainer.fit(
-            self.tft,
+            self.model,
             train_dataloaders = self.train_dataloader,
             val_dataloaders   = self.val_dataloader,
         )
@@ -497,7 +469,7 @@ class ModelBase:
         # checkpoint = f"{self.crop}-{self.val_year}-{self.exp_name}.ckpt"
         self.trainer.save_checkpoint(f'{self.checkpoint}.ckpt')
         print('weights loading', time.asctime( time.localtime(time.time()) ) )
-        self.best_tft = self.tft  # TemporalFusionTransformer.load_from_checkpoint(checkpoint)
+        self.best_tft = self.model  # TemporalFusionTransformer.load_from_checkpoint(checkpoint)
         print('weights loaded', time.asctime( time.localtime(time.time()) ) )
         
         # print('Train(): learning_rate', self.model.hparams.learning_rate)
@@ -722,8 +694,6 @@ class RunTask:
                           batch_size=batch_size, 
                           learning_rate=learning_rate,
                           loss_func_metric=loss_func_metric)
-        
-        model.init_lr_finder()
         model.train()
         model.predict()
         model.inference()
