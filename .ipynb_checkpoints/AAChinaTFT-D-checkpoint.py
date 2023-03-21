@@ -520,9 +520,9 @@ class ModelBase:
             self.training,
             learning_rate=self.learning_rate,
             # # lstm_layers=2,
-            # hidden_size=60,
-            # hidden_continuous_size=30,
-            # attention_head_size=4,
+            hidden_size=60,
+            hidden_continuous_size=30,
+            attention_head_size=4,
             dropout=0.3,          
             # output_size=7,  # 7 quantiles by default      
             loss=self.loss_func,
@@ -538,7 +538,7 @@ class ModelBase:
             train_dataloaders=self.train_dataloader,
             val_dataloaders=self.val_dataloader,
             max_lr=1.0,
-            min_lr=1e-6,
+            min_lr=1e-3,
         )
 
         # Results can be found in
@@ -553,6 +553,7 @@ class ModelBase:
 
         # update hparams of the model
         self.model.hparams.lr = new_lr
+        self.model.hparams.learning_rate = new_lr
         
         print('new_lr:', self.model.hparams)
         
