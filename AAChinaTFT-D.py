@@ -64,6 +64,8 @@ from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, Fi
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
 
+from LRCustom import custom_lr_find
+
 class Myloss(MultiHorizonMetric):
     """
     sqrtRMSE + MAE
@@ -461,7 +463,42 @@ class ModelBase:
         # fig.show()
 
         fig.tight_layout()
-        fig.savefig(f'lr_finderlr_[{self.predicted_year}].png', dpi=300, format='png')
+        fig.savefig(f'lr_find_[{self.predicted_year}].png', dpi=300, format='png')
+        
+    def custom_lr_finder(self, min_lr=1e-3):
+        # Run learning rate finder
+        self.trainer.tuner.lr_find = custom_lr_find
+        lr_finder = self.trainer.tuner.lr_find(
+            self.tft,
+            train_dataloaders=self.train_dataloader,
+            val_dataloaders=self.val_dataloader,
+            max_lr=1.0,
+            min_lr=min_lr,
+            mode='linear'
+        )
+
+        # Results can be found in
+        lr_finder.results
+
+        # Plot with
+        fig = lr_finder.plot(suggest=True)
+        fig.show()
+
+        # Pick point based on plot, or get suggestion
+        new_lr = lr_finder.suggestion()
+
+        # update hparams of the model
+        self.tft.hparams.lr = new_lr
+        self.tft.hparams.learning_rate = new_lr
+
+        print('new_lr:', self.tft.hparams)
+
+        print(f"suggested learning rate: {lr_finder.suggestion()}")
+        fig = lr_finder.plot(show=True, suggest=True)
+        # fig.show()
+
+        fig.tight_layout()
+        fig.savefig(f'custom_find_[{self.predicted_year}].png', dpi=300, format='png')
         
     def find_init_lr():
         # find optimal learning rate
@@ -724,6 +761,7 @@ class RunTask:
                           loss_func_metric=loss_func_metric)
         
         model.init_lr_finder()
+        model.custom_lr_finder()
         model.train()
         model.predict()
         model.inference()
