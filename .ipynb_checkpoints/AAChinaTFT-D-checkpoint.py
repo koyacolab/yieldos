@@ -94,8 +94,8 @@ class ModelBase:
                  save_checkpoint = False,
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
-                 max_epochs = 400,
-                 lr_milestones_list = [2, 20, 30, 40, 50],
+                 max_epochs = 300,
+                 lr_milestones_list = [80, 180,],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -403,7 +403,8 @@ class ModelBase:
                                # precision=16,
                                gradient_clip_val=0.2,
                                # reload_dataloaders_every_epoch=True,
-                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor, _GradAccumulator])
+                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor])
+        
 
         # learning_rate = 0.01
 
@@ -411,9 +412,9 @@ class ModelBase:
             self.training,
             learning_rate=self.learning_rate,
             # # lstm_layers=2,
-            hidden_size=60,
-            hidden_continuous_size=30,
-            attention_head_size=4,
+            # hidden_size=60,
+            # hidden_continuous_size=30,
+            # attention_head_size=4,
             dropout=0.3,          
             # output_size=7,  # 7 quantiles by default      
             loss=self.loss_func,
@@ -436,6 +437,7 @@ class ModelBase:
             val_dataloaders=self.val_dataloader,
             max_lr=1.0,
             min_lr=min_lr,
+            mode='linear'
         )
 
         # Results can be found in
@@ -459,7 +461,7 @@ class ModelBase:
         # fig.show()
 
         fig.tight_layout()
-        fig.savefig('lr_finder.png', dpi=300, format='png')
+        fig.savefig(f'lr_finderlr_[{self.predicted_year}].png', dpi=300, format='png')
         
     def find_init_lr():
         # find optimal learning rate

@@ -453,6 +453,10 @@ class ModelBase:
         # update hparams of the model
         self.tft.hparams.lr = new_lr
         self.tft.hparams.learning_rate = new_lr
+        
+        !!!!!!!!!!!
+        metrics = self.trainer.callbacks[1].batch_metrics
+        loss = metrics['loss'].values
 
         print('new_lr:', self.tft.hparams)
 
