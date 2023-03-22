@@ -64,7 +64,7 @@ from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, Fi
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
 
-from LRCustom import custom_lr_find
+# from LRCustom import custom_lr_find
 
 class Myloss(MultiHorizonMetric):
     """
@@ -431,7 +431,7 @@ class ModelBase:
         self.best_tft = self.tft
         self.checkpoint = name_for_files
         
-    def init_lr_finder(self, min_lr=1e-3):
+    def init_lr_finder(self, min_lr=1e-6):
         # Run learning rate finder
         lr_finder = self.trainer.tuner.lr_find(
             self.tft,
@@ -456,18 +456,19 @@ class ModelBase:
         self.tft.hparams.lr = new_lr
         self.tft.hparams.learning_rate = new_lr
 
-        print('new_lr:', self.tft.hparams)
+        print('new_lr:', self.tft.hparams.lr)
 
         print(f"suggested learning rate: {lr_finder.suggestion()}")
         fig = lr_finder.plot(show=True, suggest=True)
         # fig.show()
 
         fig.tight_layout()
-        fig.savefig(f'lr_find_[{self.predicted_year}].png', dpi=300, format='png')
+        fig.savefig(f'llr_find_[{self.predicted_year}].png', dpi=300, format='png')
         
-    def custom_lr_finder(self, min_lr=1e-3):
+    def custom_finder(self, min_lr=1e-3):
         # Run learning rate finder
         self.trainer.tuner.lr_find = custom_lr_find
+        # trainer.tuner.lr_find = custom_lr_find
         lr_finder = self.trainer.tuner.lr_find(
             self.tft,
             train_dataloaders=self.train_dataloader,
@@ -478,11 +479,11 @@ class ModelBase:
         )
 
         # Results can be found in
-        lr_finder.results
+        print('lr_finder.results:', lr_finder.results)
 
-        # Plot with
-        fig = lr_finder.plot(suggest=True)
-        fig.show()
+        # # Plot with
+        # fig = lr_finder.plot(suggest=True)
+        # fig.show()
 
         # Pick point based on plot, or get suggestion
         new_lr = lr_finder.suggestion()
@@ -491,11 +492,11 @@ class ModelBase:
         self.tft.hparams.lr = new_lr
         self.tft.hparams.learning_rate = new_lr
 
-        print('new_lr:', self.tft.hparams)
+        print('new_lr:', self.tft.hparams.lr)
 
         print(f"suggested learning rate: {lr_finder.suggestion()}")
         fig = lr_finder.plot(show=True, suggest=True)
-        # fig.show()
+        fig.show()
 
         fig.tight_layout()
         fig.savefig(f'custom_find_[{self.predicted_year}].png', dpi=300, format='png')
@@ -761,11 +762,12 @@ class RunTask:
                           loss_func_metric=loss_func_metric)
         
         model.init_lr_finder()
-        model.custom_lr_finder()
-        model.train()
-        model.predict()
-        model.inference()
+        # model.custom_finder()
+        # model.train()
+        # model.predict()
+        # model.inference()
         # model.plot_predict()
+        sys.exit(0)
 
 if __name__ == "__main__":
     
