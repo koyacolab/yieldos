@@ -431,7 +431,7 @@ class ModelBase:
         self.best_tft = self.tft
         self.checkpoint = name_for_files
         
-    def init_lr_finder(self, min_lr=1e-6):
+    def init_lr_finder(self, min_lr=1e-8):
         # Run learning rate finder
         lr_finder = self.trainer.tuner.lr_find(
             self.tft,
@@ -439,7 +439,7 @@ class ModelBase:
             val_dataloaders=self.val_dataloader,
             max_lr=1.0,
             min_lr=min_lr,
-            mode='linear'
+            # mode='linear'
         )
 
         # Results can be found in
