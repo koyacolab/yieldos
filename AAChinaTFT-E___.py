@@ -64,8 +64,6 @@ from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, Fi
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
 
-# from LRCustom import custom_lr_find
-
 class Myloss(MultiHorizonMetric):
     """
     sqrtRMSE + MAE
@@ -97,7 +95,7 @@ class ModelBase:
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
                  max_epochs = 200,
-                 lr_milestones_list = [2, 20, 40, 80,],
+                 lr_milestones_list = [20, 50, 80, 120, 160,],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -389,7 +387,7 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        _lr_finder  = FineTuneLearningRateFinder_0(milestones = self.lr_milestones_list, mode='linear', early_stop_threshold=10000)
+        _lr_finder  = FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, mode='linear', early_stop_threshold=10000)
         # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list)
         
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -405,7 +403,7 @@ class ModelBase:
                                # precision=16,
                                gradient_clip_val=0.2,
                                # reload_dataloaders_every_epoch=True,
-                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor])
+                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor, _GradAccumulator])
         
 
         # learning_rate = 0.01
@@ -414,9 +412,9 @@ class ModelBase:
             self.training,
             learning_rate=self.learning_rate,
             # # lstm_layers=2,
-            # hidden_size=60,
-            # hidden_continuous_size=30,
-            # attention_head_size=4,
+            hidden_size=60,
+            hidden_continuous_size=30,
+            attention_head_size=4,
             dropout=0.3,          
             # output_size=7,  # 7 quantiles by default      
             loss=self.loss_func,
@@ -431,7 +429,7 @@ class ModelBase:
         self.best_tft = self.tft
         self.checkpoint = name_for_files
         
-    def init_lr_finder(self, min_lr=1e-6):
+    def init_lr_finder(self, min_lr=1e-3):
         # Run learning rate finder
         lr_finder = self.trainer.tuner.lr_find(
             self.tft,
@@ -455,51 +453,19 @@ class ModelBase:
         # update hparams of the model
         self.tft.hparams.lr = new_lr
         self.tft.hparams.learning_rate = new_lr
-
-        print('new_lr:', self.tft.hparams.lr)
-
-        print(f"suggested learning rate: {lr_finder.suggestion()}")
-        fig = lr_finder.plot(show=True, suggest=True)
-        # fig.show()
-
-        fig.tight_layout()
-        fig.savefig(f'Elr_find_[{self.predicted_year}].png', dpi=300, format='png')
         
-    def custom_finder(self, min_lr=1e-3):
-        # Run learning rate finder
-        self.trainer.tuner.lr_find = custom_lr_find
-        # trainer.tuner.lr_find = custom_lr_find
-        lr_finder = self.trainer.tuner.lr_find(
-            self.tft,
-            train_dataloaders=self.train_dataloader,
-            val_dataloaders=self.val_dataloader,
-            max_lr=1.0,
-            min_lr=min_lr,
-            mode='linear'
-        )
+        !!!!!!!!!!!
+        metrics = self.trainer.callbacks[1].batch_metrics
+        loss = metrics['loss'].values
 
-        # Results can be found in
-        print('lr_finder.results:', lr_finder.results)
-
-        # # Plot with
-        # fig = lr_finder.plot(suggest=True)
-        # fig.show()
-
-        # Pick point based on plot, or get suggestion
-        new_lr = lr_finder.suggestion()
-
-        # update hparams of the model
-        self.tft.hparams.lr = new_lr
-        self.tft.hparams.learning_rate = new_lr
-
-        print('new_lr:', self.tft.hparams.lr)
+        print('new_lr:', self.tft.hparams)
 
         print(f"suggested learning rate: {lr_finder.suggestion()}")
         fig = lr_finder.plot(show=True, suggest=True)
-        fig.show()
+        # fig.show()
 
         fig.tight_layout()
-        fig.savefig(f'Ecustom_find_[{self.predicted_year}].png', dpi=300, format='png')
+        fig.savefig(f'lr_finderlr_[{self.predicted_year}].png', dpi=300, format='png')
         
     def find_init_lr():
         # find optimal learning rate
@@ -762,12 +728,10 @@ class RunTask:
                           loss_func_metric=loss_func_metric)
         
         model.init_lr_finder()
-        # model.custom_finder()
         model.train()
         model.predict()
         model.inference()
         # model.plot_predict()
-        sys.exit(0)
 
 if __name__ == "__main__":
     

@@ -224,7 +224,7 @@ class _LRFinder:
         return self.results["lr"][self._optimal_idx]
 
 
-def lr_find(
+def _lr_find(
     trainer: "pl.Trainer",
     model: "pl.LightningModule",
     min_lr: float = 1e-8,

@@ -431,7 +431,7 @@ class ModelBase:
         self.best_tft = self.tft
         self.checkpoint = name_for_files
         
-    def init_lr_finder(self, min_lr=1e-8):
+    def init_lr_finder(self, min_lr=1e-6):
         # Run learning rate finder
         lr_finder = self.trainer.tuner.lr_find(
             self.tft,
@@ -463,7 +463,7 @@ class ModelBase:
         # fig.show()
 
         fig.tight_layout()
-        fig.savefig(f'llr_find_[{self.predicted_year}].png', dpi=300, format='png')
+        fig.savefig(f'Dlr_find_[{self.predicted_year}]_[{self.batch_size}].png', dpi=300, format='png')
         
     def custom_finder(self, min_lr=1e-3):
         # Run learning rate finder
@@ -499,7 +499,7 @@ class ModelBase:
         fig.show()
 
         fig.tight_layout()
-        fig.savefig(f'custom_find_[{self.predicted_year}].png', dpi=300, format='png')
+        fig.savefig(f'Dcustom_find_[{self.predicted_year}]_[{self.batch_size}].png', dpi=300, format='png')
         
     def find_init_lr():
         # find optimal learning rate
