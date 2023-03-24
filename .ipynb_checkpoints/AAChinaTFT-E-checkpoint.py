@@ -97,7 +97,7 @@ class ModelBase:
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
                  max_epochs = 200,
-                 lr_milestones_list = [2, 20, 40, 80,],
+                 lr_milestones_list = [80, 160,],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -379,7 +379,7 @@ class ModelBase:
         # home_dir = '/content/gdrive/My Drive/AChina' 
         # _dir = os.path.join(home_dir, 'data')
         
-        name_for_files = f'cr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.predicted_year}]'
+        name_for_files = f'E-cr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.predicted_year}]'
         
         _checkpoint_callback = ModelCheckpoint(dirpath = os.path.join(home_dir, name_for_files), every_n_epochs = 50)
 
@@ -389,7 +389,7 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        _lr_finder  = FineTuneLearningRateFinder_0(milestones = self.lr_milestones_list, mode='linear', early_stop_threshold=10000)
+        _lr_finder  = FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, mode='linear', early_stop_threshold=10000)
         # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list)
         
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -439,7 +439,7 @@ class ModelBase:
             val_dataloaders=self.val_dataloader,
             max_lr=1.0,
             min_lr=min_lr,
-            mode='linear'
+            # mode='linear'
         )
 
         # Results can be found in
@@ -463,7 +463,7 @@ class ModelBase:
         # fig.show()
 
         fig.tight_layout()
-        fig.savefig(f'Elr_find_[{self.predicted_year}].png', dpi=300, format='png')
+        fig.savefig(f'Elr_find_[{self.predicted_year}]_[{self.batch_size}].png', dpi=300, format='png')
         
     def custom_finder(self, min_lr=1e-3):
         # Run learning rate finder
@@ -499,7 +499,7 @@ class ModelBase:
         fig.show()
 
         fig.tight_layout()
-        fig.savefig(f'Ecustom_find_[{self.predicted_year}].png', dpi=300, format='png')
+        fig.savefig(f'Ecustom_find_[{self.predicted_year}]_[{self.batch_size}].png', dpi=300, format='png')
         
     def find_init_lr():
         # find optimal learning rate
@@ -581,7 +581,9 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'AAA{name_for_files}_predict.npz',
+            f'AAE{name_for_files}_predict.npz',
+            act = actuals.nupy(),
+            pred = predictions.numpy(),
             prediction = experiment['prediction'].numpy(),
             encoder_target = experiment['encoder_target'].numpy(),
             decoder_target = experiment['decoder_target'].numpy(),
@@ -648,6 +650,8 @@ class ModelBase:
 
         np.savez(
             f'AAA{name_for_files}_inference.npz',
+            act = actuals.nupy(),
+            pred = predictions.numpy(),
             prediction = experiment['prediction'].numpy(),
             encoder_target = experiment['encoder_target'].numpy(),
             decoder_target = experiment['decoder_target'].numpy(),
@@ -761,12 +765,13 @@ class RunTask:
                           learning_rate=learning_rate,
                           loss_func_metric=loss_func_metric)
         
-        model.init_lr_finder()
+        # model.init_lr_finder()
         # model.custom_finder()
         model.train()
         model.predict()
         model.inference()
         # model.plot_predict()
+        print('training end')
         sys.exit(0)
 
 if __name__ == "__main__":

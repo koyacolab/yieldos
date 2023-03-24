@@ -132,7 +132,7 @@ class _LRFinder:
         trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
         _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_scheduler_configs)
 
-    def plot(self, filter_size=100, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None) -> Optional["plt.Figure"]:
+    def plot(self, filter_size=10, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None) -> Optional["plt.Figure"]:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
@@ -179,7 +179,7 @@ class _LRFinder:
 
         return fig
 
-    def suggestion(self, filter_size=100, skip_begin: int = 10, skip_end: int = 1) -> Optional[float]:
+    def suggestion(self, filter_size=10, skip_begin: int = 10, skip_end: int = 1) -> Optional[float]:
         """This will propose a suggestion for an initial learning rate based on the point with the steepest
         negative gradient.
 
@@ -224,7 +224,7 @@ class _LRFinder:
         return self.results["lr"][self._optimal_idx]
 
 
-def _lr_find(
+def lr_find(
     trainer: "pl.Trainer",
     model: "pl.LightningModule",
     min_lr: float = 1e-8,

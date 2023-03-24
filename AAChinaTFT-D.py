@@ -439,7 +439,7 @@ class ModelBase:
             val_dataloaders=self.val_dataloader,
             max_lr=1.0,
             min_lr=min_lr,
-            # mode='linear'
+            mode='linear'
         )
 
         # Results can be found in
@@ -767,6 +767,7 @@ class RunTask:
         # model.predict()
         # model.inference()
         # model.plot_predict()
+        print('The end...')
         sys.exit(0)
 
 if __name__ == "__main__":
