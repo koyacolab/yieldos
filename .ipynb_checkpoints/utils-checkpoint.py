@@ -1,5 +1,8 @@
 import torch 
 from pytorch_lightning.callbacks import LearningRateFinder
+from pytorch_lightning.callbacks import Callback
+from pytorch_forecasting.data import TimeSeriesDataSet
+
 
 
 class FineTuneLearningRateFinder_0(LearningRateFinder):
@@ -86,3 +89,11 @@ class FineTuneLearningRateFinder_2(LearningRateFinder):
         if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
             self.optimizer.param_groups[0]['capturable'] = True
     
+#-------------------------------------------------------------------------------------
+
+class ReloadDataLoader(Callback):
+    def __init__(self, train_dataset: TimeSeriesDataSet):
+        self.train_dataset = train_dataset
+    
+    def on_epoch_start(self, trainer, pl_module):
+        pl_module.train_dataloader = self.train_dataset.to_dataloader(batch_size=trainer.batch_size, shuffle=True)
