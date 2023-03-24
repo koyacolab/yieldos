@@ -92,8 +92,21 @@ class FineTuneLearningRateFinder_2(LearningRateFinder):
 #-------------------------------------------------------------------------------------
 
 class ReloadDataLoader(Callback):
-    def __init__(self, train_dataset: TimeSeriesDataSet):
+    def __init__(self, train_dataset: TimeSeriesDataSet, batch_size: int):
+        super().__init__()
         self.train_dataset = train_dataset
+        self.batch_size = batch_size
+        
+    def on_train_epoch_start(self, trainer, pl_module):
+        # if trainer.current_epoch in self.milestones:
+        #     print('ReloadDataLoader:', trainer.current_epoch)          
+        pl_module.train_dataloader = self.train_dataset.to_dataloader(batch_size=self.batch_size, shuffle=True)
+        print('DataLoader was reloaded...')
+
+# class ReloadDataLoader(Callback):
+#     def __init__(self, train_dataset: TimeSeriesDataSet):
+#         self.train_dataset = train_dataset
     
-    def on_epoch_start(self, trainer, pl_module):
-        pl_module.train_dataloader = self.train_dataset.to_dataloader(batch_size=trainer.batch_size, shuffle=True)
+#     def on_train_epoch_start(self, trainer, pl_module):
+#         pl_module.train_dataloader = self.train_dataset.to_dataloader(batch_size=trainer.batch_size, shuffle=True)
+#         print('DataLoader was realoaded...')

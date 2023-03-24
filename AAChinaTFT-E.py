@@ -63,6 +63,7 @@ from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, FineTuneLearningRateFinder_2
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
+from utils import ReloadDataLoader
 
 # from LRCustom import custom_lr_find
 
@@ -96,8 +97,8 @@ class ModelBase:
                  save_checkpoint = False,
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
-                 max_epochs = 200,
-                 lr_milestones_list = [80, 160,],
+                 max_epochs = 100,
+                 lr_milestones_list = [15, 30, 60],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -360,7 +361,7 @@ class ModelBase:
         # create dataloaders for model
         # batch_size = 16  # set this between 32 to 128
         self.train_dataloader = self.training.to_dataloader(train=True, batch_size=self.batch_size, num_workers=8)
-        self.val_dataloader = self.validation.to_dataloader(train=False, batch_size=self.batch_size, num_workers=8)
+        self.val_dataloader = self.validation.to_dataloader(train=False, batch_size=1, num_workers=1)
         
         print( time.asctime( time.localtime(time.time()) ) )
         # calculate baseline mean absolute error, i.e. predict next value as the last available value from the history
@@ -395,6 +396,8 @@ class ModelBase:
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
 
         _SWA = StochasticWeightAveraging(swa_lrs=1e-2, swa_epoch_start=50, device='gpu')
+        
+        _reload_dataloader = ReloadDataLoader(self.training, self.batch_size)
 
         self.trainer = Trainer(accelerator='gpu', 
                                logger=_logger, 
@@ -405,7 +408,7 @@ class ModelBase:
                                # precision=16,
                                gradient_clip_val=0.2,
                                # reload_dataloaders_every_epoch=True,
-                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor])
+                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor, _reload_dataloader])
         
 
         # learning_rate = 0.01
@@ -421,7 +424,7 @@ class ModelBase:
             # output_size=7,  # 7 quantiles by default      
             loss=self.loss_func,
             # loss=QuantileLoss(),
-            optimizer = 'adam',
+            # optimizer = 'adam',
             # log_interval=10,  # uncomment for learning rate finder and otherwise, e.g. to 10 for logging every 10 batches
             # reduce_on_plateau_patience=4,
             )
