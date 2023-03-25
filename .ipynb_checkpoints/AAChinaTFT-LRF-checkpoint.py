@@ -144,8 +144,6 @@ class ModelBase:
         
         self.lr_milestones_list = lr_milestones_list
         
-        self.name_for_files = f'Dcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.predicted_year}]'
-        
         # MOD_BINS = 512
         # FAM_BINS = 256
         
@@ -234,7 +232,7 @@ class ModelBase:
         # self.max_encoder_length = 30  # int(training_cutoff - max_prediction_length)
         # self.max_prediction_length = int(self.data["time_idx"].max() - self.max_encoder_length + 1)
         ###################################################################################################
-        self.max_prediction_length = 10  # int(training_cutoff - max_prediction_length)
+        self.max_prediction_length = 1  # int(training_cutoff - max_prediction_length)
         self.max_encoder_length = int(self.data["time_idx"].max() - self.max_prediction_length + 1)
 
         print('max_prediction_length:', self.max_prediction_length, self.max_encoder_length, type(self.data["time_idx"][0]), type(self.max_encoder_length) )
@@ -393,12 +391,13 @@ class ModelBase:
         # home_dir = '/content/gdrive/My Drive/AChina' 
         # _dir = os.path.join(home_dir, 'data')
         
+        name_for_files = f'Dcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.predicted_year}]'
         
-        _checkpoint_callback = ModelCheckpoint(dirpath = os.path.join(home_dir, self.name_for_files), every_n_epochs = 50)
+        _checkpoint_callback = ModelCheckpoint(dirpath = os.path.join(home_dir, name_for_files), every_n_epochs = 50)
 
         _dir = '/tf_logs'
         # dir = os.path.join(home_dir, 'data')
-        _logger = TensorBoardLogger(_dir, name = self.name_for_files, comment = self.name_for_files)
+        _logger = TensorBoardLogger(_dir, name = name_for_files, comment = name_for_files)
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
@@ -436,7 +435,7 @@ class ModelBase:
             # output_size=7,  # 7 quantiles by default      
             loss=self.loss_func,
             # loss=QuantileLoss(),
-            # optimizer = 'adam',
+            optimizer = 'adam',
             # log_interval=10,  # uncomment for learning rate finder and otherwise, e.g. to 10 for logging every 10 batches
             # reduce_on_plateau_patience=4,
             )
@@ -444,9 +443,9 @@ class ModelBase:
         ####################################################################
         
         self.best_tft = self.tft
-        self.checkpoint = self.name_for_files
+        self.checkpoint = name_for_files
         
-    def init_lr_finder(self, min_lr=1e-6):
+    def init_lr_finder(self, min_lr=1e-9):
         # Run learning rate finder
         lr_finder = self.trainer.tuner.lr_find(
             self.tft,
@@ -454,7 +453,7 @@ class ModelBase:
             val_dataloaders=self.val_dataloader,
             max_lr=1.0,
             min_lr=min_lr,
-            mode='linear'
+            # mode='linear'
         )
 
         # Results can be found in
@@ -596,7 +595,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'AAA{self.name_for_files}_predict.npz',
+            f'AAA{name_for_files}_predict.npz',
             prediction = experiment['prediction'].numpy(),
             encoder_target = experiment['encoder_target'].numpy(),
             decoder_target = experiment['decoder_target'].numpy(),
@@ -662,7 +661,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'AAA{self.name_for_files}_inference.npz',
+            f'AAA{name_for_files}_inference.npz',
             prediction = experiment['prediction'].numpy(),
             encoder_target = experiment['encoder_target'].numpy(),
             decoder_target = experiment['decoder_target'].numpy(),
@@ -776,11 +775,11 @@ class RunTask:
                           learning_rate=learning_rate,
                           loss_func_metric=loss_func_metric)
         
-        # model.init_lr_finder()
+        model.init_lr_finder()
         # model.custom_finder()
-        model.train()
-        model.predict()
-        model.inference()
+        # model.train()
+        # model.predict()
+        # model.inference()
         # model.plot_predict()
         print('The end...')
         sys.exit(0)

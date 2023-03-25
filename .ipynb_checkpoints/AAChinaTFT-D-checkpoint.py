@@ -97,8 +97,8 @@ class ModelBase:
                  save_checkpoint = False,
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
-                 max_epochs = 300,
-                 lr_milestones_list = [80, 180,],
+                 max_epochs = 100,
+                 lr_milestones_list = [15, 30, 60,],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -199,9 +199,14 @@ class ModelBase:
 
         self.val_year = self.predicted_year 
 
-        self.years = years.remove(self.val_year)
+        years.remove(self.val_year)
+        self.years = years
+        
+        print('Years to train:', self.years)
+        
+        # fn
 
-        train_mask = alidata['year'].isin(years)
+        train_mask = alidata['year'].isin(self.years)
         self.data = alidata[train_mask]
 
         val_mask = alidata['year'].isin([self.val_year])
@@ -223,10 +228,14 @@ class ModelBase:
         # max_encoder_length = 20
         # training_cutoff = data["time_idx"].max() - max_prediction_length
         # min_prediction_idx = 20 #int( training_cutoff )
-        self.max_encoder_length = 30  # int(training_cutoff - max_prediction_length)
-        self.max_prediction_length = int(self.data["time_idx"].max() - self.max_encoder_length + 1)
+        ###################################################################################################
+        # self.max_encoder_length = 30  # int(training_cutoff - max_prediction_length)
+        # self.max_prediction_length = int(self.data["time_idx"].max() - self.max_encoder_length + 1)
+        ###################################################################################################
+        self.max_prediction_length = 1  # int(training_cutoff - max_prediction_length)
+        self.max_encoder_length = int(self.data["time_idx"].max() - self.max_prediction_length + 1)
 
-        print( self.max_encoder_length, type(self.data["time_idx"][0]), type(self.max_encoder_length) )
+        print('max_prediction_length:', self.max_prediction_length, self.max_encoder_length, type(self.data["time_idx"][0]), type(self.max_encoder_length) )
         # fn
 
         # print(training_cutoff, data['time_idx'][0])
@@ -236,13 +245,13 @@ class ModelBase:
                 avg_yield = self.data['avg_rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
                 med_yield = self.data['med_rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
                 self.data['rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                       (self.data['time_idx'] < self.max_encoder_length) ] = ( avg_yield + med_yield ) / 2.0
+                                       (self.data['time_idx'] < self.max_encoder_length) ] = avg_yield# ( avg_yield + med_yield ) / 2.0
 
         for county in self.data_val['county'].unique():
             avg_yield = self.data_val['avg_rice_yield'].loc[(self.data_val['county'] == county) ].mean()
             med_yield = self.data_val['med_rice_yield'].loc[(self.data_val['county'] == county) ].mean()
             self.data_val['rice_yield'].loc[(self.data_val['county'] == county) &  \
-                                       (self.data_val['time_idx'] < self.max_encoder_length) ] = ( avg_yield + med_yield ) / 2.0
+                                       (self.data_val['time_idx'] < self.max_encoder_length) ] = avg_yield# ( avg_yield + med_yield ) / 2.0
 
         for county in self.data_inference['county'].unique():
             for year in self.data_inference['year'].unique():
@@ -253,7 +262,7 @@ class ModelBase:
                 self.data_inference['rice_yield'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
                                                  (self.data_inference['time_idx'] < self.max_encoder_length)] \
-                = (avg_yield + med_yield) / 2.0
+                = avg_yield# (avg_yield + med_yield) / 2.0
 
         # display(data[ (data['county'] == '0') & (data['year'] == '2003') ])
 
@@ -268,7 +277,7 @@ class ModelBase:
         avg_med = ["avg_rice_yield", "med_rice_yield", "avg_rice_sownarea", "med_rice_sownarea",\
                          "avg_rice_yieldval", "med_rice_yieldval"]
         
-        avg_med = ["avg_rice_yield",]
+        # avg_med = ["avg_rice_yield",]
 
         _static_reals = avg_med
 
@@ -295,7 +304,7 @@ class ModelBase:
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
         self._time_varying_unknown_reals.extend(mod_names)
-        # self._time_varying_unknown_reals.extend(famine_names)
+        self._time_varying_unknown_reals.extend(famine_names)
 
         print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
 

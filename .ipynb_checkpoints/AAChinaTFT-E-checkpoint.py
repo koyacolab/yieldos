@@ -61,9 +61,9 @@ from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, FineTuneLearningRateFinder_2
+from utils import ReloadDataLoader
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
-from utils import ReloadDataLoader
 
 # from LRCustom import custom_lr_find
 
@@ -98,7 +98,7 @@ class ModelBase:
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
                  max_epochs = 100,
-                 lr_milestones_list = [15, 30, 60],
+                 lr_milestones_list = [15, 30, 60,],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -143,6 +143,8 @@ class ModelBase:
         self.datasetfile = datasetfile
         
         self.lr_milestones_list = lr_milestones_list
+        
+        self.name_for_files = f'Dcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.predicted_year}]'
         
         # MOD_BINS = 512
         # FAM_BINS = 256
@@ -199,9 +201,14 @@ class ModelBase:
 
         self.val_year = self.predicted_year 
 
-        self.years = years.remove(self.val_year)
+        years.remove(self.val_year)
+        self.years = years
+        
+        print('Years to train:', self.years)
+        
+        # fn
 
-        train_mask = alidata['year'].isin(years)
+        train_mask = alidata['year'].isin(self.years)
         self.data = alidata[train_mask]
 
         val_mask = alidata['year'].isin([self.val_year])
@@ -223,10 +230,14 @@ class ModelBase:
         # max_encoder_length = 20
         # training_cutoff = data["time_idx"].max() - max_prediction_length
         # min_prediction_idx = 20 #int( training_cutoff )
-        self.max_encoder_length = 30  # int(training_cutoff - max_prediction_length)
-        self.max_prediction_length = int(self.data["time_idx"].max() - self.max_encoder_length + 1)
+        ###################################################################################################
+        # self.max_encoder_length = 30  # int(training_cutoff - max_prediction_length)
+        # self.max_prediction_length = int(self.data["time_idx"].max() - self.max_encoder_length + 1)
+        ###################################################################################################
+        self.max_prediction_length = 10  # int(training_cutoff - max_prediction_length)
+        self.max_encoder_length = int(self.data["time_idx"].max() - self.max_prediction_length + 1)
 
-        print( self.max_encoder_length, type(self.data["time_idx"][0]), type(self.max_encoder_length) )
+        print('max_prediction_length:', self.max_prediction_length, self.max_encoder_length, type(self.data["time_idx"][0]), type(self.max_encoder_length) )
         # fn
 
         # print(training_cutoff, data['time_idx'][0])
@@ -236,13 +247,13 @@ class ModelBase:
                 avg_yield = self.data['avg_rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
                 med_yield = self.data['med_rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
                 self.data['rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                       (self.data['time_idx'] < self.max_encoder_length) ] = ( avg_yield + med_yield ) / 2.0
+                                       (self.data['time_idx'] < self.max_encoder_length) ] = avg_yield# ( avg_yield + med_yield ) / 2.0
 
         for county in self.data_val['county'].unique():
             avg_yield = self.data_val['avg_rice_yield'].loc[(self.data_val['county'] == county) ].mean()
             med_yield = self.data_val['med_rice_yield'].loc[(self.data_val['county'] == county) ].mean()
             self.data_val['rice_yield'].loc[(self.data_val['county'] == county) &  \
-                                       (self.data_val['time_idx'] < self.max_encoder_length) ] = ( avg_yield + med_yield ) / 2.0
+                                       (self.data_val['time_idx'] < self.max_encoder_length) ] = avg_yield# ( avg_yield + med_yield ) / 2.0
 
         for county in self.data_inference['county'].unique():
             for year in self.data_inference['year'].unique():
@@ -253,7 +264,7 @@ class ModelBase:
                 self.data_inference['rice_yield'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
                                                  (self.data_inference['time_idx'] < self.max_encoder_length)] \
-                = (avg_yield + med_yield) / 2.0
+                = avg_yield# (avg_yield + med_yield) / 2.0
 
         # display(data[ (data['county'] == '0') & (data['year'] == '2003') ])
 
@@ -267,6 +278,8 @@ class ModelBase:
 
         avg_med = ["avg_rice_yield", "med_rice_yield", "avg_rice_sownarea", "med_rice_sownarea",\
                          "avg_rice_yieldval", "med_rice_yieldval"]
+        
+        # avg_med = ["avg_rice_yield",]
 
         _static_reals = avg_med
 
@@ -361,7 +374,7 @@ class ModelBase:
         # create dataloaders for model
         # batch_size = 16  # set this between 32 to 128
         self.train_dataloader = self.training.to_dataloader(train=True, batch_size=self.batch_size, num_workers=8)
-        self.val_dataloader = self.validation.to_dataloader(train=False, batch_size=1, num_workers=1)
+        self.val_dataloader = self.validation.to_dataloader(train=False, batch_size=1, num_workers=8)
         
         print( time.asctime( time.localtime(time.time()) ) )
         # calculate baseline mean absolute error, i.e. predict next value as the last available value from the history
@@ -380,13 +393,12 @@ class ModelBase:
         # home_dir = '/content/gdrive/My Drive/AChina' 
         # _dir = os.path.join(home_dir, 'data')
         
-        name_for_files = f'E-cr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.predicted_year}]'
         
-        _checkpoint_callback = ModelCheckpoint(dirpath = os.path.join(home_dir, name_for_files), every_n_epochs = 50)
+        _checkpoint_callback = ModelCheckpoint(dirpath = os.path.join(home_dir, self.name_for_files), every_n_epochs = 50)
 
         _dir = '/tf_logs'
         # dir = os.path.join(home_dir, 'data')
-        _logger = TensorBoardLogger(_dir, name = name_for_files, comment = name_for_files)
+        _logger = TensorBoardLogger(_dir, name = self.name_for_files, comment = self.name_for_files)
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
@@ -432,7 +444,7 @@ class ModelBase:
         ####################################################################
         
         self.best_tft = self.tft
-        self.checkpoint = name_for_files
+        self.checkpoint = self.name_for_files
         
     def init_lr_finder(self, min_lr=1e-6):
         # Run learning rate finder
@@ -442,7 +454,7 @@ class ModelBase:
             val_dataloaders=self.val_dataloader,
             max_lr=1.0,
             min_lr=min_lr,
-            # mode='linear'
+            mode='linear'
         )
 
         # Results can be found in
@@ -466,7 +478,7 @@ class ModelBase:
         # fig.show()
 
         fig.tight_layout()
-        fig.savefig(f'Elr_find_[{self.predicted_year}]_[{self.batch_size}].png', dpi=300, format='png')
+        fig.savefig(f'Dlr_find_[{self.predicted_year}]_[{self.batch_size}].png', dpi=300, format='png')
         
     def custom_finder(self, min_lr=1e-3):
         # Run learning rate finder
@@ -502,7 +514,7 @@ class ModelBase:
         fig.show()
 
         fig.tight_layout()
-        fig.savefig(f'Ecustom_find_[{self.predicted_year}]_[{self.batch_size}].png', dpi=300, format='png')
+        fig.savefig(f'Dcustom_find_[{self.predicted_year}]_[{self.batch_size}].png', dpi=300, format='png')
         
     def find_init_lr():
         # find optimal learning rate
@@ -584,9 +596,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'AAE{name_for_files}_predict.npz',
-            act = actuals.nupy(),
-            pred = predictions.numpy(),
+            f'AAA{self.name_for_files}_predict.npz',
             prediction = experiment['prediction'].numpy(),
             encoder_target = experiment['encoder_target'].numpy(),
             decoder_target = experiment['decoder_target'].numpy(),
@@ -652,9 +662,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'AAA{name_for_files}_inference.npz',
-            act = actuals.nupy(),
-            pred = predictions.numpy(),
+            f'AAA{self.name_for_files}_inference.npz',
             prediction = experiment['prediction'].numpy(),
             encoder_target = experiment['encoder_target'].numpy(),
             decoder_target = experiment['decoder_target'].numpy(),
@@ -774,7 +782,7 @@ class RunTask:
         model.predict()
         model.inference()
         # model.plot_predict()
-        print('training end')
+        print('The end...')
         sys.exit(0)
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@
 # QuantileLoss
 
 for Yr in 2004 2008; do
-   python AAChinaTFT-D.py train_TFT -exp_name 'QuantileLoss_finder_test' -predicted_year $Yr -batch_size 8 -learning_rate 0.1 -loss_func_metric 'QuantileLoss' &
+   python AAChinaTFT-D.py train_TFT -exp_name 'DQuantileLoss_finder_test' -predicted_year $Yr -batch_size 8 -learning_rate 0.1 -loss_func_metric 'QuantileLoss' &
    # echo $Yr
    # wait 10
 done
