@@ -144,6 +144,8 @@ class ModelBase:
         
         self.lr_milestones_list = lr_milestones_list
         
+        self.name_for_files = f'Dcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.predicted_year}]'
+        
         # MOD_BINS = 512
         # FAM_BINS = 256
         
@@ -391,13 +393,11 @@ class ModelBase:
         # home_dir = '/content/gdrive/My Drive/AChina' 
         # _dir = os.path.join(home_dir, 'data')
         
-        name_for_files = f'Dcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.predicted_year}]'
-        
-        _checkpoint_callback = ModelCheckpoint(dirpath = os.path.join(home_dir, name_for_files), every_n_epochs = 50)
+        _checkpoint_callback = ModelCheckpoint(dirpath = os.path.join(home_dir, self.name_for_files), every_n_epochs = 50)
 
         _dir = '/tf_logs'
         # dir = os.path.join(home_dir, 'data')
-        _logger = TensorBoardLogger(_dir, name = name_for_files, comment = name_for_files)
+        _logger = TensorBoardLogger(_dir, name = self.name_for_files, comment = self.name_for_files)
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
@@ -443,7 +443,7 @@ class ModelBase:
         ####################################################################
         
         self.best_tft = self.tft
-        self.checkpoint = name_for_files
+        self.checkpoint = self.name_for_files
         
     def init_lr_finder(self, min_lr=1e-6):
         # Run learning rate finder
@@ -595,7 +595,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'AAA{name_for_files}_predict.npz',
+            f'AAA{self.name_for_files}_predict.npz',
             prediction = experiment['prediction'].numpy(),
             encoder_target = experiment['encoder_target'].numpy(),
             decoder_target = experiment['decoder_target'].numpy(),
@@ -661,7 +661,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'AAA{name_for_files}_inference.npz',
+            f'AAA{self.name_for_files}_inference.npz',
             prediction = experiment['prediction'].numpy(),
             encoder_target = experiment['encoder_target'].numpy(),
             decoder_target = experiment['decoder_target'].numpy(),
