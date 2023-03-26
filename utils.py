@@ -23,7 +23,7 @@ class FineTuneLearningRateFinder_1(LearningRateFinder):
     def __init__(self, milestones, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.milestones = milestones
-        self.gamma = 0.5
+        self.gamma = 0.8
         self.optimizer = []
         self.scheduler = []
         # self.optimizer = []

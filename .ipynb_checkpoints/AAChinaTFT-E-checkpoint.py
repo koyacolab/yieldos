@@ -127,6 +127,10 @@ class ModelBase:
             self.loss_func = MAE()
         elif loss_func_metric == 'MASE':
             self.loss_func = MASE()
+        elif loss_func_metric == 'MAPE':
+            self.loss_func = MASE()
+        elif loss_func_metric == 'SMAPE':
+            self.loss_func = MASE()
         elif loss_func_metric == 'QuantileLoss':
             self.loss_func = QuantileLoss()
         elif loss_func_metric == 'Myloss':

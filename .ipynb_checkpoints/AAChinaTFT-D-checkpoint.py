@@ -98,7 +98,7 @@ class ModelBase:
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
                  max_epochs = 100,
-                 lr_milestones_list = [150, 300, 600,],
+                 lr_milestones_list = [20, 40, 60, 80,],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -315,13 +315,14 @@ class ModelBase:
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
         self._time_varying_unknown_reals.extend(mod_names)
-        self._time_varying_unknown_reals.extend(famine_names)
+        # self._time_varying_unknown_reals.extend(famine_names)
 
         print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
 
         print(f'training mx_epochs, TimeSeriesDataSet:', max_epochs, time.asctime( time.localtime(time.time()) ) )
         
-        print('--------------------------')
+        print('D1: relu --------------------------')
+        print('D2: --------------------------')
 
         self.training = TimeSeriesDataSet(
             # data[lambda x: x.time_idx <= training_cutoff],
@@ -342,7 +343,7 @@ class ModelBase:
             # time_varying_unknown_categoricals=[],
             time_varying_unknown_reals = self._time_varying_unknown_reals,
             target_normalizer=GroupNormalizer(
-                groups=["county"], transformation="softplus"
+                groups=["county"], transformation="relu"
             ),  # use softplus and normalize by group
             add_relative_time_idx=True,
             add_target_scales=True,
@@ -369,7 +370,7 @@ class ModelBase:
             # time_varying_unknown_categoricals=[],
             time_varying_unknown_reals = self._time_varying_unknown_reals,
             target_normalizer=GroupNormalizer(
-                groups=["county"], transformation="softplus"
+                groups=["county"], transformation="relu"
             ),  # use softplus and normalize by group
             add_relative_time_idx=True,
             add_target_scales=True,
@@ -446,7 +447,7 @@ class ModelBase:
             # output_size=7,  # 7 quantiles by default      
             loss=self.loss_func,
             # loss=QuantileLoss(),
-            optimizer = 'adam',
+            # optimizer = 'adam',
             # log_interval=10,  # uncomment for learning rate finder and otherwise, e.g. to 10 for logging every 10 batches
             # reduce_on_plateau_patience=4,
             )
