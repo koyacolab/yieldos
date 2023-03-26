@@ -98,7 +98,7 @@ class ModelBase:
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
                  max_epochs = 100,
-                 lr_milestones_list = [15, 30, 60,],
+                 lr_milestones_list = [150, 300, 600,],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -144,8 +144,6 @@ class ModelBase:
         
         self.lr_milestones_list = lr_milestones_list
         
-        self.name_for_files = f'Dcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.predicted_year}]'
-        
         # MOD_BINS = 512
         # FAM_BINS = 256
         
@@ -185,7 +183,7 @@ class ModelBase:
         # alidata = df_not_str.join(df_str)
 
         # DON'T DELETE, cut dataset by month
-        # alidata = alidata[ alidata['month'] < 11 ]
+        alidata = alidata[ alidata['month'] < 11 ]
 
         # display(alidata)        
         
@@ -206,6 +204,16 @@ class ModelBase:
         
         print('Years to train:', self.years)
         
+        self.name_for_files = f'Dcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.predicted_year}]'
+        
+        # fn
+        
+        # del_year = ['2008', '2017', '2018']
+        # del_year.remove(self.val_year)
+        # for yr in del_year:
+        #     self.years.remove(yr)
+        
+        print('Years to train:', self.years)
         # fn
 
         train_mask = alidata['year'].isin(self.years)
@@ -279,7 +287,9 @@ class ModelBase:
         avg_med = ["avg_rice_yield", "med_rice_yield", "avg_rice_sownarea", "med_rice_sownarea",\
                          "avg_rice_yieldval", "med_rice_yieldval"]
         
-        # avg_med = ["avg_rice_yield",]
+        avg_med = ["avg_rice_yield", "rice_sownarea", "rice_yieldval"]
+        
+        print('avg_med:', avg_med)
 
         _static_reals = avg_med
 
@@ -306,11 +316,12 @@ class ModelBase:
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
         self._time_varying_unknown_reals.extend(mod_names)
-        self._time_varying_unknown_reals.extend(famine_names)
+        # self._time_varying_unknown_reals.extend(famine_names)
 
         print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
 
         print(f'training mx_epochs, TimeSeriesDataSet:', max_epochs, time.asctime( time.localtime(time.time()) ) )
+        print('--------------------------------------------------------')
 
         self.training = TimeSeriesDataSet(
             # data[lambda x: x.time_idx <= training_cutoff],
@@ -331,11 +342,11 @@ class ModelBase:
             # time_varying_unknown_categoricals=[],
             time_varying_unknown_reals = self._time_varying_unknown_reals,
             target_normalizer=GroupNormalizer(
-                groups=["county", "year"], transformation="softplus"
+                groups=["county"], transformation="softplus"
             ),  # use softplus and normalize by group
             add_relative_time_idx=True,
             add_target_scales=True,
-            add_encoder_length=True,
+            add_encoder_length=True, 
         )
 
         print( time.asctime( time.localtime(time.time()) ) )
@@ -358,12 +369,15 @@ class ModelBase:
             # time_varying_unknown_categoricals=[],
             time_varying_unknown_reals = self._time_varying_unknown_reals,
             target_normalizer=GroupNormalizer(
-                groups=["county", "year"], transformation="softplus"
+                groups=["county"], transformation="softplus"
             ),  # use softplus and normalize by group
             add_relative_time_idx=True,
             add_target_scales=True,
-            add_encoder_length=True,
+            add_encoder_length=True, 
         )
+        
+        print('------------------------')
+        print('------------------------')
 
         # create validation set (predict=True) which means to predict the last max_prediction_length points in time
         # for each series
@@ -392,7 +406,6 @@ class ModelBase:
         # dir = '/hy-tmp/chck/ali'
         # home_dir = '/content/gdrive/My Drive/AChina' 
         # _dir = os.path.join(home_dir, 'data')
-        
         
         _checkpoint_callback = ModelCheckpoint(dirpath = os.path.join(home_dir, self.name_for_files), every_n_epochs = 50)
 

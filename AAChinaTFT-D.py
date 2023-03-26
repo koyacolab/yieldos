@@ -98,7 +98,7 @@ class ModelBase:
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
                  max_epochs = 100,
-                 lr_milestones_list = [15, 30, 60,],
+                 lr_milestones_list = [150, 300, 600,],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -144,8 +144,6 @@ class ModelBase:
         
         self.lr_milestones_list = lr_milestones_list
         
-        self.name_for_files = f'Dcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.predicted_year}]'
-        
         # MOD_BINS = 512
         # FAM_BINS = 256
         
@@ -185,7 +183,7 @@ class ModelBase:
         # alidata = df_not_str.join(df_str)
 
         # DON'T DELETE, cut dataset by month
-        # alidata = alidata[ alidata['month'] < 11 ]
+        alidata = alidata[ alidata['month'] < 11 ]
 
         # display(alidata)        
         
@@ -206,7 +204,18 @@ class ModelBase:
         
         print('Years to train:', self.years)
         
+        self.name_for_files = f'Dcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.predicted_year}]'
+        
         # fn
+# ######################test##########################        
+#         del_year = ['2008', '2017', '2018']
+#         del_year.remove(self.val_year)
+#         for yr in del_year:
+#             self.years.remove(yr)
+        print('------------------------------')
+        print('Years to train:', self.years)
+#         # fn
+# ####################################################
 
         train_mask = alidata['year'].isin(self.years)
         self.data = alidata[train_mask]
@@ -311,6 +320,8 @@ class ModelBase:
         print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
 
         print(f'training mx_epochs, TimeSeriesDataSet:', max_epochs, time.asctime( time.localtime(time.time()) ) )
+        
+        print('--------------------------')
 
         self.training = TimeSeriesDataSet(
             # data[lambda x: x.time_idx <= training_cutoff],
@@ -331,7 +342,7 @@ class ModelBase:
             # time_varying_unknown_categoricals=[],
             time_varying_unknown_reals = self._time_varying_unknown_reals,
             target_normalizer=GroupNormalizer(
-                groups=["county", "year"], transformation="softplus"
+                groups=["county"], transformation="softplus"
             ),  # use softplus and normalize by group
             add_relative_time_idx=True,
             add_target_scales=True,
@@ -358,7 +369,7 @@ class ModelBase:
             # time_varying_unknown_categoricals=[],
             time_varying_unknown_reals = self._time_varying_unknown_reals,
             target_normalizer=GroupNormalizer(
-                groups=["county", "year"], transformation="softplus"
+                groups=["county"], transformation="softplus"
             ),  # use softplus and normalize by group
             add_relative_time_idx=True,
             add_target_scales=True,
@@ -435,7 +446,7 @@ class ModelBase:
             # output_size=7,  # 7 quantiles by default      
             loss=self.loss_func,
             # loss=QuantileLoss(),
-            # optimizer = 'adam',
+            optimizer = 'adam',
             # log_interval=10,  # uncomment for learning rate finder and otherwise, e.g. to 10 for logging every 10 batches
             # reduce_on_plateau_patience=4,
             )
@@ -451,9 +462,9 @@ class ModelBase:
             self.tft,
             train_dataloaders=self.train_dataloader,
             val_dataloaders=self.val_dataloader,
-            max_lr=1.0,
+            max_lr=2.0,
             min_lr=min_lr,
-            mode='linear'
+            # mode='linear'
         )
 
         # Results can be found in
@@ -775,11 +786,11 @@ class RunTask:
                           learning_rate=learning_rate,
                           loss_func_metric=loss_func_metric)
         
-        # model.init_lr_finder()
+        model.init_lr_finder()
         # model.custom_finder()
-        model.train()
-        model.predict()
-        model.inference()
+        # model.train()
+        # model.predict()
+        # model.inference()
         # model.plot_predict()
         print('The end...')
         sys.exit(0)
