@@ -10,8 +10,8 @@
 # echo "${inputs[@]}" | tr ' ' '\n' | parallel -j $parallel_jobs python AAChinaTFT-D.py {}
 # QuantileLoss
 
-for Yr in 2017; do
-   python AAChinaTFT-E.py train_TFT -exp_name 'EQuantileLoss_test' -predicted_year $Yr -batch_size 16 -learning_rate 0.085 -loss_func_metric 'QuantileLoss' -max_epoach 100&
+for Yr in 2008 2017; do
+   python AAChinaTFT-E.py train_TFT -exp_name 'ERMSE_test' -predicted_year $Yr -batch_size 16 -learning_rate 0.025 -loss_func_metric 'RMSE' -max_epoach 100&
    # echo $Yr
    # wait 10
 done

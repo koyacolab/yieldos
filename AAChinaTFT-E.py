@@ -242,7 +242,7 @@ class ModelBase:
         # self.max_encoder_length = 30  # int(training_cutoff - max_prediction_length)
         # self.max_prediction_length = int(self.data["time_idx"].max() - self.max_encoder_length + 1)
         ###################################################################################################
-        self.max_prediction_length = 10  # int(training_cutoff - max_prediction_length)
+        self.max_prediction_length = 1  # int(training_cutoff - max_prediction_length)
         self.max_encoder_length = int(self.data["time_idx"].max() - self.max_prediction_length + 1)
 
         print('max_prediction_length:', self.max_prediction_length, self.max_encoder_length, type(self.data["time_idx"][0]), type(self.max_encoder_length) )
@@ -287,7 +287,7 @@ class ModelBase:
         avg_med = ["avg_rice_yield", "med_rice_yield", "avg_rice_sownarea", "med_rice_sownarea",\
                          "avg_rice_yieldval", "med_rice_yieldval"]
         
-        avg_med = ["avg_rice_yield", "rice_sownarea", "rice_yieldval"]
+        # avg_med = ["avg_rice_yield", "rice_sownarea", "rice_yieldval"]
         
         print('avg_med:', avg_med)
 
@@ -321,7 +321,8 @@ class ModelBase:
         print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
 
         print(f'training mx_epochs, TimeSeriesDataSet:', max_epochs, time.asctime( time.localtime(time.time()) ) )
-        print('--------------------------------------------------------')
+        print('1: -----------------------------------------------------')
+        print('2: -----------------------------------------------------')
 
         self.training = TimeSeriesDataSet(
             # data[lambda x: x.time_idx <= training_cutoff],

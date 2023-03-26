@@ -786,11 +786,11 @@ class RunTask:
                           learning_rate=learning_rate,
                           loss_func_metric=loss_func_metric)
         
-        model.init_lr_finder()
+        # model.init_lr_finder()
         # model.custom_finder()
-        # model.train()
-        # model.predict()
-        # model.inference()
+        model.train()
+        model.predict()
+        model.inference()
         # model.plot_predict()
         print('The end...')
         sys.exit(0)
