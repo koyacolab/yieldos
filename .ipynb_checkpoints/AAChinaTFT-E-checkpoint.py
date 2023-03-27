@@ -98,7 +98,7 @@ class ModelBase:
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
                  max_epochs = 100,
-                 lr_milestones_list = [150, 300, 600,],
+                 lr_milestones_list = [20, 40, 60, 80, ],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -347,7 +347,7 @@ class ModelBase:
             # time_varying_unknown_categoricals=[],
             time_varying_unknown_reals = self._time_varying_unknown_reals,
             target_normalizer=GroupNormalizer(
-                groups=["county"], transformation="softplus"
+                groups=["county"], transformation="relu"
             ),  # use softplus and normalize by group
             add_relative_time_idx=True,
             add_target_scales=True,
@@ -374,7 +374,7 @@ class ModelBase:
             # time_varying_unknown_categoricals=[],
             time_varying_unknown_reals = self._time_varying_unknown_reals,
             target_normalizer=GroupNormalizer(
-                groups=["county"], transformation="softplus"
+                groups=["county"], transformation="relu"
             ),  # use softplus and normalize by group
             add_relative_time_idx=True,
             add_target_scales=True,
@@ -420,7 +420,7 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        _lr_finder  = FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, mode='linear', early_stop_threshold=10000)
+        _lr_finder  = FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, gamma=0.5, mode='linear', early_stop_threshold=10000)
         # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list)
         
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -773,7 +773,7 @@ class RunTask:
                   batch_size=16,
                   learning_rate=0.0325,
                   loss_func_metric='RMSE', 
-                  max_epochs=600):
+                  max_epochs=100):
         
         # print('predicted year:', predicted_year, type(predicted_year))
         

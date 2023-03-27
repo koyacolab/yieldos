@@ -184,6 +184,10 @@ class ModelBase:
 
         # DON'T DELETE, cut dataset by month
         alidata = alidata[ alidata['month'] < 11 ]
+        
+        bad_year = '2008'
+        
+        alidata = alidata[ alidata['year'] != bad_year]
 
         # display(alidata)        
         
@@ -199,7 +203,11 @@ class ModelBase:
 
         self.val_year = self.predicted_year 
 
+        # Remove predicted year from train dataset  
         years.remove(self.val_year)
+        
+        years.remove(bad_years)
+        
         self.years = years
         
         print('Years to train:', self.years)

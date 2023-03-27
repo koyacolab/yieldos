@@ -11,7 +11,7 @@
 # QuantileLoss
 
 for Yr in 2004 2008 2016 2017; do
-   python AAChinaTFT-E.py train_TFT -exp_name 'E_RMSE_test' -predicted_year $Yr -batch_size 16 -learning_rate 0.01 -loss_func_metric 'RMSE' -max_epoach 100&
+   python AAChinaTFT-E.py train_TFT -exp_name 'E_RMSE_test' -predicted_year $Yr -batch_size 16 -learning_rate 0.01 -loss_func_metric 'RMSE' -max_epochs 100&
    # echo $Yr
    # wait 10
 done
