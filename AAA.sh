@@ -11,7 +11,7 @@
 # QuantileLoss
 
 for Yr in 2008; do
-   python AAA.py train_TFT -exp_name 'AAA_RMSE_converge' -predicted_year $Yr -batch_size 16 -learning_rate 0.0085 -loss_func_metric 'RMSE' &
+   python AAA.py train_TFT -exp_name 'AAA_RMSE_converge' -predicted_year $Yr -batch_size 128 -learning_rate 0.01 -loss_func_metric 'RMSE'
    # echo $Yr
    # wait 10
 done

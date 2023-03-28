@@ -302,8 +302,8 @@ class ModelBase:
         self.data_inference['actuals'] = self.data_inference["rice_yieldval"] / self.data_inference["rice_sownarea"]
         
         def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
-            years = DATA['year'].astype(int).unique()
-            print(years)
+            years_list = list(DATA['year'].astype(int).unique())
+            print(years_list, type(years_list))
             
             # random_years = random.sample(years, LENGTH)
             
@@ -312,8 +312,11 @@ class ModelBase:
             
             data_samples = pd.DataFrame()
             for ii in tqdm(range(NSAMPLES)):
-                num_years = YEARS_MAX_LENGTH # random.randint(1, YEARS_MAX_LENGTH)  # generate a random number between 1 and 10 for the list size
-                years = [random.randint(start_year, end_year) for _ in range(num_years)]
+                num_years = YEARS_MAX_LENGTH# random.randint(1, YEARS_MAX_LENGTH)  # generate a random number between 1 and 10 for the list size
+                # years = [random.randint(start_year, end_year) for _ in range(num_years)]
+                # years = [random.randint(start_year, end_year) for _ in range(num_years)]
+                years = random.sample(years_list, num_years)
+                # print(ii, years)
                 # df_concat = pd.DataFrame()
                 for county in DATA["county"].unique():
                     df_concat_year = pd.DataFrame()
@@ -325,6 +328,7 @@ class ModelBase:
                     df_concat_year.index = new_index
                     # add a new column with integer values equal to the index
                     df_concat_year["time_idx"] = df_concat_year.index.astype(int)
+                    df_concat_year["sample"] = str(ii)
                     data_samples = pd.concat([data_samples, df_concat_year], axis=0)
                 # reindex the concatenated dataframe with a new index
             new_index = pd.RangeIndex(start=1, stop=len(data_samples)+1, step=1)
@@ -332,7 +336,7 @@ class ModelBase:
                 
             return data_samples
         
-        self.data_train = DataGenerator(DATA=self.data, YEARS_MAX_LENGTH=8, NSAMPLES=1)
+        self.data_train = DataGenerator(DATA=self.data, YEARS_MAX_LENGTH=3, NSAMPLES=10)
         
         # self.data_train = self.data
         
@@ -404,7 +408,8 @@ class ModelBase:
             self.data_train,
             time_idx="time_idx",
             target="rice_yield",
-            group_ids=["county", "year"],
+            group_ids=["county", "sample"],
+            # group_ids=["county", "year"],
             # min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
             max_encoder_length = self.max_encoder_length,
             # min_prediction_length = 1,                     #max_prediction_length // 2,
@@ -431,6 +436,7 @@ class ModelBase:
             self.data_val,
             time_idx="time_idx",
             target="rice_yield",
+            # group_ids=["county", "sample"],
             group_ids=["county", "year"],
             # min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
             max_encoder_length = self.max_encoder_length,

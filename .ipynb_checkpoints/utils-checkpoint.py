@@ -102,6 +102,21 @@ class ReloadDataLoader(Callback):
         #     print('ReloadDataLoader:', trainer.current_epoch)          
         pl_module.train_dataloader = self.train_dataset.to_dataloader(batch_size=self.batch_size, shuffle=True)
         print('DataLoader was reloaded...')
+        
+class ReloadDataSet(Callback):
+    def __init__(self, data_train, dataset_train, batch_size):
+        super().__init__()
+        self.data_train = data_train
+        self.dataset_train = dataset_train
+        self.batch_size = batch_size
+        
+    def on_train_epoch_start(self, trainer, pl_module):
+        # if trainer.current_epoch in self.milestones:
+        #     print('ReloadDataLoader:', trainer.current_epoch)  
+        self.data_train = DataGenerator(DATA=self.data_train, YEARS_MAX_LENGTH=3, NSAMPLES=10)
+        self.dataset_train = TimeSeriesDataSet.from_dataset(self.dataset_train, self.data_train, predict=False, stop_randomization=False)
+        pl_module.train_dataloader = self.train_dataset.to_dataloader(batch_size=self.batch_size, shuffle=True)
+        print('DataLoader was reloaded...')
 
 # class ReloadDataLoader(Callback):
 #     def __init__(self, train_dataset: TimeSeriesDataSet):
