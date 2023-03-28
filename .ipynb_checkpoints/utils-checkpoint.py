@@ -117,7 +117,7 @@ class ReloadDataSet(Callback):
     def on_train_epoch_start(self, trainer, pl_module):
         # if trainer.current_epoch in self.milestones:
         print('DataGenerator reloading... epoch:', trainer.current_epoch)  
-        data_train = DataGenerator(DATA=self.data_train, YEARS_MAX_LENGTH=2, NSAMPLES=4)
+        data_train = DataGenerator(DATA=self.data_train, YEARS_MAX_LENGTH=3, NSAMPLES=4)
         self.dataset_train = TimeSeriesDataSet.from_dataset(self.dataset_train, data_train)
         pl_module.train_dataloader = self.dataset_train.to_dataloader(batch_size=self.batch_size, shuffle=True)
         print('DataLoader was reloaded...')
@@ -133,7 +133,7 @@ def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
 
     data_samples = pd.DataFrame()
     for ii in tqdm(range(NSAMPLES)):
-        num_years = YEARS_MAX_LENGTH# random.randint(1, YEARS_MAX_LENGTH)  # generate a random number between 1 and 10 for the list size
+        num_years = random.randint(1, YEARS_MAX_LENGTH)  # generate a random number between 1 and 10 for the list size
         # years = [random.randint(start_year, end_year) for _ in range(num_years)]
         # years = [random.randint(start_year, end_year) for _ in range(num_years)]
         years = random.sample(years_list, num_years)
