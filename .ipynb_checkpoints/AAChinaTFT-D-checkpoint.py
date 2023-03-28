@@ -98,7 +98,7 @@ class ModelBase:
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
                  max_epochs = 100,
-                 lr_milestones_list = [20, 40, 60, 80,],
+                 lr_milestones_list = [120, 400, 600, 800,],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -167,6 +167,8 @@ class ModelBase:
         alidata['county']   = alidata['county'].astype(str)
         alidata['year']     = alidata['year'].astype(str)
         alidata['time_idx'] = alidata['time_idx'].astype(int)
+        
+        alidata['actuals'] = alidata[f'{self.scrop}_yield']
 
         print(type(alidata['county']), type(alidata['year']), type(alidata['time_idx'].max()))
 
@@ -185,9 +187,9 @@ class ModelBase:
         # DON'T DELETE, cut dataset by month
         alidata = alidata[ alidata['month'] < 11 ]
         
-        bad_year = '2008'
+#         bad_year = '2008'
         
-        alidata = alidata[ alidata['year'] != bad_year]
+#         alidata = alidata[ alidata['year'] != bad_year]
 
         # display(alidata)        
         
@@ -206,13 +208,13 @@ class ModelBase:
         # Remove predicted year from train dataset  
         years.remove(self.val_year)
         
-        years.remove(bad_years)
+        # years.remove(bad_year)
         
         self.years = years
         
         print('Years to train:', self.years)
         
-        self.name_for_files = f'Dcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.predicted_year}]'
+        self.name_for_files = f'Dcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.learning_rate}]'
         
         # fn
 # ######################test##########################        
@@ -251,7 +253,7 @@ class ModelBase:
         # self.max_encoder_length = 30  # int(training_cutoff - max_prediction_length)
         # self.max_prediction_length = int(self.data["time_idx"].max() - self.max_encoder_length + 1)
         ###################################################################################################
-        self.max_prediction_length = 1  # int(training_cutoff - max_prediction_length)
+        self.max_prediction_length = 15  # int(training_cutoff - max_prediction_length)
         self.max_encoder_length = int(self.data["time_idx"].max() - self.max_prediction_length + 1)
 
         print('max_prediction_length:', self.max_prediction_length, self.max_encoder_length, type(self.data["time_idx"][0]), type(self.max_encoder_length) )
@@ -292,21 +294,29 @@ class ModelBase:
         # display(data_inference[ (data_inference['county'] == '0') & (data_inference['year'] == '2019') ])
         
         
-
-        avg_med = ["avg_rice_yield", "med_rice_yield", "avg_rice_sownarea", "med_rice_sownarea",\
-                         "avg_rice_yieldval", "med_rice_yieldval"]
         
-        # avg_med = ["avg_rice_yield",]
+        self.data['actuals'] = self.data["rice_yieldval"] / self.data["rice_sownarea"]
+        self.data_val['actuals'] = self.data_val["rice_yieldval"] / self.data_val["rice_sownarea"]
+        self.data_inference['actuals'] = self.data_inference["rice_yieldval"] / self.data_inference["rice_sownarea"]
+
+        # avg_med = ["avg_rice_yield", "med_rice_yield", "avg_rice_sownarea", "med_rice_sownarea",\
+        #                  "avg_rice_yieldval", "med_rice_yieldval"]
+        
+        # avg_med = ["avg_rice_yield", "rice_sownarea", "rice_yieldval"]
+        
+        avg_med = []
 
         _static_reals = avg_med
-
-        self._time_varying_known_reals = []
-        self._time_varying_known_reals.extend(avg_med)
+        
+        print("avg_med:", avg_med)
+        
+        time.sleep(5)      
 
         # display( data[ [ col for col in _time_varying_known_reals ] ] )
 
         # fn
 
+        ################ MODIS cloumns name################################
         mod_names = [f'b{iband}b{bins}' for iband in range(9) for bins in range(MOD_BINS)]
 
         famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', 'Qair_f_tavg', 'Qg_tavg',\
@@ -319,6 +329,10 @@ class ModelBase:
         nbins = ['_' + str(x) for x in range(0, FAM_BINS - 1)]
 
         famine_names = [famine + bb for famine in famine_list for bb in nbins]
+        
+        self._time_varying_known_reals = []
+        self._time_varying_known_reals.extend(avg_med)
+        self._time_varying_known_reals.extend(mod_names) 
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
@@ -329,7 +343,7 @@ class ModelBase:
 
         print(f'training mx_epochs, TimeSeriesDataSet:', max_epochs, time.asctime( time.localtime(time.time()) ) )
         
-        print('D1: relu --------------------------')
+        print('D1: known-unknown go --------------------------')
         print('D2: --------------------------')
 
         self.training = TimeSeriesDataSet(
@@ -338,9 +352,9 @@ class ModelBase:
             time_idx="time_idx",
             target="rice_yield",
             group_ids=["county", "year"],
-            # min_encoder_length=max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
+            # min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
             max_encoder_length = self.max_encoder_length,
-            # min_prediction_length = 1 , # max_prediction_length // 2,
+            # min_prediction_length = 1,                     #max_prediction_length // 2,
             max_prediction_length = self.max_prediction_length,
             # min_prediction_idx = min_prediction_idx,
             # static_categoricals = ["county", "year"],
@@ -365,7 +379,7 @@ class ModelBase:
             time_idx="time_idx",
             target="rice_yield",
             group_ids=["county", "year"],
-            # min_encoder_length=max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
+            # min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
             max_encoder_length = self.max_encoder_length,
             # min_prediction_length = 1 , # max_prediction_length // 2,
             max_prediction_length = self.max_prediction_length,
@@ -421,7 +435,7 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        _lr_finder  = FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, mode='linear', early_stop_threshold=10000)
+        _lr_finder  = FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, gamma=0.5, mode='linear', early_stop_threshold=10000)
         # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list)
         
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -616,6 +630,8 @@ class ModelBase:
 
         np.savez(
             f'AAA{self.name_for_files}_predict.npz',
+            actuals = actuals.numpy(), 
+            predictions = predictions.numpy(),
             prediction = experiment['prediction'].numpy(),
             encoder_target = experiment['encoder_target'].numpy(),
             decoder_target = experiment['decoder_target'].numpy(),
@@ -774,7 +790,7 @@ class RunTask:
                   batch_size=16,
                   learning_rate=0.0325,
                   loss_func_metric='RMSE', 
-                  max_epochs=600):
+                  max_epochs=100):
         
         # print('predicted year:', predicted_year, type(predicted_year))
         

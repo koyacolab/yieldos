@@ -97,8 +97,8 @@ class ModelBase:
                  save_checkpoint = False,
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
-                 max_epochs = 100,
-                 lr_milestones_list = [20, 40, 60, 80, ],
+                 max_epochs = 200,
+                 lr_milestones_list = [250, 240, 260, 280, ],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -157,7 +157,7 @@ class ModelBase:
         
         # sys.exit(0)
         # fn
-        
+        ############LOADING DATASET##############################################################
         print(f'loading {self.datasetfile}', time.asctime( time.localtime(time.time()) ) )
         alidata = pd.read_csv(self.datasetfile)
         # alidata = pd.read_csv(f'data/ALIM{MOD_BINS}F{FAM_BINS}DATASET_{scrop}.csv')
@@ -189,15 +189,16 @@ class ModelBase:
         # DON'T DELETE, cut dataset by month
         alidata = alidata[ alidata['month'] < 11 ]
 
-        # display(alidata)        
+        # display(alidata)    
         
+        #################SPLIT TRAIN/VALIDATION/TEST DATASET##############################
         infer_mask = alidata['year'].isin(['2019', '2020', '2021', '2022'])
 
         data_infer = alidata[infer_mask]
 
-        data_infer['rice_sownarea'] = np.nan
-        data_infer['rice_yieldval'] = np.nan
-        data_infer['rice_yield']    = np.nan
+        data_infer['rice_sownarea'] = 0.0
+        data_infer['rice_yieldval'] = 0.0
+        data_infer['rice_yield']    = 0.0
 
         years = [str(x) for x in range(2003, 2019)]
 
@@ -208,7 +209,7 @@ class ModelBase:
         
         print('Years to train:', self.years)
         
-        self.name_for_files = f'Dcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.predicted_year}]'
+        self.name_for_files = f'E-cr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{round(self.learning_rate, 4)}]'
         
         # fn
         
@@ -246,7 +247,7 @@ class ModelBase:
         # self.max_encoder_length = 30  # int(training_cutoff - max_prediction_length)
         # self.max_prediction_length = int(self.data["time_idx"].max() - self.max_encoder_length + 1)
         ###################################################################################################
-        self.max_prediction_length = 1  # int(training_cutoff - max_prediction_length)
+        self.max_prediction_length = 15  # int(training_cutoff - max_prediction_length)
         self.max_encoder_length = int(self.data["time_idx"].max() - self.max_prediction_length + 1)
 
         print('max_prediction_length:', self.max_prediction_length, self.max_encoder_length, type(self.data["time_idx"][0]), type(self.max_encoder_length) )
@@ -288,17 +289,23 @@ class ModelBase:
         
         
 
-        avg_med = ["avg_rice_yield", "med_rice_yield", "avg_rice_sownarea", "med_rice_sownarea",\
-                         "avg_rice_yieldval", "med_rice_yieldval"]
+#         avg_med = ["avg_rice_yield", "med_rice_yield", "avg_rice_sownarea", "med_rice_sownarea",\
+#                          "avg_rice_yieldval", "med_rice_yieldval"]
         
-        # avg_med = ["avg_rice_yield", "rice_sownarea", "rice_yieldval"]
+#         avg_med = ["avg_rice_yield", "rice_sownarea", "rice_yieldval"]
+
+        avg_med = []
         
         print('avg_med:', avg_med)
+        
+        # try:
+        #     user_input = input("Enter some text: ")
+        # except EOFError:
+        #     print("Input stream closed unexpectedly.")
+        #     print(EOFError)
+        #     fn
 
         _static_reals = avg_med
-
-        self._time_varying_known_reals = []
-        self._time_varying_known_reals.extend(avg_med)
 
         # display( data[ [ col for col in _time_varying_known_reals ] ] )
 
@@ -316,6 +323,10 @@ class ModelBase:
         nbins = ['_' + str(x) for x in range(0, FAM_BINS - 1)]
 
         famine_names = [famine + bb for famine in famine_list for bb in nbins]
+        
+        self._time_varying_known_reals = []
+        self._time_varying_known_reals.extend(avg_med)
+        self._time_varying_known_reals.extend(mod_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
@@ -325,7 +336,7 @@ class ModelBase:
         print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
 
         print(f'training mx_epochs, TimeSeriesDataSet:', max_epochs, time.asctime( time.localtime(time.time()) ) )
-        print('1: -----------------------------------------------------')
+        print('1: known-unknown go -----------------------------------------------------')
         print('2: -----------------------------------------------------')
 
         self.training = TimeSeriesDataSet(
@@ -609,12 +620,16 @@ class ModelBase:
         experiment.update( x )
 
         print(experiment.keys())
+        actuals = actuals.numpy(), 
+        predictions = predictions.numpy(),
         print(experiment['prediction'].numpy().shape)
         print(experiment['encoder_target'].size())
         print(experiment['decoder_target'].size())
 
         np.savez(
             f'AAA{self.name_for_files}_predict.npz',
+            actuals = actuals.numpy(), 
+            predictions = predictions.numpy(),            
             prediction = experiment['prediction'].numpy(),
             encoder_target = experiment['encoder_target'].numpy(),
             decoder_target = experiment['decoder_target'].numpy(),
