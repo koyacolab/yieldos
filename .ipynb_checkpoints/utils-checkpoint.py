@@ -3,7 +3,11 @@ from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.callbacks import Callback
 from pytorch_forecasting.data import TimeSeriesDataSet
 
+import pandas as pd
 
+from tqdm import tqdm
+
+import random
 
 class FineTuneLearningRateFinder_0(LearningRateFinder):
     def __init__(self, milestones, *args, **kwargs):
@@ -112,11 +116,46 @@ class ReloadDataSet(Callback):
         
     def on_train_epoch_start(self, trainer, pl_module):
         # if trainer.current_epoch in self.milestones:
-        #     print('ReloadDataLoader:', trainer.current_epoch)  
-        self.data_train = DataGenerator(DATA=self.data_train, YEARS_MAX_LENGTH=3, NSAMPLES=10)
-        self.dataset_train = TimeSeriesDataSet.from_dataset(self.dataset_train, self.data_train, predict=False, stop_randomization=False)
-        pl_module.train_dataloader = self.train_dataset.to_dataloader(batch_size=self.batch_size, shuffle=True)
+        print('DataGenerator reloading... epoch:', trainer.current_epoch)  
+        data_train = DataGenerator(DATA=self.data_train, YEARS_MAX_LENGTH=2, NSAMPLES=4)
+        self.dataset_train = TimeSeriesDataSet.from_dataset(self.dataset_train, data_train)
+        pl_module.train_dataloader = self.dataset_train.to_dataloader(batch_size=self.batch_size, shuffle=True)
         print('DataLoader was reloaded...')
+        
+def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
+    years_list = list(DATA['year'].astype(int).unique())
+    print(f'Augmentation for years list: {years_list}')
+
+    # random_years = random.sample(years, LENGTH)
+
+    start_year = DATA['year'].astype(int).min()
+    end_year = DATA['year'].astype(int).max()
+
+    data_samples = pd.DataFrame()
+    for ii in tqdm(range(NSAMPLES)):
+        num_years = YEARS_MAX_LENGTH# random.randint(1, YEARS_MAX_LENGTH)  # generate a random number between 1 and 10 for the list size
+        # years = [random.randint(start_year, end_year) for _ in range(num_years)]
+        # years = [random.randint(start_year, end_year) for _ in range(num_years)]
+        years = random.sample(years_list, num_years)
+        # print(ii, years)
+        # df_concat = pd.DataFrame()
+        for county in DATA["county"].unique():
+            df_concat_year = pd.DataFrame()
+            for iyear in years:
+                df_concat_year = pd.concat([ df_concat_year, DATA.loc[ (DATA['year'].astype(int) == iyear) & \
+                                                         (DATA['county'] == county)] ], axis=0)
+            # reindex the concatenated dataframe with a new index
+            new_index = pd.RangeIndex(start=1, stop=len(df_concat_year)+1, step=1)
+            df_concat_year.index = new_index
+            # add a new column with integer values equal to the index
+            df_concat_year["time_idx"] = df_concat_year.index.astype(int)
+            df_concat_year["sample"] = str(ii)
+            data_samples = pd.concat([data_samples, df_concat_year], axis=0)
+        # reindex the concatenated dataframe with a new index
+    new_index = pd.RangeIndex(start=1, stop=len(data_samples)+1, step=1)
+    data_samples.index = new_index
+
+    return data_samples
 
 # class ReloadDataLoader(Callback):
 #     def __init__(self, train_dataset: TimeSeriesDataSet):

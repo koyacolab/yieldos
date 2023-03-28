@@ -63,7 +63,7 @@ from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, FineTuneLearningRateFinder_2
-from utils import ReloadDataLoader
+from utils import ReloadDataLoader, ReloadDataSet
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
 
@@ -336,7 +336,12 @@ class ModelBase:
                 
             return data_samples
         
-        self.data_train = DataGenerator(DATA=self.data, YEARS_MAX_LENGTH=3, NSAMPLES=10)
+        ############### INIT data_train with all years in timeseries ######################################~
+        self.data_train = DataGenerator(DATA=self.data, YEARS_MAX_LENGTH=2, NSAMPLES=4)
+        # self.data_train.loc[:, 'sample'] = self.data_train.loc[:, 'year']
+        # self.data_train["sample"] = self.data_train["year"]
+        # for ii in self.data["year"].unique():
+        #     self.data_train["sample"] = ii
         
         # self.data_train = self.data
         
@@ -502,6 +507,8 @@ class ModelBase:
         _SWA = StochasticWeightAveraging(swa_lrs=1e-2, swa_epoch_start=50, device='gpu')
         
         _reload_dataloader = ReloadDataLoader(self.training, self.batch_size)
+        
+        _reload_dataset = ReloadDataSet( self.data, self.training, self.batch_size)
 
         self.trainer = Trainer(accelerator='gpu', 
                                logger=_logger, 
@@ -512,7 +519,7 @@ class ModelBase:
                                # precision=16,
                                gradient_clip_val=0.2,
                                # reload_dataloaders_every_epoch=True,
-                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor, _reload_dataloader])
+                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor, _reload_dataset])
         
 
         # learning_rate = 0.01
