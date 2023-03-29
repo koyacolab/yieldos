@@ -422,7 +422,7 @@ class ModelBase:
             # min_prediction_idx = min_prediction_idx,
             # static_categoricals = ["county", "year"],
             # static_reals = _static_reals,
-            # time_varying_known_categoricals=["special_days", "month"],
+            time_varying_known_categoricals=["month"],
             # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
             time_varying_known_reals = self._time_varying_known_reals,
             # time_varying_unknown_categoricals=[],
@@ -450,7 +450,7 @@ class ModelBase:
             # min_prediction_idx = min_prediction_idx,
             # static_categoricals = ["county", "year"],
             # static_reals = _static_reals,
-            # time_varying_known_categoricals=["special_days", "month"],
+            time_varying_known_categoricals=["month"],
             # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
             time_varying_known_reals = self._time_varying_known_reals,
             # time_varying_unknown_categoricals=[],
@@ -696,8 +696,8 @@ class ModelBase:
 
         np.savez(
             f'AAA{self.name_for_files}_predict.npz',
-            actuals = actuals.numpy(), 
-            predictions = predictions.numpy(),
+            actuals = np.asarray(actuals), 
+            predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
             encoder_target = experiment['encoder_target'].numpy(),
             decoder_target = experiment['decoder_target'].numpy(),
