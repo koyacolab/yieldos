@@ -100,7 +100,7 @@ class ModelBase:
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
                  max_epochs = 100,
-                 lr_milestones_list = [120, 400, 600, 800,],
+                 lr_milestones_list = [20, 50, 600, 800,],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
                  crop_name = 'rice',
@@ -508,7 +508,7 @@ class ModelBase:
         
         _reload_dataloader = ReloadDataLoader(self.training, self.batch_size)
         
-        _reload_dataset = ReloadDataSet( self.data, self.training, self.batch_size)
+        _reload_dataset = ReloadDataSet(self.data, self.training, self.batch_size)
 
         self.trainer = Trainer(accelerator='gpu', 
                                logger=_logger, 
@@ -519,7 +519,7 @@ class ModelBase:
                                # precision=16,
                                gradient_clip_val=0.2,
                                # reload_dataloaders_every_epoch=True,
-                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor, _reload_dataset])
+                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor, _reload_dataset, _reload_dataloader])
         
 
         # learning_rate = 0.01
