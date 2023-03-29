@@ -63,7 +63,7 @@ from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, FineTuneLearningRateFinder_2
-from utils import FineTuneLearningRateFinder_CyclicLR
+from utils import FineTuneLearningRateFinder_LinearLR
 from utils import ReloadDataLoader, ReloadDataSet
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
@@ -166,6 +166,8 @@ class ModelBase:
         
         # cealr unnamed fields from dataset
         alidata = alidata.loc[:, ~alidata.columns.str.contains('^Unnamed')]
+        
+        print(alidata['month'].unique())
 
         alidata['county']   = alidata['county'].astype(str)
         alidata['year']     = alidata['year'].astype(str)
@@ -189,6 +191,8 @@ class ModelBase:
 
         # DON'T DELETE, cut dataset by month
         alidata = alidata[ alidata['month'] < 11 ]
+        
+        alidata['month'] = alidata['month'].astype(str)
         
 #         bad_year = '2008'
         
@@ -217,21 +221,24 @@ class ModelBase:
         
         print('Years to train:', self.years)
         
-        self.name_for_files = f'Dcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.learning_rate}]'
+        self.name_for_files = f'AABcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.learning_rate}]'
         
-        
+        # fn
+# ######################test##########################        
+#         del_year = ['2008', '2017', '2018']
+#         del_year.remove(self.val_year)
+#         for yr in del_year:
+#             self.years.remove(yr)
+        print('------------------------------')
+        print('Years to train:', self.years)
+#         # fn
+# ####################################################
 
         train_mask = alidata['year'].isin(self.years)
         self.data = alidata[train_mask]
 
         val_mask = alidata['year'].isin([self.val_year])
         self.data_val = alidata[val_mask]
-        
-        self.data = self.data[ self.data['year'] != '2008' ]
-        
-        print('--------check 2008----------------------')
-        print('Years to train:', self.years)
-        print('------------------------------')
 
         # display(self.data_infer)
 
@@ -497,7 +504,8 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        _lr_finder  = FineTuneLearningRateFinder_CyclicLR() #FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, gamma=0.5, mode='linear', early_stop_threshold=10000)
+        _lr_finder  = FineTuneLearningRateFinder_LinearLR()
+        # FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, gamma=0.5, mode='linear', early_stop_threshold=10000)
         # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list)
         
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -506,7 +514,7 @@ class ModelBase:
         
         _reload_dataloader = ReloadDataLoader(self.training, self.batch_size)
         
-        _reload_dataset = ReloadDataSet(self.data, self.training, self.batch_size)
+        _reload_dataset = ReloadDataSet( self.data, self.training, self.batch_size)
 
         self.trainer = Trainer(accelerator='gpu', 
                                logger=_logger, 
@@ -517,7 +525,7 @@ class ModelBase:
                                # precision=16,
                                gradient_clip_val=0.2,
                                # reload_dataloaders_every_epoch=True,
-                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor, _reload_dataset, _reload_dataloader])
+                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor, _reload_dataset])#, _reload_dataloader])
         
 
         # learning_rate = 0.01
@@ -693,13 +701,15 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'AAA{self.name_for_files}_predict.npz',
+            f'AAB{self.name_for_files}_predict.npz',
             actuals = np.asarray(actuals), 
             predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
             encoder_target = experiment['encoder_target'].numpy(),
             decoder_target = experiment['decoder_target'].numpy(),
             )   
+        
+        print("predict saved...")
         
     def inference(self,):
         inference = TimeSeriesDataSet(

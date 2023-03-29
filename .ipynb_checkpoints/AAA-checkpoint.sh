@@ -10,8 +10,8 @@
 # echo "${inputs[@]}" | tr ' ' '\n' | parallel -j $parallel_jobs python AAChinaTFT-D.py {}
 # QuantileLoss
 
-for Yr in 2008; do
-   python AAA.py train_TFT -exp_name 'AAA_RMSE_converge' -predicted_year $Yr -batch_size 128 -learning_rate 0.1 -loss_func_metric 'RMSE'
+for Yr in 2017; do
+   python AAA.py train_TFT -exp_name 'AAA_RMSE_cyclic' -predicted_year $Yr -batch_size 128 -learning_rate 0.1 -loss_func_metric 'RMSE'
    # echo $Yr
    # wait 10
 done

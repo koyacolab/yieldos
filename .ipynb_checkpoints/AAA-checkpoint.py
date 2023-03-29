@@ -63,6 +63,7 @@ from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, FineTuneLearningRateFinder_2
+from utils import FineTuneLearningRateFinder_CyclicLR
 from utils import ReloadDataLoader, ReloadDataSet
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
@@ -218,22 +219,19 @@ class ModelBase:
         
         self.name_for_files = f'Dcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.learning_rate}]'
         
-        # fn
-# ######################test##########################        
-#         del_year = ['2008', '2017', '2018']
-#         del_year.remove(self.val_year)
-#         for yr in del_year:
-#             self.years.remove(yr)
-        print('------------------------------')
-        print('Years to train:', self.years)
-#         # fn
-# ####################################################
+        
 
         train_mask = alidata['year'].isin(self.years)
         self.data = alidata[train_mask]
 
         val_mask = alidata['year'].isin([self.val_year])
         self.data_val = alidata[val_mask]
+        
+        self.data = self.data[ self.data['year'] != '2008' ]
+        
+        print('--------check 2008----------------------')
+        print('Years to train:', self.years)
+        print('------------------------------')
 
         # display(self.data_infer)
 
@@ -499,7 +497,7 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        _lr_finder  = FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, gamma=0.5, mode='linear', early_stop_threshold=10000)
+        _lr_finder  = FineTuneLearningRateFinder_CyclicLR() #FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, gamma=0.5, mode='linear', early_stop_threshold=10000)
         # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list)
         
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
