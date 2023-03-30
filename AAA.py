@@ -63,7 +63,7 @@ from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, FineTuneLearningRateFinder_2
-from utils import FineTuneLearningRateFinder_CyclicLR
+from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR
 from utils import ReloadDataLoader, ReloadDataSet
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
@@ -100,7 +100,7 @@ class ModelBase:
                  save_checkpoint = False,
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
-                 max_epochs = 100,
+                 max_epochs = 200,
                  lr_milestones_list = [20, 50, 600, 800,],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
@@ -189,6 +189,7 @@ class ModelBase:
 
         # DON'T DELETE, cut dataset by month
         alidata = alidata[ alidata['month'] < 11 ]
+        alidata['month'] = alidata['month'].astype(str)
         
 #         bad_year = '2008'
         
@@ -200,9 +201,9 @@ class ModelBase:
 
         data_infer = alidata[infer_mask]
 
-        data_infer['rice_sownarea'] = np.nan
-        data_infer['rice_yieldval'] = np.nan
-        data_infer['rice_yield']    = np.nan
+        data_infer['rice_sownarea'] = 0.0    #np.nan
+        data_infer['rice_yieldval'] = 0.0    #np.nan
+        data_infer['rice_yield']    = 0.0    #np.nan
 
         years = [str(x) for x in range(2003, 2019)]
 
@@ -228,6 +229,7 @@ class ModelBase:
         self.data_val = alidata[val_mask]
         
         self.data = self.data[ self.data['year'] != '2008' ]
+        self.years = self.data['year'].unique()
         
         print('--------check 2008----------------------')
         print('Years to train:', self.years)
@@ -534,6 +536,7 @@ class ModelBase:
             loss=self.loss_func,
             # loss=QuantileLoss(),
             # optimizer = 'adam',
+            optimizer = 'sgd',
             # log_interval=10,  # uncomment for learning rate finder and otherwise, e.g. to 10 for logging every 10 batches
             # reduce_on_plateau_patience=4,
             )
@@ -714,13 +717,13 @@ class ModelBase:
         # min_prediction_idx = min_prediction_idx,
         # static_categoricals = ["county", "year"],
         # static_reals = _static_reals,
-        # time_varying_known_categoricals=["special_days", "month"],
+        time_varying_known_categoricals=["month"],
         # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
         time_varying_known_reals = self._time_varying_known_reals,
         # time_varying_unknown_categoricals=[],
         time_varying_unknown_reals = self._time_varying_unknown_reals,
         target_normalizer=GroupNormalizer(
-            groups=["county", "year"], transformation="softplus"
+            groups=["county", "year"], transformation="relu"
         ),  # use softplus and normalize by group
         add_relative_time_idx=True,
         add_target_scales=True,
@@ -762,6 +765,8 @@ class ModelBase:
 
         np.savez(
             f'AAA{self.name_for_files}_inference.npz',
+            actuals = np.asarray(actuals), 
+            predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
             encoder_target = experiment['encoder_target'].numpy(),
             decoder_target = experiment['decoder_target'].numpy(),

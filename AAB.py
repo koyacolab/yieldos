@@ -63,7 +63,7 @@ from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, FineTuneLearningRateFinder_2
-from utils import FineTuneLearningRateFinder_LinearLR
+from utils import FineTuneLearningRateFinder_LinearLR, FineTuneLearningRateFinder_CyclicLR
 from utils import ReloadDataLoader, ReloadDataSet
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
@@ -100,7 +100,7 @@ class ModelBase:
                  save_checkpoint = False,
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
-                 max_epochs = 100,
+                 max_epochs = 200,
                  lr_milestones_list = [20, 50, 600, 800,],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
@@ -204,9 +204,9 @@ class ModelBase:
 
         data_infer = alidata[infer_mask]
 
-        data_infer['rice_sownarea'] = np.nan
-        data_infer['rice_yieldval'] = np.nan
-        data_infer['rice_yield']    = np.nan
+        data_infer['rice_sownarea'] = 0.0     # np.nan
+        data_infer['rice_yieldval'] = 0.0     # np.nan
+        data_infer['rice_yield']    = 0.0     # np.nan
 
         years = [str(x) for x in range(2003, 2019)]
 
@@ -223,16 +223,6 @@ class ModelBase:
         
         self.name_for_files = f'AABcr[{self.scrop}]-yr[{self.val_year}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.learning_rate}]'
         
-        # fn
-# ######################test##########################        
-#         del_year = ['2008', '2017', '2018']
-#         del_year.remove(self.val_year)
-#         for yr in del_year:
-#             self.years.remove(yr)
-        print('------------------------------')
-        print('Years to train:', self.years)
-#         # fn
-# ####################################################
 
         train_mask = alidata['year'].isin(self.years)
         self.data = alidata[train_mask]
@@ -247,6 +237,13 @@ class ModelBase:
         # display(self.data_val)
 
         self.data_inference = pd.concat([self.data_val, data_infer], axis=0)
+        
+        self.data = self.data[ self.data['year'] != '2008' ]
+        self.years = self.data['year'].unique()
+        
+        print('--------check 2008----------------------')
+        print('Years to train:', self.years)
+        print('------------------------------')
 
         # display(self.data_inference)
 
@@ -399,12 +396,13 @@ class ModelBase:
         
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        self._time_varying_known_reals.extend(mod_names) 
+        # self._time_varying_known_reals.extend(mod_names) 
+        self._time_varying_unknown_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
-        self._time_varying_unknown_reals.extend(mod_names)
-        # self._time_varying_unknown_reals.extend(famine_names)
+        # self._time_varying_unknown_reals.extend(mod_names)
+        self._time_varying_unknown_reals.extend(famine_names)
 
         print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
 
@@ -504,7 +502,8 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        _lr_finder  = FineTuneLearningRateFinder_LinearLR()
+        _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, max_lr=0.085, step_size_up=30, step_size_down=70)
+        # FineTuneLearningRateFinder_LinearLR()
         # FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, gamma=0.5, mode='linear', early_stop_threshold=10000)
         # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list)
         
@@ -724,7 +723,7 @@ class ModelBase:
         # min_prediction_idx = min_prediction_idx,
         # static_categoricals = ["county", "year"],
         # static_reals = _static_reals,
-        # time_varying_known_categoricals=["special_days", "month"],
+        time_varying_known_categoricals=["month"],
         # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
         time_varying_known_reals = self._time_varying_known_reals,
         # time_varying_unknown_categoricals=[],
@@ -746,11 +745,11 @@ class ModelBase:
         self.best_tft = TemporalFusionTransformer.load_from_checkpoint(f'{self.checkpoint}.ckpt')
         print('weights loaded', time.asctime( time.localtime(time.time()) ) )
         
-        actuals = torch.cat([y[0] for x, y in iter(self.inf_dataloader)])
-        predictions = self.best_tft.predict(self.inf_dataloader)
+        actuals = torch.cat([y[0] for x, y in iter(inf_dataloader)])
+        predictions = self.best_tft.predict(inf_dataloader)
         
         # raw predictions are a dictionary from which all kind of information including quantiles can be extracted
-        raw_predictions, x = self.best_tft.predict(self.inf_dataloader, mode="raw", return_x=True)
+        raw_predictions, x = self.best_tft.predict(inf_dataloader, mode="raw", return_x=True)
         
         print(type(raw_predictions), raw_predictions.keys()) 
         print(type(x), x.keys()) 
@@ -772,6 +771,8 @@ class ModelBase:
 
         np.savez(
             f'AAA{self.name_for_files}_inference.npz',
+            actuals = np.asarray(actuals), 
+            predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
             encoder_target = experiment['encoder_target'].numpy(),
             decoder_target = experiment['decoder_target'].numpy(),
