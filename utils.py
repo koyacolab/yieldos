@@ -136,6 +136,7 @@ class FineTuneLearningRateFinder_CyclicLR(LearningRateFinder):
         self.scheduler = []
 
     def on_fit_start(self, trainer, pl_module):
+        print("CycicLR:", self.base_lr, self.max_lr, self.step_size_up, self.step_size_down, self.mode)
         self.optimizer = trainer.optimizers[0]
         self.scheduler = torch.optim.lr_scheduler.CyclicLR(self.optimizer, 
                                                            base_lr=self.base_lr, 
@@ -163,32 +164,6 @@ class FineTuneLearningRateFinder_CyclicLR(LearningRateFinder):
             param_group['lr'] = self.scheduler.get_last_lr()[0]
         self.scheduler.step()
         print('on_train_epoch_start:', self.scheduler.get_last_lr()[0])
-    
-    # def on_train_epoch_start(self, trainer, pl_module):
-    #     if trainer.current_epoch < 30 or trainer.current_epoch == 0:
-    #         print('epoch < 30 up')
-    #         self.optimizer = trainer.optimizers[0]
-    #         # self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, self.milestones, self.gamma)
-    #         self.scheduler = torch.optim.lr_scheduler.LinearLR(self.optimizer, start_factor=0.35, end_factor=1.0, total_iters=30)
-    #     else:
-    #         print('epoch > 30 down')
-    #         self.optimizer = trainer.optimizers[0]
-    #         # self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, self.milestones, self.gamma)
-    #         self.scheduler = torch.optim.lr_scheduler.LinearLR(self.optimizer, start_factor=1.0, end_factor=0.35, total_iters=70)
-    #     # for param_group in self.optimizer.param_groups:
-    #     #     param_group['lr'] = self.scheduler.get_last_lr()[0]
-    #     self.scheduler.step()
-    #     print('on_train_epoch_start cycle:', self.scheduler.get_last_lr()[0])
-
-    # def on_train_epoch_start(self, trainer, pl_module):
-    #     self.optimizer = trainer.optimizers[0]
-    #     # self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, self.milestones, self.gamma)
-    #     self.scheduler = torch.optim.lr_scheduler.CyclicLR(self.optimizer, base_lr=0.001, max_lr=0.085, step_size_up=1, step_size_down=1, mode='triangular2', gamma=1.0, scale_fn=None, scale_mode='cycle', cycle_momentum=True, base_momentum=0.8, max_momentum=0.9, last_epoch=- 1, verbose=False)
-    #     # StepLR(optimizer, self.step_size, self.gamma)
-    #     for param_group in self.optimizer.param_groups:
-    #         param_group['lr'] = self.scheduler.get_last_lr()[0]
-    #     self.scheduler.step()
-    #     print('on_train_epoch_start:', self.scheduler.get_last_lr()[0])
         
 # ---------------------------------------------------------------------------------------------------------------
 
@@ -253,7 +228,7 @@ class ReloadDataSet(Callback):
     def on_train_epoch_start(self, trainer, pl_module):
         # if trainer.current_epoch in self.milestones:
         print('DataGenerator reloading... epoch:', trainer.current_epoch)  
-        data_train = DataGenerator(DATA=self.data_train, YEARS_MAX_LENGTH=3, NSAMPLES=4)
+        data_train = DataGenerator(DATA=self.data_train, YEARS_MAX_LENGTH=4, NSAMPLES=4)
         self.dataset_train = TimeSeriesDataSet.from_dataset(self.dataset_train, data_train)
         pl_module.train_dataloader = self.dataset_train.to_dataloader(batch_size=self.batch_size, shuffle=True)
         print('DataLoader was reloaded...')
@@ -269,13 +244,15 @@ def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
 
     data_samples = pd.DataFrame()
     for ii in tqdm(range(NSAMPLES)):
-        num_years = random.randint(1, YEARS_MAX_LENGTH)  # generate a random number between 1 and 10 for the list size
+        # num_years = random.randint(1, YEARS_MAX_LENGTH)  # generate a random number between 1 and 10 for the list size
         # years = [random.randint(start_year, end_year) for _ in range(num_years)]
         # years = [random.randint(start_year, end_year) for _ in range(num_years)]
-        years = random.sample(years_list, num_years)
-        # print(ii, years)
+        # years = random.sample(years_list, num_years)
+        # print('DataGenerator nsamples:', ii, type(years), years)
         # df_concat = pd.DataFrame()
         for county in DATA["county"].unique():
+            num_years = random.randint(1, YEARS_MAX_LENGTH)
+            years = random.sample(years_list, num_years)
             df_concat_year = pd.DataFrame()
             for iyear in years:
                 df_concat_year = pd.concat([ df_concat_year, DATA.loc[ (DATA['year'].astype(int) == iyear) & \

@@ -11,7 +11,7 @@
 # QuantileLoss
 
 for Yr in 2017; do
-   python AAB.py train_TFT -exp_name 'AAB_RMSE_LinearLR' -predicted_year $Yr -batch_size 128 -learning_rate 0.085 -loss_func_metric 'RMSE'
+   python AAB.py train_TFT -exp_name 'AAB_RMSE_CyclicLR' -predicted_year $Yr -batch_size 96 -learning_rate 0.085 -loss_func_metric 'RMSE' -max_epochs 180
    # echo $Yr
    # wait 10
 done

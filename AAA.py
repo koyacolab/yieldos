@@ -147,6 +147,8 @@ class ModelBase:
         
         self.lr_milestones_list = lr_milestones_list
         
+        self.max_epochs = max_epochs
+        
         # MOD_BINS = 512
         # FAM_BINS = 256
         
@@ -499,7 +501,7 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        _lr_finder  = FineTuneLearningRateFinder_CyclicLR() #FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, gamma=0.5, mode='linear', early_stop_threshold=10000)
+        _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, max_lr=0.01, step_size_up=30, step_size_down=30) #FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, gamma=0.5, mode='linear', early_stop_threshold=10000)
         # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list)
         
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -513,7 +515,7 @@ class ModelBase:
         self.trainer = Trainer(accelerator='gpu', 
                                logger=_logger, 
                                log_every_n_steps=1, 
-                               max_epochs=max_epochs,
+                               max_epochs=self.max_epochs,
                                # devices = "0",          
                                # fast_dev_run=True, 
                                # precision=16,

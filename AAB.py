@@ -147,6 +147,8 @@ class ModelBase:
         
         self.lr_milestones_list = lr_milestones_list
         
+        self.max_epochs = max_epochs
+        
         # MOD_BINS = 512
         # FAM_BINS = 256
         
@@ -397,7 +399,7 @@ class ModelBase:
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
         # self._time_varying_known_reals.extend(mod_names) 
-        self._time_varying_unknown_reals.extend(famine_names)
+        self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
@@ -502,7 +504,7 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, max_lr=0.085, step_size_up=30, step_size_down=70)
+        _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, max_lr=0.01, step_size_up=30, step_size_down=30)
         # FineTuneLearningRateFinder_LinearLR()
         # FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, gamma=0.5, mode='linear', early_stop_threshold=10000)
         # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list)
@@ -518,7 +520,7 @@ class ModelBase:
         self.trainer = Trainer(accelerator='gpu', 
                                logger=_logger, 
                                log_every_n_steps=1, 
-                               max_epochs=max_epochs,
+                               max_epochs=self.max_epochs,
                                # devices = "0",          
                                # fast_dev_run=True, 
                                # precision=16,
@@ -541,6 +543,7 @@ class ModelBase:
             loss=self.loss_func,
             # loss=QuantileLoss(),
             # optimizer = 'adam',
+            optimizer = 'sgd'
             # log_interval=10,  # uncomment for learning rate finder and otherwise, e.g. to 10 for logging every 10 batches
             # reduce_on_plateau_patience=4,
             )
