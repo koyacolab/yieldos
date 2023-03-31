@@ -193,10 +193,19 @@ class ReloadDataSet(Callback):
     def on_train_epoch_start(self, trainer, pl_module):
         # if trainer.current_epoch in self.milestones:
         print('DataGenerator reloading... epoch:', trainer.current_epoch)  
-        data_train = DataGenerator(DATA=self.data_train, YEARS_MAX_LENGTH=4, NSAMPLES=4)
+        data_train, year_list = DataGenerator(DATA=self.data_train, YEARS_MAX_LENGTH=4, NSAMPLES=4)
         self.dataset_train = TimeSeriesDataSet.from_dataset(self.dataset_train, data_train)
         pl_module.train_dataloader = self.dataset_train.to_dataloader(batch_size=self.batch_size, shuffle=True)
         print('DataLoader was reloaded...')
+        # show list of the generated years in tensorboard
+        # year_dict = {}
+        # for i, year in enumerate(year_list):
+        #     year_dict[str(i)] = year
+        #     # print(type(year), year)
+        #     trainer.logger.experiment.add_scalar("Training Year List", year, trainer.current_epoch)
+        # trainer.logger.experiment.add_scalars("Training Year List", year_dict, trainer.current_epoch)
+        # self.logger.experiment.add_scalars("Train Metrics", {"Loss": train_loss, "Accuracy": train_acc}, global_step=trainer.global_step)
+        # print(year_list)
         
 def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
     years_list = list(DATA['year'].astype(int).unique())
@@ -208,6 +217,7 @@ def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
     end_year = DATA['year'].astype(int).max()
 
     data_samples = pd.DataFrame()
+    years_samples = []
     for ii in tqdm(range(NSAMPLES)):
         # num_years = random.randint(1, YEARS_MAX_LENGTH)  # generate a random number between 1 and 10 for the list size
         # years = [random.randint(start_year, end_year) for _ in range(num_years)]
@@ -218,6 +228,7 @@ def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
         for county in DATA["county"].unique():
             num_years = random.randint(1, YEARS_MAX_LENGTH)
             years = random.sample(years_list, num_years)
+            years_samples.append(years)
             df_concat_year = pd.DataFrame()
             for iyear in years:
                 df_concat_year = pd.concat([ df_concat_year, DATA.loc[ (DATA['year'].astype(int) == iyear) & \
@@ -233,7 +244,7 @@ def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
     new_index = pd.RangeIndex(start=1, stop=len(data_samples)+1, step=1)
     data_samples.index = new_index
 
-    return data_samples
+    return data_samples, years_samples
 
 # class ReloadDataLoader(Callback):
 #     def __init__(self, train_dataset: TimeSeriesDataSet):

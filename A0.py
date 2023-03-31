@@ -193,6 +193,8 @@ class ModelBase:
         alidata = alidata[ alidata['month'] < 11 ]
         alidata['month'] = alidata['month'].astype(str)
         
+        alidata['gstage'] = 'yield'
+        
 #         bad_year = '2008'
         
 #         alidata = alidata[ alidata['year'] != bad_year]
@@ -270,13 +272,17 @@ class ModelBase:
                 avg_yield = self.data['avg_rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
                 med_yield = self.data['med_rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
                 self.data['rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                       (self.data['time_idx'] < self.max_encoder_length) ] = avg_yield# ( avg_yield + med_yield ) / 2.0
+                                       (self.data['month'] < 6) ] = avg_yield# ( avg_yield + med_yield ) / 2.0
+                self.data['gstage'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
+                                       (self.data['month'] < 6) ] = "no"
 
         for county in self.data_val['county'].unique():
             avg_yield = self.data_val['avg_rice_yield'].loc[(self.data_val['county'] == county) ].mean()
             med_yield = self.data_val['med_rice_yield'].loc[(self.data_val['county'] == county) ].mean()
             self.data_val['rice_yield'].loc[(self.data_val['county'] == county) &  \
-                                       (self.data_val['time_idx'] < self.max_encoder_length) ] = avg_yield# ( avg_yield + med_yield ) / 2.0
+                                       (self.data['month'] < 6) ] = avg_yield# ( avg_yield + med_yield ) / 2.0
+            self.data_val['gstage'].loc[(self.data_val['county'] == county) &  \
+                                       (self.data['month'] < 6) ] = "no"
 
         for county in self.data_inference['county'].unique():
             for year in self.data_inference['year'].unique():
@@ -286,8 +292,50 @@ class ModelBase:
                                                                  (self.data_inference['year'] == year)].mean()
                 self.data_inference['rice_yield'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
-                                                 (self.data_inference['time_idx'] < self.max_encoder_length)] \
-                = avg_yield# (avg_yield + med_yield) / 2.0
+                                                 (self.data['month'] < 6) ] \
+                                                 = avg_yield# (avg_yield + med_yield) / 2.0
+                self.data_inference['gstage'].loc[(self.data_inference['county'] == county) \
+                                                 & (self.data_inference['year'] == year) & \
+                                                 (self.data['month'] < 6) ] \
+                                                 = "no"
+                
+        for county in self.data['county'].unique():
+            for year in self.data['year'].unique():
+                avg_yield = self.data['avg_rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
+                med_yield = self.data['med_rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
+                rice_yield = self.data['rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
+                self.data['rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
+                                       (self.data['month'] == 6) | (self.data['month'] == 7) ] = \
+                                       [avg_yield + ((rice_yield - avg_yield) / 8.0) * i for i in range(1,9)]
+                self.data['gstage'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
+                                       (self.data['month'] == 6) | (self.data['month'] == 7) ] = \
+                                       "growth"
+
+        for county in self.data_val['county'].unique():
+            avg_yield = self.data_val['avg_rice_yield'].loc[(self.data_val['county'] == county) ].mean()
+            med_yield = self.data_val['med_rice_yield'].loc[(self.data_val['county'] == county) ].mean()
+            self.data_val['rice_yield'].loc[(self.data_val['county'] == county) &  \
+                                       (self.data['month'] == 6) | (self.data['month'] == 7) ] = \
+                                       [avg_yield + ((rice_yield - avg_yield) / 8.0) * i for i in range(1,9)]
+            self.data_val['gstage'].loc[(self.data_val['county'] == county) &  \
+                                       (self.data['month'] == 6) | (self.data['month'] == 7) ] = \
+                                       "growth"
+
+        for county in self.data_inference['county'].unique():
+            for year in self.data_inference['year'].unique():
+                avg_yield = self.data_inference['avg_rice_yield'].loc[(self.data_inference['county'] == county) & \
+                                                                 (self.data_inference['year'] == year)].mean()
+                med_yield = self.data_inference['med_rice_yield'].loc[(self.data_inference['county'] == county) & \
+                                                                 (self.data_inference['year'] == year)].mean()
+                self.data_inference['rice_yield'].loc[(self.data_inference['county'] == county) \
+                                                 & (self.data_inference['year'] == year) & \
+                                                 (self.data['month'] == 6) | (self.data['month'] == 7) ] = \
+                                                 [avg_yield + ((rice_yield - avg_yield) / 8.0) * i for i in range(1,9)]
+                self.data_inference['gstage'].loc[(self.data_inference['county'] == county) \
+                                                 & (self.data_inference['year'] == year) & \
+                                                 (self.data['month'] == 6) | (self.data['month'] == 7) ] = \
+                                                 "growth"
+                    
 
         # display(data[ (data['county'] == '0') & (data['year'] == '2003') ])
 
@@ -344,6 +392,14 @@ class ModelBase:
         # self.data_train["sample"] = self.data_train["year"]
         # for ii in self.data["year"].unique():
         #     self.data_train["sample"] = ii
+        
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
+        
+        ax.plot(self.data_train['time_idx'], self.data_train['rice_yield'])
+        plt.show()
+        plt.savefig('A0', bbox_inches='tight')
+        
+        fn
         
         # self.data_train = self.data
         

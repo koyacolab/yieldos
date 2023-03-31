@@ -11,7 +11,7 @@
 # QuantileLoss
 
 for Yr in 2017; do
-   python AAA.py train_TFT -exp_name 'AAA_RMSE_cyclic' -predicted_year $Yr -batch_size 128 -learning_rate 0.01 -loss_func_metric 'RMSE' -max_epochs 300
+   python AAA.py train_TFT -exp_name 'AAA_RMSE_cyclic' -predicted_year $Yr -batch_size 128 -learning_rate 0.01 -loss_func_metric 'RMSE' -max_epochs 240
    # echo $Yr
    # wait 10
 done
