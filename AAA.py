@@ -366,7 +366,9 @@ class ModelBase:
         # avg_med = ["avg_rice_yield", "med_rice_yield", "avg_rice_sownarea", "med_rice_sownarea",\
         #                  "avg_rice_yieldval", "med_rice_yieldval"]
         
-        avg_med = ["avg_rice_yield", "rice_sownarea"]
+        # avg_med = ["avg_rice_yield", "rice_sownarea"]
+        
+        avg_med = ["avg_rice_yield"]
         
         # avg_med = []
 
@@ -501,7 +503,7 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, max_lr=0.01, step_size_up=30, step_size_down=30) #FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, gamma=0.5, mode='linear', early_stop_threshold=10000)
+        _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, max_lr=0.02, step_size_up=50, step_size_down=50) #FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, gamma=0.5, mode='linear', early_stop_threshold=10000)
         # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list)
         
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -521,7 +523,7 @@ class ModelBase:
                                # precision=16,
                                gradient_clip_val=0.2,
                                # reload_dataloaders_every_epoch=True,
-                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor, _reload_dataset, _reload_dataloader])
+                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor, _reload_dataset])
         
 
         # learning_rate = 0.01
@@ -698,7 +700,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'AAA{self.name_for_files}_predict.npz',
+            f'A0mod_{self.name_for_files}_predict.npz',
             actuals = np.asarray(actuals), 
             predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
@@ -766,7 +768,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'AAA{self.name_for_files}_inference.npz',
+            f'A0mod_{self.name_for_files}_inference.npz',
             actuals = np.asarray(actuals), 
             predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),

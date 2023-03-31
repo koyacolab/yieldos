@@ -368,7 +368,9 @@ class ModelBase:
         # avg_med = ["avg_rice_yield", "med_rice_yield", "avg_rice_sownarea", "med_rice_sownarea",\
         #                  "avg_rice_yieldval", "med_rice_yieldval"]
         
-        avg_med = ["avg_rice_yield", "rice_sownarea"]
+#         avg_med = ["avg_rice_yield", "rice_sownarea"]
+        
+        avg_med = ["avg_rice_yield"]
         
         # avg_med = []
 
@@ -504,7 +506,7 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, max_lr=0.01, step_size_up=30, step_size_down=30)
+        _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, max_lr=0.02, step_size_up=30, step_size_down=30)
         # FineTuneLearningRateFinder_LinearLR()
         # FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, gamma=0.5, mode='linear', early_stop_threshold=10000)
         # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list)
