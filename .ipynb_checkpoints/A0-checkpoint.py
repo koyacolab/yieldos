@@ -749,15 +749,15 @@ class ModelBase:
         predictions = self.best_tft.predict(self.val_dataloader)
         (actuals - predictions).abs().mean()
         
-        rint('raw predict')
+        print('raw predict')
         
         raw_predictions, x = self.best_tft.predict(self.val_dataloader, mode="raw", return_x=True)
         
         print(type(raw_predictions), raw_predictions.keys()) 
         print(type(x), x.keys()) 
         print(type(raw_predictions['prediction']), raw_predictions['prediction'].shape)
-        for idx in range(27):  # plot 10 examples
-            self.best_tft.plot_prediction(x, raw_predictions, idx=idx, add_loss_to_title=True);
+        # for idx in range(27):  # plot 10 examples
+        #     self.best_tft.plot_prediction(x, raw_predictions, idx=idx, add_loss_to_title=True);
             
         import json
 
@@ -798,8 +798,8 @@ class ModelBase:
         print(type(raw_predictions), raw_predictions.keys()) 
         print(type(x), x.keys()) 
         print(type(raw_predictions['prediction']), raw_predictions['prediction'].shape)
-        for idx in range(27):  # plot 10 examples
-            self.best_tft.plot_prediction(x, raw_predictions, idx=idx, add_loss_to_title=True);
+        # for idx in range(27):  # plot 10 examples
+        #     self.best_tft.plot_prediction(x, raw_predictions, idx=idx, add_loss_to_title=True);
             
         import json
 
@@ -829,9 +829,9 @@ class ModelBase:
         time_idx="time_idx",
         target="rice_yield",
         group_ids=["county", "year"],
-        # min_encoder_length=max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
+        min_encoder_length=max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
         max_encoder_length = self.max_encoder_length,
-        # min_prediction_length = 1 , # max_prediction_length // 2,
+        min_prediction_length = 1 , # max_prediction_length // 2,
         max_prediction_length = self.max_prediction_length,
         # min_prediction_idx = min_prediction_idx,
         # static_categoricals = ["county", "year"],
