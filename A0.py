@@ -224,7 +224,7 @@ class ModelBase:
         # tt = [x for x in self.val_years]
         # print('tt', tt)
         
-        self.name_for_files = f'Dcr[{self.scrop}]-yr[{"_".join(self.val_years)}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.learning_rate}]'
+        self.name_for_files = f'A0cr[{self.scrop}]-yr[{"_".join(self.val_years)}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.learning_rate}]'
         
         print('self.name_for_files:', self.name_for_files)
         
@@ -543,9 +543,9 @@ class ModelBase:
         # create dataloaders for model
         # batch_size = 16  # set this between 32 to 128
         self.train_dataloader = self.training.to_dataloader(train=True, batch_size=self.batch_size, num_workers=8)
-        self.val_dataloader = self.validation.to_dataloader(train=False, batch_size=1, num_workers=8)
+        self.val_dataloader = self.validation.to_dataloader(train=False, batch_size=self.batch_size, num_workers=8)
         
-        self.test_dataloader = self.testing.to_dataloader(train=False, batch_size=1, num_workers=8)
+        self.test_dataloader = self.testing.to_dataloader(train=False, batch_size=self.batch_size, num_workers=8)
         
         print( time.asctime( time.localtime(time.time()) ) )
         # calculate baseline mean absolute error, i.e. predict next value as the last available value from the history
@@ -572,8 +572,7 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, max_lr=0.01, step_size_up=60, step_size_down=60) #FineTuneLearningRateFinder_1(milestones = self.lr_milestones_list, gamma=0.5, mode='linear', early_stop_threshold=10000)
-        # _lr_finder  = FineTuneLearningRateFinder(milestones = self.lr_milestones_list)
+        _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, max_lr=0.01, step_size_up=60, step_size_down=60) 
         
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
 
@@ -744,10 +743,13 @@ class ModelBase:
         #     print(f"{self.crop_name} {self.save_checkpoint} last-model loaded...")
         
     def predict(self,):
+        print('predict')
         # calcualte mean absolute error on validation set
         actuals = torch.cat([y[0] for x, y in iter(self.val_dataloader)])
         predictions = self.best_tft.predict(self.val_dataloader)
         (actuals - predictions).abs().mean()
+        
+        rint('raw predict')
         
         raw_predictions, x = self.best_tft.predict(self.val_dataloader, mode="raw", return_x=True)
         
@@ -777,7 +779,15 @@ class ModelBase:
             decoder_target = experiment['decoder_target'].numpy(),
             )   
         
+        print('predict saved')
+        
     def test(self,):
+        print('test')
+        
+        print('weights loading', time.asctime( time.localtime(time.time()) ) )
+        self.best_tft = TemporalFusionTransformer.load_from_checkpoint(f'{self.checkpoint}.ckpt')
+        print('weights loaded', time.asctime( time.localtime(time.time()) ) )
+        
         # calcualte mean absolute error on validation set
         actuals = torch.cat([y[0] for x, y in iter(self.test_dataloader)])
         predictions = self.best_tft.predict(self.test_dataloader)
@@ -810,6 +820,8 @@ class ModelBase:
             encoder_target = experiment['encoder_target'].numpy(),
             decoder_target = experiment['decoder_target'].numpy(),
             )  
+        
+        print('test saved')
         
     def inference(self,):
         inference = TimeSeriesDataSet(
@@ -991,6 +1003,7 @@ class RunTask:
         # model.custom_finder()
         model.train()
         model.predict()
+        model.test()
         model.inference()
         # model.plot_predict()
         print('The end...')

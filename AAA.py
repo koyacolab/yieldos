@@ -700,7 +700,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'A0mod_{self.name_for_files}_predict.npz',
+            f'AAAmod_{self.name_for_files}_predict.npz',
             actuals = np.asarray(actuals), 
             predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
@@ -768,7 +768,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'A0mod_{self.name_for_files}_inference.npz',
+            f'AAAmod_{self.name_for_files}_inference.npz',
             actuals = np.asarray(actuals), 
             predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
