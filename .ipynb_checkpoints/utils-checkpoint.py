@@ -234,7 +234,7 @@ def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
                 df_concat_year = pd.concat([ df_concat_year, DATA.loc[ (DATA['year'].astype(int) == iyear) & \
                                                          (DATA['county'] == county)] ], axis=0)
             # reindex the concatenated dataframe with a new index
-            new_index = pd.RangeIndex(start=1, stop=len(df_concat_year)+1, step=1)
+            new_index = pd.RangeIndex(start=0, stop=len(df_concat_year)+0, step=1)
             df_concat_year.index = new_index
             # add a new column with integer values equal to the index
             df_concat_year["time_idx"] = df_concat_year.index.astype(int)

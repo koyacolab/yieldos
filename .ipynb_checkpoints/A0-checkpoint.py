@@ -65,6 +65,7 @@ from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, FineTuneLearningRateFinder_2
 from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR
 from utils import ReloadDataLoader, ReloadDataSet
+from utils import DataGenerator
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
 
@@ -190,8 +191,8 @@ class ModelBase:
         # alidata = df_not_str.join(df_str)
 
         # DON'T DELETE, cut dataset by month
-        alidata = alidata[ alidata['month'] < 11 ]
-        alidata['month'] = alidata['month'].astype(str)
+        alidata = alidata[ alidata['month'] < 10 ]
+        # alidata['month'] = alidata['month'].astype(str)
         
         alidata['gstage'] = 'yield'
         
@@ -271,131 +272,146 @@ class ModelBase:
             for year in self.data['year'].unique():
                 avg_yield = self.data['avg_rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
                 med_yield = self.data['med_rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
+                rice_yield = self.data['rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
+                
                 self.data['rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                       (self.data['month'] < 6) ] = avg_yield# ( avg_yield + med_yield ) / 2.0
+                                            (self.data['month'] < 6) ] = avg_yield
                 self.data['gstage'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                       (self.data['month'] < 6) ] = "no"
+                                        (self.data['month'] < 6) ] = "no"
+                
+                self.data['rice_yield'].loc[( (self.data['county'] == county) & (self.data['year'] == year) ) & \
+                                            ( (self.data['month'] == 6) | (self.data['month'] == 7) ) ] = \
+                                       [avg_yield + ((rice_yield - avg_yield) / 8.0) * i for i in range(1,9)]
+                self.data['gstage'].loc[( (self.data['county'] == county) & (self.data['year'] == year) ) & \
+                                        ( (self.data['month'] == 6) | (self.data['month'] == 7) ) ] = \
+                                        "growth"
+                
+                
 
         for county in self.data_val['county'].unique():
             avg_yield = self.data_val['avg_rice_yield'].loc[(self.data_val['county'] == county) ].mean()
             med_yield = self.data_val['med_rice_yield'].loc[(self.data_val['county'] == county) ].mean()
+            
             self.data_val['rice_yield'].loc[(self.data_val['county'] == county) &  \
-                                       (self.data['month'] < 6) ] = avg_yield# ( avg_yield + med_yield ) / 2.0
+                                            (self.data_val['month'] < 6) ] = avg_yield# ( avg_yield + med_yield ) / 2.0
             self.data_val['gstage'].loc[(self.data_val['county'] == county) &  \
-                                       (self.data['month'] < 6) ] = "no"
+                                        (self.data_val['month'] < 6) ] = "no"
+            
+            self.data_val['rice_yield'].loc[(self.data_val['county'] == county) &  \
+                                            ( (self.data_val['month'] == 6) | (self.data_val['month'] == 7) ) ] = \
+                                       [avg_yield + ((rice_yield - avg_yield) / 8.0) * i for i in range(1,9)]
+            self.data_val['gstage'].loc[(self.data_val['county'] == county) &  \
+                                        ( (self.data_val['month'] == 6) | (self.data_val['month'] == 7) ) ] = \
+                                        "growth"
 
         for county in self.data_inference['county'].unique():
             for year in self.data_inference['year'].unique():
                 avg_yield = self.data_inference['avg_rice_yield'].loc[(self.data_inference['county'] == county) & \
-                                                                 (self.data_inference['year'] == year)].mean()
+                                                                      (self.data_inference['year'] == year)].mean()
                 med_yield = self.data_inference['med_rice_yield'].loc[(self.data_inference['county'] == county) & \
-                                                                 (self.data_inference['year'] == year)].mean()
+                                                                      (self.data_inference['year'] == year)].mean()
+                
                 self.data_inference['rice_yield'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
-                                                 (self.data['month'] < 6) ] \
+                                                 (self.data_inference['month'] < 6) ] \
                                                  = avg_yield# (avg_yield + med_yield) / 2.0
                 self.data_inference['gstage'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
-                                                 (self.data['month'] < 6) ] \
+                                                 (self.data_inference['month'] < 6) ] \
                                                  = "no"
-                
-        for county in self.data['county'].unique():
-            for year in self.data['year'].unique():
-                avg_yield = self.data['avg_rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
-                med_yield = self.data['med_rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
-                rice_yield = self.data['rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
-                self.data['rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                       (self.data['month'] == 6) | (self.data['month'] == 7) ] = \
-                                       [avg_yield + ((rice_yield - avg_yield) / 8.0) * i for i in range(1,9)]
-                self.data['gstage'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                       (self.data['month'] == 6) | (self.data['month'] == 7) ] = \
-                                       "growth"
 
-        for county in self.data_val['county'].unique():
-            avg_yield = self.data_val['avg_rice_yield'].loc[(self.data_val['county'] == county) ].mean()
-            med_yield = self.data_val['med_rice_yield'].loc[(self.data_val['county'] == county) ].mean()
-            self.data_val['rice_yield'].loc[(self.data_val['county'] == county) &  \
-                                       (self.data['month'] == 6) | (self.data['month'] == 7) ] = \
-                                       [avg_yield + ((rice_yield - avg_yield) / 8.0) * i for i in range(1,9)]
-            self.data_val['gstage'].loc[(self.data_val['county'] == county) &  \
-                                       (self.data['month'] == 6) | (self.data['month'] == 7) ] = \
-                                       "growth"
-
-        for county in self.data_inference['county'].unique():
-            for year in self.data_inference['year'].unique():
-                avg_yield = self.data_inference['avg_rice_yield'].loc[(self.data_inference['county'] == county) & \
-                                                                 (self.data_inference['year'] == year)].mean()
-                med_yield = self.data_inference['med_rice_yield'].loc[(self.data_inference['county'] == county) & \
-                                                                 (self.data_inference['year'] == year)].mean()
                 self.data_inference['rice_yield'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
-                                                 (self.data['month'] == 6) | (self.data['month'] == 7) ] = \
+                                                 ( (self.data_inference['month'] == 6) | (self.data_inference['month'] == 7) ) ] = \
                                                  [avg_yield + ((rice_yield - avg_yield) / 8.0) * i for i in range(1,9)]
                 self.data_inference['gstage'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
-                                                 (self.data['month'] == 6) | (self.data['month'] == 7) ] = \
-                                                 "growth"
+                                                 ( (self.data_inference['month'] == 6) | (self.data_inference['month'] == 7) ) ] = \
+                                                 "growth"        
                     
-
-        # display(data[ (data['county'] == '0') & (data['year'] == '2003') ])
-
-        # display(data_val[ (data_val['county'] == '0') ])
-
-        # display(data_inference[ (data_inference['county'] == '0') ])
-
-        # display(data_inference[ (data_inference['county'] == '0') & (data_inference['year'] == '2019') ])
+                    
+        self.data['month'] = self.data['month'].astype(str)
+        self.data_val['month'] = self.data_val['month'].astype(str)
+        self.data_inference['month'] = self.data_inference['month'].astype(str)
         
         
         
-        self.data['actuals'] = self.data["rice_yieldval"] / self.data["rice_sownarea"]
-        self.data_val['actuals'] = self.data_val["rice_yieldval"] / self.data_val["rice_sownarea"]
-        self.data_inference['actuals'] = self.data_inference["rice_yieldval"] / self.data_inference["rice_sownarea"]
+        # self.data['actuals'] = self.data["rice_yieldval"] / self.data["rice_sownarea"]
+        # self.data_val['actuals'] = self.data_val["rice_yieldval"] / self.data_val["rice_sownarea"]
+        # self.data_inference['actuals'] = self.data_inference["rice_yieldval"] / self.data_inference["rice_sownarea"]
         
-        def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
-            years_list = list(DATA['year'].astype(int).unique())
-            print(years_list, type(years_list))
+#         def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
+#             years_list = list(DATA['year'].astype(int).unique())
+#             print(years_list, type(years_list))
             
-            # random_years = random.sample(years, LENGTH)
+#             # random_years = random.sample(years, LENGTH)
             
-            start_year = DATA['year'].astype(int).min()
-            end_year = DATA['year'].astype(int).max()
+#             start_year = DATA['year'].astype(int).min()
+#             end_year = DATA['year'].astype(int).max()
             
-            data_samples = pd.DataFrame()
-            for ii in tqdm(range(NSAMPLES)):
-                num_years = YEARS_MAX_LENGTH# random.randint(1, YEARS_MAX_LENGTH)  # generate a random number between 1 and 10 for the list size
-                # years = [random.randint(start_year, end_year) for _ in range(num_years)]
-                # years = [random.randint(start_year, end_year) for _ in range(num_years)]
-                years = random.sample(years_list, num_years)
-                # print(ii, years)
-                # df_concat = pd.DataFrame()
-                for county in DATA["county"].unique():
-                    df_concat_year = pd.DataFrame()
-                    for iyear in years:
-                        df_concat_year = pd.concat([ df_concat_year, DATA.loc[ (DATA['year'].astype(int) == iyear) & \
-                                                                 (DATA['county'] == county)] ], axis=0)
-                    # reindex the concatenated dataframe with a new index
-                    new_index = pd.RangeIndex(start=1, stop=len(df_concat_year)+1, step=1)
-                    df_concat_year.index = new_index
-                    # add a new column with integer values equal to the index
-                    df_concat_year["time_idx"] = df_concat_year.index.astype(int)
-                    df_concat_year["sample"] = str(ii)
-                    data_samples = pd.concat([data_samples, df_concat_year], axis=0)
-                # reindex the concatenated dataframe with a new index
-            new_index = pd.RangeIndex(start=1, stop=len(data_samples)+1, step=1)
-            data_samples.index = new_index
+#             data_samples = pd.DataFrame()
+#             for ii in tqdm(range(NSAMPLES)):
+#                 num_years = YEARS_MAX_LENGTH# random.randint(1, YEARS_MAX_LENGTH)  # generate a random number between 1 and 10 for the list size
+#                 # years = [random.randint(start_year, end_year) for _ in range(num_years)]
+#                 # years = [random.randint(start_year, end_year) for _ in range(num_years)]
+#                 years = random.sample(years_list, num_years)
+#                 # print(ii, years)
+#                 # df_concat = pd.DataFrame()
+#                 for county in DATA["county"].unique():
+#                     df_concat_year = pd.DataFrame()
+#                     for iyear in years:
+#                         df_concat_year = pd.concat([ df_concat_year, DATA.loc[ (DATA['year'].astype(int) == iyear) & \
+#                                                                  (DATA['county'] == county)] ], axis=0)
+#                     # reindex the concatenated dataframe with a new index
+#                     new_index = pd.RangeIndex(start=0, stop=len(df_concat_year)+0, step=1)
+#                     df_concat_year.index = new_index
+#                     # add a new column with integer values equal to the index
+#                     df_concat_year["time_idx"] = df_concat_year.index.astype(int)
+#                     df_concat_year["sample"] = str(ii)
+#                     data_samples = pd.concat([data_samples, df_concat_year], axis=0)
+#                 # reindex the concatenated dataframe with a new index
+#             new_index = pd.RangeIndex(start=1, stop=len(data_samples)+1, step=1)
+#             data_samples.index = new_index
                 
-            return data_samples
+#             return data_samples
         
         ############### INIT data_train with all years in timeseries ######################################~
-        self.data_train = DataGenerator(DATA=self.data, YEARS_MAX_LENGTH=2, NSAMPLES=4)
-        # self.data_train.loc[:, 'sample'] = self.data_train.loc[:, 'year']
-        # self.data_train["sample"] = self.data_train["year"]
-        # for ii in self.data["year"].unique():
-        #     self.data_train["sample"] = ii
+        self.data_train, _ = DataGenerator(DATA=self.data, YEARS_MAX_LENGTH=2, NSAMPLES=4)
+
         
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
+        # fig, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
         
-        ax.plot(self.data_train['time_idx'], self.data_train['rice_yield'])
+        print(type(self.data_train['time_idx']))
+        
+        df = self.data_train[ (self.data_train['county'] == '0') & (self.data_train['sample'] == '0') ]
+        df2 = alidata[ (alidata['county'] == '0') & (alidata['year'] == '2003') ]
+        
+        print(df['time_idx'].to_numpy())
+        print(self.data_train['sample'].unique())
+        print(self.data_train['county'].unique())
+        print(df['year'].unique())
+        
+        print(df['time_idx'].to_numpy())
+        print(df2['time_idx'].to_numpy())
+        
+        ax.plot(df['time_idx'].to_numpy(), df['rice_yield'].to_numpy(), 'o')
+        ax.plot(df2['time_idx'].to_numpy(), df2['rice_yield'].to_numpy(), '.')
+        # Create the second y-axis
+        ax2 = ax.twiny().twinx()
+        ax2.plot(df['time_idx'].to_numpy(), df['gstage'], 'x', color='green')
+
+        
+        dfe = self.data_train[ (self.data_train['gstage'] == 'no') & (self.data_train['sample'] == '0') & (self.data_train['county'] == '0') & (self.data_train['year'] == '2003')] 
+        dfp = self.data_train[ ( (self.data_train['gstage'] == 'growth') | (self.data_train['gstage'] == 'yield') ) & (self.data_train['sample'] == '0') & (self.data_train['county'] == '0')  & (self.data_train['year'] == '2003')]
+        self.max_prediction_length = dfp.shape[0]
+        self.max_encoder_length = dfe.shape[0]
+        
+        ax.plot(dfe['time_idx'].to_numpy(), dfe['rice_yield'].to_numpy(), '.', color='yellow')
+        ax.plot(dfp['time_idx'].to_numpy(), dfp['rice_yield'].to_numpy(), '.', color='red')
+        
+        print(self.max_encoder_length, self.max_prediction_length)
+        
         plt.show()
         plt.savefig('A0', bbox_inches='tight')
         
