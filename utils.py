@@ -132,6 +132,7 @@ class FineTuneLearningRateFinder_CyclicLR(LearningRateFinder):
         
 # ---------------------------------------------------------------------------------------------------------------
 
+
 class FineTuneLearningRateFinder_2(LearningRateFinder):
     def __init__(self, milestones, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -233,6 +234,56 @@ def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
             for iyear in years:
                 df_concat_year = pd.concat([ df_concat_year, DATA.loc[ (DATA['year'].astype(int) == iyear) & \
                                                          (DATA['county'] == county)] ], axis=0)
+            # reindex the concatenated dataframe with a new index
+            new_index = pd.RangeIndex(start=0, stop=len(df_concat_year)+0, step=1)
+            df_concat_year.index = new_index
+            # add a new column with integer values equal to the index
+            df_concat_year["time_idx"] = df_concat_year.index.astype(int)
+            df_concat_year["sample"] = str(ii)
+            data_samples = pd.concat([data_samples, df_concat_year], axis=0)
+        # reindex the concatenated dataframe with a new index
+    new_index = pd.RangeIndex(start=1, stop=len(data_samples)+1, step=1)
+    data_samples.index = new_index
+
+    return data_samples, years_samples
+
+#################################################################################################
+
+def DataGenerator_split(TRAIN_DATA, VALID_DATA, YEARS_MAX_LENGTH, NSAMPLES):
+    years_list = list(TRAIN_DATA['year'].astype(int).unique())
+    print(f'Augmentation for train years list: {years_list}')
+
+    valid_years_list = list(VALID_DATA['year'].astype(int).unique())
+    print(f'Augmentation for valid years list: {valid_years_list}')
+    
+
+    # random_years = random.sample(years, LENGTH)
+
+    # start_year = DATA['year'].astype(int).min()
+    # end_year = DATA['year'].astype(int).max()
+
+    data_samples = pd.DataFrame()
+    years_samples = []
+    for ii in tqdm(range(NSAMPLES)):
+        # num_years = random.randint(1, YEARS_MAX_LENGTH)  # generate a random number between 1 and 10 for the list size
+        # years = [random.randint(start_year, end_year) for _ in range(num_years)]
+        # years = [random.randint(start_year, end_year) for _ in range(num_years)]
+        # years = random.sample(years_list, num_years)
+        # print('DataGenerator nsamples:', ii, type(years), years)
+        # df_concat = pd.DataFrame()
+        for county in TRAIN_DATA["county"].unique():
+            num_years = random.randint(1, YEARS_MAX_LENGTH)
+            years = random.sample(years_list, num_years)
+            years_samples.append(years)
+            df_concat_year = pd.DataFrame()
+            for iyear in years:
+                df_concat_year = pd.concat([ df_concat_year, TRAIN_DATA.loc[ (TRAIN_DATA['year'].astype(int) == iyear) & \
+                                                         (TRAIN_DATA['county'] == county)] ], axis=0)
+            val_year = random.sample(valid_years_list, 1)
+            # print('val_year', val_year[0])
+            df_concat_year = pd.concat([df_concat_year, VALID_DATA.loc[ (VALID_DATA['year'].astype(int) == val_year[0]) & \
+                                                         (VALID_DATA['county'] == county)] ], axis=0)
+            years_samples.append(val_year)
             # reindex the concatenated dataframe with a new index
             new_index = pd.RangeIndex(start=0, stop=len(df_concat_year)+0, step=1)
             df_concat_year.index = new_index
