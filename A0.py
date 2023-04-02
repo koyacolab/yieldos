@@ -858,18 +858,18 @@ class ModelBase:
         self.best_tft = TemporalFusionTransformer.load_from_checkpoint(f'{self.checkpoint}.ckpt')
         print('weights loaded', time.asctime( time.localtime(time.time()) ) )
         
-        actuals = torch.cat([y[0] for x, y in iter(self.inf_dataloader)])
-        predictions = self.best_tft.predict(self.inf_dataloader)
+        actuals = torch.cat([y[0] for x, y in iter(inf_dataloader)])
+        predictions = self.best_tft.predict(inf_dataloader)
         
         # raw predictions are a dictionary from which all kind of information including quantiles can be extracted
-        raw_predictions, x = self.best_tft.predict(self.inf_dataloader, mode="raw", return_x=True)
+        raw_predictions, x = self.best_tft.predict(inf_dataloader, mode="raw", return_x=True)
         
         print(type(raw_predictions), raw_predictions.keys()) 
         print(type(x), x.keys()) 
         print(type(raw_predictions['prediction']), raw_predictions['prediction'].shape)
         
-        for idx in range(27):  # plot 10 examples
-            self.best_tft.plot_prediction(x, raw_predictions, idx=idx, add_loss_to_title=True);
+        # for idx in range(27):  # plot 10 examples
+        #     self.best_tft.plot_prediction(x, raw_predictions, idx=idx, add_loss_to_title=True);
             
         import json
 
