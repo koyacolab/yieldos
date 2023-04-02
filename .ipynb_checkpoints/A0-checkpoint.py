@@ -507,13 +507,15 @@ class ModelBase:
         )
 
         print( time.asctime( time.localtime(time.time()) ) )
+        
+        self.data_val['sample'] = self.data_val['year'].unique()
 
         self.testing = TimeSeriesDataSet(
             self.data_val,
             time_idx="time_idx",
             target="rice_yield",
             # group_ids=["county", "sample"],
-            group_ids=["county", "year"],
+            group_ids=["county", "sample"],
             min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
             max_encoder_length = self.max_encoder_length,
             min_prediction_length = 1 , # max_prediction_length // 2,
@@ -572,11 +574,16 @@ class ModelBase:
 
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
-        _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, max_lr=0.01, step_size_up=60, step_size_down=60) 
+        _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, 
+                                                          max_lr=0.01, 
+                                                          step_size_up=60, 
+                                                          step_size_down=60) 
         
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
 
-        _SWA = StochasticWeightAveraging(swa_lrs=1e-2, swa_epoch_start=50, device='gpu')
+        _SWA = StochasticWeightAveraging(swa_lrs=1e-2, 
+                                         swa_epoch_start=50, 
+                                         device='gpu')
         
         _reload_dataloader = ReloadDataLoader(self.training, self.batch_size)
         

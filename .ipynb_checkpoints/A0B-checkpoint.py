@@ -224,7 +224,7 @@ class ModelBase:
         # tt = [x for x in self.val_years]
         # print('tt', tt)
         
-        self.name_for_files = f'A0cr[{self.scrop}]-yr[{"_".join(self.val_years)}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.learning_rate}]'
+        self.name_for_files = f'A0Bcr[{self.scrop}]-yr[{"_".join(self.val_years)}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.learning_rate}]'
         
         print('self.name_for_files:', self.name_for_files)
         
@@ -404,7 +404,7 @@ class ModelBase:
         ax.plot(dfali['time_idx'].to_numpy(), dfali['rice_yield'].to_numpy(), '-.')
         
         plt.show()
-        plt.savefig('A0', bbox_inches='tight')           
+        plt.savefig('A0B', bbox_inches='tight')           
         
         # fn
         
