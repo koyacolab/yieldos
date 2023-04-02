@@ -627,7 +627,7 @@ class ModelBase:
             self.training,
             learning_rate=self.learning_rate,
             # lstm_layers=2,
-            hidden_size=40,             # most important hyperparameter apart from learning rate
+            hidden_size=31,             # most important hyperparameter apart from learning rate
             hidden_continuous_size=30,  # set to <= hidden_size
             attention_head_size=4,      # number of attention heads. Set to up to 4 for large datasets
             dropout=0.3,           
@@ -856,7 +856,7 @@ class ModelBase:
         time_idx="time_idx",
         target="rice_yield",
         group_ids=["county", "year"],
-        min_encoder_length=max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
+        min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
         max_encoder_length = self.max_encoder_length,
         min_prediction_length = 1 , # max_prediction_length // 2,
         max_prediction_length = self.max_prediction_length,
