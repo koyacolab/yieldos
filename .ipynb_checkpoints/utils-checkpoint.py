@@ -185,16 +185,19 @@ class ReloadDataLoader(Callback):
         print('DataLoader was reloaded...')
         
 class ReloadDataSet(Callback):
-    def __init__(self, data_train, dataset_train, batch_size):
+    def __init__(self, data_train, data_valid, dataset_train, batch_size):
         super().__init__()
         self.data_train = data_train
+        self.data_valid = data_valid
         self.dataset_train = dataset_train
         self.batch_size = batch_size
         
     def on_train_epoch_start(self, trainer, pl_module):
         # if trainer.current_epoch in self.milestones:
         print('DataGenerator reloading... epoch:', trainer.current_epoch)  
-        data_train, year_list = DataGenerator(DATA=self.data_train, YEARS_MAX_LENGTH=4, NSAMPLES=4)
+        data_train, year_list = DataGenerator_split(TRAIN_DATA=self.data_train, 
+                                                    VALID_DATA=self.data_valid, 
+                                                    YEARS_MAX_LENGTH=3)
         self.dataset_train = TimeSeriesDataSet.from_dataset(self.dataset_train, data_train)
         pl_module.train_dataloader = self.dataset_train.to_dataloader(batch_size=self.batch_size, shuffle=True)
         print('DataLoader was reloaded...')
@@ -249,13 +252,17 @@ def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
 
 #################################################################################################
 
-def DataGenerator_split(TRAIN_DATA, VALID_DATA, YEARS_MAX_LENGTH, NSAMPLES):
+def DataGenerator_split(TRAIN_DATA, VALID_DATA, YEARS_MAX_LENGTH, ADD_NSAMPLES_LIST=[]):
     years_list = list(TRAIN_DATA['year'].astype(int).unique())
     print(f'Augmentation for train years list: {years_list}')
 
     valid_years_list = list(VALID_DATA['year'].astype(int).unique())
     print(f'Augmentation for valid years list: {valid_years_list}')
     
+    NSAMPLES_LIST = []
+    NSAMPLES_LIST.extend(valid_years_list)
+    NSAMPLES_LIST.extend(ADD_NSAMPLES_LIST)
+    print(f'Augmentation for valid years list: {NSAMPLES_LIST}')
 
     # random_years = random.sample(years, LENGTH)
 
@@ -264,7 +271,8 @@ def DataGenerator_split(TRAIN_DATA, VALID_DATA, YEARS_MAX_LENGTH, NSAMPLES):
 
     data_samples = pd.DataFrame()
     years_samples = []
-    for ii in tqdm(range(NSAMPLES)):
+    # for ii in tqdm(range(NSAMPLES)):
+    for ii in tqdm(NSAMPLES_LIST):
         # num_years = random.randint(1, YEARS_MAX_LENGTH)  # generate a random number between 1 and 10 for the list size
         # years = [random.randint(start_year, end_year) for _ in range(num_years)]
         # years = [random.randint(start_year, end_year) for _ in range(num_years)]
@@ -280,7 +288,7 @@ def DataGenerator_split(TRAIN_DATA, VALID_DATA, YEARS_MAX_LENGTH, NSAMPLES):
                 df_concat_year = pd.concat([ df_concat_year, TRAIN_DATA.loc[ (TRAIN_DATA['year'].astype(int) == iyear) & \
                                                          (TRAIN_DATA['county'] == county)] ], axis=0)
             val_year = random.sample(valid_years_list, 1)
-            print('val_year', val_year[0])
+            # print('val_year', val_year[0])
             df_concat_year = pd.concat([df_concat_year, VALID_DATA.loc[ (VALID_DATA['year'].astype(int) == val_year[0]) & \
                                                          (VALID_DATA['county'] == county)] ], axis=0)
             years_samples.append(val_year)

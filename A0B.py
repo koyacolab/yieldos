@@ -349,9 +349,9 @@ class ModelBase:
         # self.data_inference['actuals'] = self.data_inference["rice_yieldval"] / self.data_inference["rice_sownarea"]
         
         ############### INIT data_train with all years in timeseries ######################################~
-        self.data_train, _ = DataGenerator_split(TRAIN_DATA=self.data, VALID_DATA=self.data_val, YEARS_MAX_LENGTH=2, NSAMPLES=4)
+        self.data_train, _ = DataGenerator_split(TRAIN_DATA=self.data, VALID_DATA=self.data_val, YEARS_MAX_LENGTH=3)
 
-        smpl = '1'
+        smpl = self.val_years[0]
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
         # fig, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
         
@@ -509,7 +509,18 @@ class ModelBase:
 
         print( time.asctime( time.localtime(time.time()) ) )
         
-        self.data_val['sample'] = self.data_val['year'].unique()
+        self.data_val['sample'] = self.data_val['year'].values
+        
+        print('DATA_VAL:', self.data_val['sample'].unique(), self.data_val.shape)
+        
+        df = self.data_val[ (self.data_val['sample'] == self.data_val['sample'].unique()[0])]
+        
+        print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
+        
+        df = self.data_val[ (self.data_val['sample'] == self.data_val['sample'].unique()[0]) & (self.data_val['county'] == self.data_val['county'].unique()[0]) ]
+        
+        print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
+        # fn
 
         self.testing = TimeSeriesDataSet(
             self.data_val,
@@ -540,15 +551,23 @@ class ModelBase:
         # create validation set (predict=True) which means to predict the last max_prediction_length points in time
         # for each series
         self.validation = TimeSeriesDataSet.from_dataset(self.training, self.data_train, predict=True, stop_randomization=True)
+        
+        self.testing = TimeSeriesDataSet.from_dataset(self.training, self.data_val, predict=True, stop_randomization=True)
 
         print(f'training & validation TimeSeriesDataSet loaded', time.asctime( time.localtime(time.time()) ) )
         
         # create dataloaders for model
         # batch_size = 16  # set this between 32 to 128
         self.train_dataloader = self.training.to_dataloader(train=True, batch_size=self.batch_size, num_workers=8)
-        self.val_dataloader = self.validation.to_dataloader(train=False, batch_size=self.batch_size, num_workers=8)
+        self.val_dataloader = self.validation.to_dataloader(train=False, batch_size=1, num_workers=8)
         
-        self.test_dataloader = self.testing.to_dataloader(train=False, batch_size=self.batch_size, num_workers=8)
+        self.test_dataloader = self.testing.to_dataloader(train=False, batch_size=1, num_workers=8)
+        
+        print('self.train_dataloader:', len(self.train_dataloader))
+        print('self.val_dataloader:', len(self.val_dataloader))
+        print('self.test_dataloader:', len(self.test_dataloader))
+        
+        # fn
         
         print( time.asctime( time.localtime(time.time()) ) )
         # calculate baseline mean absolute error, i.e. predict next value as the last available value from the history
@@ -567,7 +586,7 @@ class ModelBase:
         # home_dir = '/content/gdrive/My Drive/AChina' 
         # _dir = os.path.join(home_dir, 'data')
         
-        _checkpoint_callback = ModelCheckpoint(dirpath = os.path.join(home_dir, self.name_for_files), every_n_epochs = 50)
+        _checkpoint_callback = ModelCheckpoint(dirpath = os.path.join(home_dir, self.name_for_files), every_n_epochs = 25)
 
         _dir = '/tf_logs'
         # dir = os.path.join(home_dir, 'data')
@@ -588,7 +607,7 @@ class ModelBase:
         
         _reload_dataloader = ReloadDataLoader(self.training, self.batch_size)
         
-        _reload_dataset = ReloadDataSet(self.data, self.training, self.batch_size)
+        _reload_dataset = ReloadDataSet(self.data, self.data_val, self.training, self.batch_size)
 
         self.trainer = Trainer(accelerator='gpu', 
                                logger=_logger, 
@@ -607,11 +626,11 @@ class ModelBase:
         self.tft = TemporalFusionTransformer.from_dataset(
             self.training,
             learning_rate=self.learning_rate,
-            # # lstm_layers=2,
-            # hidden_size=60,
-            # hidden_continuous_size=30,
-            # attention_head_size=4,
-            dropout=0.3,          
+            # lstm_layers=2,
+            hidden_size=40,             # most important hyperparameter apart from learning rate
+            hidden_continuous_size=30,  # set to <= hidden_size
+            attention_head_size=4,      # number of attention heads. Set to up to 4 for large datasets
+            dropout=0.3,           
             # output_size=7,  # 7 quantiles by default      
             loss=self.loss_func,
             # loss=QuantileLoss(),
@@ -982,7 +1001,7 @@ class RunTask:
     @staticmethod
     def train_TFT(exp_name, 
                   crop_name='rice', 
-                  predicted_years="2004",
+                  predicted_years="2004 2010 2017",
                   batch_size=16,
                   learning_rate=0.0325,
                   loss_func_metric='RMSE', 
