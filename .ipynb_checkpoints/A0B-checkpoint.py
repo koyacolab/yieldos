@@ -462,6 +462,7 @@ class ModelBase:
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
         self._time_varying_known_reals.extend(mod_names) 
+        # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
@@ -778,7 +779,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'A0mod_{self.name_for_files}_predict.npz',
+            f'A0Bmod_{self.name_for_files}_predict.npz',
             actuals = np.asarray(actuals), 
             predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
@@ -820,7 +821,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'A0mod_{self.name_for_files}_test.npz',
+            f'A0Bmod_{self.name_for_files}_test.npz',
             actuals = np.asarray(actuals), 
             predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
@@ -890,7 +891,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'A0mod_{self.name_for_files}_inference.npz',
+            f'A0Bmod_{self.name_for_files}_inference.npz',
             actuals = np.asarray(actuals), 
             predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
