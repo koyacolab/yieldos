@@ -559,9 +559,9 @@ class ModelBase:
         # create dataloaders for model
         # batch_size = 16  # set this between 32 to 128
         self.train_dataloader = self.training.to_dataloader(train=True, batch_size=self.batch_size, num_workers=8)
-        self.val_dataloader = self.validation.to_dataloader(train=False, batch_size=1, num_workers=8)
+        self.val_dataloader = self.validation.to_dataloader(train=False, batch_size=27, num_workers=8)
         
-        self.test_dataloader = self.testing.to_dataloader(train=False, batch_size=1, num_workers=8)
+        self.test_dataloader = self.testing.to_dataloader(train=False, batch_size=27, num_workers=8)
         
         print('self.train_dataloader:', len(self.train_dataloader))
         print('self.val_dataloader:', len(self.val_dataloader))
