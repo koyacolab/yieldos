@@ -462,12 +462,12 @@ class ModelBase:
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
         self._time_varying_known_reals.extend(mod_names) 
-        # self._time_varying_known_reals.extend(famine_names)
+        self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
         self._time_varying_unknown_reals.extend(mod_names)
-        # self._time_varying_unknown_reals.extend(famine_names)
+        self._time_varying_unknown_reals.extend(famine_names)
 
         print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
 
@@ -522,31 +522,31 @@ class ModelBase:
         print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
         # fn
 
-        self.testing = TimeSeriesDataSet(
-            self.data_val,
-            time_idx="time_idx",
-            target="rice_yield",
-            # group_ids=["county", "sample"],
-            group_ids=["county", "sample"],
-            min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
-            max_encoder_length = self.max_encoder_length,
-            min_prediction_length = 1 , # max_prediction_length // 2,
-            max_prediction_length = self.max_prediction_length,
-            # min_prediction_idx = min_prediction_idx,
-            # static_categoricals = ["county", "year"],
-            # static_reals = _static_reals,
-            time_varying_known_categoricals=["month"],
-            # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
-            time_varying_known_reals = self._time_varying_known_reals,
-            # time_varying_unknown_categoricals=[],
-            time_varying_unknown_reals = self._time_varying_unknown_reals,
-            target_normalizer=GroupNormalizer(
-                groups=["county"], transformation="relu"
-            ),  # use softplus and normalize by group
-            add_relative_time_idx=True,
-            add_target_scales=True,
-            add_encoder_length=True,
-        )
+        # self.testing = TimeSeriesDataSet(
+        #     self.data_val,
+        #     time_idx="time_idx",
+        #     target="rice_yield",
+        #     # group_ids=["county", "sample"],
+        #     group_ids=["county", "sample"],
+        #     min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
+        #     max_encoder_length = self.max_encoder_length,
+        #     min_prediction_length = 1 , # max_prediction_length // 2,
+        #     max_prediction_length = self.max_prediction_length,
+        #     # min_prediction_idx = min_prediction_idx,
+        #     # static_categoricals = ["county", "year"],
+        #     # static_reals = _static_reals,
+        #     time_varying_known_categoricals=["month"],      
+        #     # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
+        #     time_varying_known_reals = self._time_varying_known_reals,
+        #     # time_varying_unknown_categoricals=[],
+        #     time_varying_unknown_reals = self._time_varying_unknown_reals,
+        #     target_normalizer=GroupNormalizer(
+        #         groups=["county"], transformation="relu"
+        #     ),  # use softplus and normalize by group
+        #     add_relative_time_idx=True,
+        #     add_target_scales=True,
+        #     add_encoder_length=True,
+        # )
 
         # create validation set (predict=True) which means to predict the last max_prediction_length points in time
         # for each series
@@ -578,7 +578,7 @@ class ModelBase:
         baseline_predictions = Baseline().predict(self.val_dataloader)
         # print( 'Baseline:',type(actuals), actuals.size(), baseline_predictions.size(), actuals[0,:], baseline_predictions[0,:] )
         # print( torch.where(torch.isnan(actuals)), torch.where(torch.isnan(baseline_predictions)) )
-        print( 'Baseline:', (actuals - baseline_predictions).abs().mean().item() )
+        # print( 'Baseline:', (actuals - baseline_predictions).abs().mean().item() )
         print( 'Baseline:', time.asctime( time.localtime(time.time()) ) )
     
         
@@ -596,8 +596,8 @@ class ModelBase:
 
         _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, 
                                                           max_lr=0.01, 
-                                                          step_size_up=60, 
-                                                          step_size_down=60) 
+                                                          step_size_up=100, 
+                                                          step_size_down=100) 
         
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
 
@@ -626,7 +626,7 @@ class ModelBase:
         self.tft = TemporalFusionTransformer.from_dataset(
             self.training,
             learning_rate=self.learning_rate,
-            # # lstm_layers=2,
+            # lstm_layers=2,
             # hidden_size=31,             # most important hyperparameter apart from learning rate
             # hidden_continuous_size=30,  # set to <= hidden_size
             # attention_head_size=4,      # number of attention heads. Set to up to 4 for large datasets
