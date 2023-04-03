@@ -224,7 +224,7 @@ class ModelBase:
         # tt = [x for x in self.val_years]
         # print('tt', tt)
         
-        self.name_for_files = f'A0Bcr[{self.scrop}]-yr[{"_".join(self.val_years)}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.learning_rate}]'
+        self.name_for_files = f'{self.exp_name}_cr[{self.scrop}]-yr[{"_".join(self.val_years)}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.learning_rate}]'
         
         print('self.name_for_files:', self.name_for_files)
         
@@ -404,7 +404,7 @@ class ModelBase:
         ax.plot(dfali['time_idx'].to_numpy(), dfali['rice_yield'].to_numpy(), '-.')
         
         plt.show()
-        plt.savefig('A0B', bbox_inches='tight')           
+        plt.savefig('A0C', bbox_inches='tight')           
         
         # fn
         
@@ -461,13 +461,13 @@ class ModelBase:
         
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        self._time_varying_known_reals.extend(mod_names) 
-        # self._time_varying_known_reals.extend(famine_names)
+        # self._time_varying_known_reals.extend(mod_names) 
+        self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
-        self._time_varying_unknown_reals.extend(mod_names)
-        # self._time_varying_unknown_reals.extend(famine_names)
+        # self._time_varying_unknown_reals.extend(mod_names)
+        self._time_varying_unknown_reals.extend(famine_names)
 
         print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
 
@@ -798,7 +798,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'A0Bmod_{self.name_for_files}_predict.npz',
+            f'{self.name_for_files}_predict.npz',
             actuals = np.asarray(actuals), 
             predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
@@ -840,7 +840,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'A0Bmod_{self.name_for_files}_test.npz',
+            f'{self.name_for_files}_test.npz',
             actuals = np.asarray(actuals), 
             predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
@@ -910,7 +910,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'A0Bmod_{self.name_for_files}_inference.npz',
+            f'{self.name_for_files}_inference.npz',
             actuals = np.asarray(actuals), 
             predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
