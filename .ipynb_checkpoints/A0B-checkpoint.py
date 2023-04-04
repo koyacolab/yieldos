@@ -595,9 +595,9 @@ class ModelBase:
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, 
-                                                          max_lr=0.01, 
+                                                          max_lr=0.02, 
                                                           step_size_up=100, 
-                                                          step_size_down=100) 
+                                                          step_size_down=500) 
         
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
 

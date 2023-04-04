@@ -289,6 +289,7 @@ def DataGenerator_split(TRAIN_DATA, VALID_DATA, YEARS_MAX_LENGTH, ADD_NSAMPLES_L
                                                          (TRAIN_DATA['county'] == county)] ], axis=0)
             val_year = random.sample(valid_years_list, 1)
             # print('val_year', val_year[0])
+            # add validation year as a last sample for train/validation splitting
             df_concat_year = pd.concat([df_concat_year, VALID_DATA.loc[ (VALID_DATA['year'].astype(int) == val_year[0]) & \
                                                          (VALID_DATA['county'] == county)] ], axis=0)
             years_samples.append(val_year)

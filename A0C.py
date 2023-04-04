@@ -811,9 +811,9 @@ class ModelBase:
     def test(self,):
         print('test')
         
-        print('weights loading', time.asctime( time.localtime(time.time()) ) )
+        print('weights loading:', time.asctime( time.localtime(time.time()) ) )
         self.best_tft = TemporalFusionTransformer.load_from_checkpoint(f'{self.checkpoint}.ckpt')
-        print('weights loaded', time.asctime( time.localtime(time.time()) ) )
+        print('weights loaded:', time.asctime( time.localtime(time.time()) ) )
         
         # calcualte mean absolute error on validation set
         actuals = torch.cat([y[0] for x, y in iter(self.test_dataloader)])
