@@ -206,9 +206,9 @@ class ModelBase:
 
         data_infer = alidata[infer_mask]
 
-        data_infer['rice_sownarea'] = 0.0    #np.nan
-        data_infer['rice_yieldval'] = 0.0    #np.nan
-        data_infer['rice_yield']    = 0.0    #np.nan
+        data_infer[f'{self.scrop}_sownarea'] = 0.0    #np.nan
+        data_infer[f'{self.scrop}_yieldval'] = 0.0    #np.nan
+        data_infer[f'{self.scrop}_yield']    = 0.0    #np.nan
 
         years = [str(x) for x in range(2003, 2019)]
 
@@ -276,18 +276,18 @@ class ModelBase:
 
         for county in self.data['county'].unique():
             for year in self.data['year'].unique():
-                avg_yield = self.data['avg_rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
-                med_yield = self.data['med_rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
-                rice_yield = self.data['rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
+                avg_yield = self.data[f'avg_{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
+                med_yield = self.data[f'med_{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
+                _yield = self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
                 
-                self.data['rice_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
+                self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
                                             (self.data['month'] < 6) ] = avg_yield
                 self.data['gstage'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
                                         (self.data['month'] < 6) ] = "no"       
                 
-                self.data['rice_yield'].loc[( (self.data['county'] == county) & (self.data['year'] == year) ) & \
+                self.data[f'{self.scrop}_yield'].loc[( (self.data['county'] == county) & (self.data['year'] == year) ) & \
                                             ( (self.data['month'] == 6) | (self.data['month'] == 7) ) ] = \
-                                       [avg_yield + ((rice_yield - avg_yield) / 8.0) * i for i in range(1,9)]
+                                       [avg_yield + ((_yield - avg_yield) / 8.0) * i for i in range(1,9)]
                 self.data['gstage'].loc[( (self.data['county'] == county) & (self.data['year'] == year) ) & \
                                         ( (self.data['month'] == 6) | (self.data['month'] == 7) ) ] = \
                                         "growth"
@@ -296,30 +296,30 @@ class ModelBase:
 
         for county in self.data_val['county'].unique():
             for year in self.data_val['year'].unique():
-                avg_yield = self.data_val['avg_rice_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year)].mean()
-                med_yield = self.data_val['med_rice_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year)].mean()
-                rice_yield = self.data_val['rice_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year)].mean()
+                avg_yield = self.data_val[f'avg_{self.scrop}_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year)].mean()
+                med_yield = self.data_val[f'med_{self.scrop}_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year)].mean()
+                _yield = self.data_val[f'{self.scrop}_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year)].mean()
                 
-                self.data_val['rice_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
+                self.data_val[f'{self.scrop}_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
                                             (self.data_val['month'] < 6) ] = avg_yield
                 self.data_val['gstage'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
                                         (self.data_val['month'] < 6) ] = "no"       
                 
-                self.data_val['rice_yield'].loc[( (self.data_val['county'] == county) & (self.data_val['year'] == year) ) & \
+                self.data_val[f'{self.scrop}_yield'].loc[( (self.data_val['county'] == county) & (self.data_val['year'] == year) ) & \
                                             ( (self.data_val['month'] == 6) | (self.data_val['month'] == 7) ) ] = \
-                                       [avg_yield + ((rice_yield - avg_yield) / 8.0) * i for i in range(1,9)]
+                                       [avg_yield + ((_yield - avg_yield) / 8.0) * i for i in range(1,9)]
                 self.data_val['gstage'].loc[( (self.data_val['county'] == county) & (self.data_val['year'] == year) ) & \
                                         ( (self.data_val['month'] == 6) | (self.data_val['month'] == 7) ) ] = \
                                         "growth"
 
         for county in self.data_inference['county'].unique():
             for year in self.data_inference['year'].unique():
-                avg_yield = self.data_inference['avg_rice_yield'].loc[(self.data_inference['county'] == county) & \
+                avg_yield = self.data_inference[f'avg_{self.scrop}_yield'].loc[(self.data_inference['county'] == county) & \
                                                                       (self.data_inference['year'] == year)].mean()
-                med_yield = self.data_inference['med_rice_yield'].loc[(self.data_inference['county'] == county) & \
+                med_yield = self.data_inference[f'med_{self.scrop}_yield'].loc[(self.data_inference['county'] == county) & \
                                                                       (self.data_inference['year'] == year)].mean()
                 
-                self.data_inference['rice_yield'].loc[(self.data_inference['county'] == county) \
+                self.data_inference[f'{self.scrop}_yield'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
                                                  (self.data_inference['month'] < 6) ] \
                                                  = avg_yield# (avg_yield + med_yield) / 2.0
@@ -328,10 +328,11 @@ class ModelBase:
                                                  (self.data_inference['month'] < 6) ] \
                                                  = "no"
 
-                self.data_inference['rice_yield'].loc[(self.data_inference['county'] == county) \
+                self.data_inference[f'{self.scrop}_yield'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
                                                  ( (self.data_inference['month'] == 6) | (self.data_inference['month'] == 7) ) ] = \
-                                                 [avg_yield + ((rice_yield - avg_yield) / 8.0) * i for i in range(1,9)]
+                                                 avg_yield
+                # [avg_yield + ((rice_yield - avg_yield) / 8.0) * i for i in range(1,9)]
                 self.data_inference['gstage'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
                                                  ( (self.data_inference['month'] == 6) | (self.data_inference['month'] == 7) ) ] = \
@@ -344,9 +345,9 @@ class ModelBase:
         
         
         
-        # self.data['actuals'] = self.data["rice_yieldval"] / self.data["rice_sownarea"]
-        # self.data_val['actuals'] = self.data_val["rice_yieldval"] / self.data_val["rice_sownarea"]
-        # self.data_inference['actuals'] = self.data_inference["rice_yieldval"] / self.data_inference["rice_sownarea"]
+        # self.data['actuals'] = self.data[f"{self.scrop}_yieldval"] / self.data[f"{self.scrop}_sownarea"]
+        # self.data_val['actuals'] = self.data_val[f"{self.scrop}_yieldval"] / self.data_val[f"{self.scrop}_sownarea"]
+        # self.data_inference['actuals'] = self.data_inference[f"{self.scrop}_yieldval"] / self.data_inference[f"{self.scrop}_sownarea"]
         
         ############### INIT data_train with all years in timeseries ######################################~
         self.data_train, _ = DataGenerator_split(TRAIN_DATA=self.data, VALID_DATA=self.data_val, YEARS_MAX_LENGTH=3)
@@ -367,7 +368,7 @@ class ModelBase:
         print(df['time_idx'].to_numpy())
         # print(dfali['time_idx'].to_numpy())
         
-        ax.plot(df['time_idx'].to_numpy(), df['rice_yield'].to_numpy(), 'o')
+        ax.plot(df['time_idx'].to_numpy(), df[f'{self.scrop}_yield'].to_numpy(), 'o')
         # Create the second y-axis
         ax2 = ax.twiny().twinx()
         ax2.plot(df['time_idx'].to_numpy(), df['gstage'], 'x', color='green')
@@ -389,8 +390,8 @@ class ModelBase:
         
         ######## PLOT & CHECK DATASET ############################################################
         
-        ax.plot(dfe['time_idx'].to_numpy(), dfe['rice_yield'].to_numpy(), '.', color='yellow')
-        ax.plot(dfp['time_idx'].to_numpy(), dfp['rice_yield'].to_numpy(), '.', color='red')
+        ax.plot(dfe['time_idx'].to_numpy(), dfe[f'{self.scrop}_yield'].to_numpy(), '.', color='yellow')
+        ax.plot(dfp['time_idx'].to_numpy(), dfp[f'{self.scrop}_yield'].to_numpy(), '.', color='red')
         
         print(self.max_encoder_length, self.max_prediction_length)   
         
@@ -401,7 +402,7 @@ class ModelBase:
         print(len(dflast['time_idx'].to_numpy()), dflast['time_idx'].to_numpy())
         dfali['time_idx'] = dflast['time_idx'].values
         print(dfali['time_idx'].to_numpy())
-        ax.plot(dfali['time_idx'].to_numpy(), dfali['rice_yield'].to_numpy(), '-.')
+        ax.plot(dfali['time_idx'].to_numpy(), dfali[f'{self.scrop}_yield'].to_numpy(), '-.')
         
         plt.show()
         plt.savefig('A0B', bbox_inches='tight')           
@@ -431,7 +432,7 @@ class ModelBase:
         
         # avg_med = ["avg_rice_yield", "rice_sownarea"]
         
-        avg_med = ["avg_rice_yield"]
+        avg_med = [f"avg_{self.scrop}_yield"]
         
         # avg_med = []
 
@@ -484,7 +485,7 @@ class ModelBase:
             self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length],
             # self.data_train,
             time_idx="time_idx",
-            target="rice_yield",
+            target=f"{self.scrop}_yield",
             group_ids=["county", "sample"],
             # group_ids=["county", "year"],
             min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
@@ -525,7 +526,7 @@ class ModelBase:
         # self.testing = TimeSeriesDataSet(
         #     self.data_val,
         #     time_idx="time_idx",
-        #     target="rice_yield",
+        #     target=f"{self.scrop}_yield",
         #     # group_ids=["county", "sample"],
         #     group_ids=["county", "sample"],
         #     min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
@@ -595,7 +596,7 @@ class ModelBase:
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, 
-                                                          max_lr=0.02, 
+                                                          max_lr=0.01, 
                                                           step_size_up=100, 
                                                           step_size_down=500) 
         
@@ -608,17 +609,22 @@ class ModelBase:
         _reload_dataloader = ReloadDataLoader(self.training, self.batch_size)
         
         _reload_dataset = ReloadDataSet(self.data, self.data_val, self.training, self.batch_size)
+        
+        # Composer will know which training run to resume
+        run_name = 'my_autoresume_training_run'
 
-        self.trainer = Trainer(accelerator='gpu', 
-                               logger=_logger, 
-                               log_every_n_steps=1, 
-                               max_epochs=self.max_epochs,
+        self.trainer = Trainer(accelerator = 'gpu', 
+                               logger = _logger, 
+                               log_every_n_steps = 1, 
+                               max_epochs = self.max_epochs,
                                # devices = "0",          
                                # fast_dev_run=True, 
                                # precision=16,
-                               gradient_clip_val=0.2,
+                               gradient_clip_val = 0.2,
                                # reload_dataloaders_every_epoch=True,
-                               callbacks=[_lr_finder, _checkpoint_callback, _lr_monitor, _reload_dataset])
+                               # Checkpoint configuration
+                               # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
+                               callbacks = [_lr_finder, _checkpoint_callback, _lr_monitor, _reload_dataset])
         
 
         # learning_rate = 0.01
@@ -854,7 +860,7 @@ class ModelBase:
         inference = TimeSeriesDataSet(
         self.data_inference,
         time_idx="time_idx",
-        target="rice_yield",
+        target=f"{self.scrop}_yield",
         group_ids=["county", "year"],
         min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
         max_encoder_length = self.max_encoder_length,
