@@ -162,12 +162,9 @@ class ModelBase:
         
         print(f'loading {self.datasetfile}', time.asctime( time.localtime(time.time()) ) )
         alidata = pd.read_csv(self.datasetfile)
-        # alidata = pd.read_csv(f'data/ALIM{MOD_BINS}F{FAM_BINS}DATASET_{scrop}.csv')
         print(f'{self.datasetfile} loaded', time.asctime( time.localtime(time.time()) ) )
         
-        # display(alidata)
-        
-        # cealr unnamed fields from dataset
+        ######### CLEAR UNNAMED COLUMNS FROM DATASETS #######################################
         alidata = alidata.loc[:, ~alidata.columns.str.contains('^Unnamed')]
 
         alidata['county']   = alidata['county'].astype(str)
@@ -185,23 +182,14 @@ class ModelBase:
         cols_to_move = yield_list
         alidata = alidata[ [ col for col in alidata.columns if col not in cols_to_move ] + cols_to_move ]
 
-        # df_not_str = alidata.select_dtypes(include=float).astype("float32")
-        # df_str = alidata.select_dtypes(exclude=float)
-
-        # alidata = df_not_str.join(df_str)
-
         # DON'T DELETE, cut dataset by month
         alidata = alidata[ alidata['month'] < 10 ]
         # alidata['month'] = alidata['month'].astype(str)
         
+        #### ADD 'gstage' COLUMN FOR GROWTH STAGES ###################################
         alidata['gstage'] = 'yield'
-        
-#         bad_year = '2008'
-        
-#         alidata = alidata[ alidata['year'] != bad_year]
-
-        # display(alidata)        
-        
+            
+        #### SET INFERENCE DATAS #######################################################
         infer_mask = alidata['year'].isin(['2019', '2020', '2021', '2022'])
 
         data_infer = alidata[infer_mask]
@@ -213,7 +201,7 @@ class ModelBase:
         years = [str(x) for x in range(2003, 2019)]
 
         self.val_years = self.predicted_years 
-        # Remove predicted year from train dataset  
+        #### REMOVE VALIDATION YEARS FROM TRAIN DATAS #################################### 
         for iyear in self.val_years:
             years.remove(iyear)      
         self.years = years
@@ -224,19 +212,21 @@ class ModelBase:
         # tt = [x for x in self.val_years]
         # print('tt', tt)
         
-        self.name_for_files = f'A0Bcr[{self.scrop}]-yr[{"_".join(self.val_years)}]-en[{self.exp_name}]-bs[{self.batch_size}]-lr[{self.learning_rate}]'
+        ###### SET BASIC FILENAME #######################################
+        self.name_for_files = f'A0_cr[{self.scrop}]-yr[{"_".join(self.val_years)}]-en[{self.exp_name}]-bs[{self.batch_size}]]'
         
         print('self.name_for_files:', self.name_for_files)
         
         # fn
         
-
+        ##### SET TRAIN/VALIDATION DATAS #################################
         train_mask = alidata['year'].isin(self.years)
         self.data = alidata[train_mask]
 
         val_mask = alidata['year'].isin(self.val_years)
         self.data_val = alidata[val_mask]
         
+        # delete 2008 year from dataset
         self.data = self.data[ self.data['year'] != '2008' ]
         self.years = self.data['year'].unique()
         
@@ -246,39 +236,20 @@ class ModelBase:
         print('Years to valid:', self.data_val['year'].unique())
         print('------------------------------')
 
-        # display(self.data_infer)
 
-        # display(self.data)
-
-        # display(self.data_val)
-
+        # CREATE INFERENCE DATAS 2019-2023 with added validation dataset for control accuracy
         self.data_inference = pd.concat([self.data_val, data_infer], axis=0)
 
-        # display(self.data_inference)
 
-        # print(len(data['county'].unique()), len(data['year'].unique()))
-        
-        # max_prediction_length = 4
-        # max_encoder_length = 20
-        # training_cutoff = data["time_idx"].max() - max_prediction_length
-        # min_prediction_idx = 20 #int( training_cutoff )
-        ###################################################################################################
-        # self.max_encoder_length = 30  # int(training_cutoff - max_prediction_length)
-        # self.max_prediction_length = int(self.data["time_idx"].max() - self.max_encoder_length + 1)
-        ###################################################################################################
-#         self.max_prediction_length = 15  # int(training_cutoff - max_prediction_length)
-#         self.max_encoder_length = int(self.data["time_idx"].max() - self.max_prediction_length + 1)
-
-#         print('max_prediction_length:', self.max_prediction_length, self.max_encoder_length, type(self.data["time_idx"][0]), type(self.max_encoder_length) )
-        # fn
-
-        # print(training_cutoff, data['time_idx'][0])
-
+        # CREATE TRAIN/VALIDATION/TEST DATASETS WITH AVERAGE IN ENCODER AND YIELD IN DECODER, ADD GROWTH STAGES. 
         for county in self.data['county'].unique():
             for year in self.data['year'].unique():
-                avg_yield = self.data[f'avg_{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
-                med_yield = self.data[f'med_{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
-                _yield = self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year)].mean()
+                avg_yield = self.data[f'avg_{self.scrop}_yield'].loc[(self.data['county'] == county) \
+                                                                     & (self.data['year'] == year)].mean()
+                med_yield = self.data[f'med_{self.scrop}_yield'].loc[(self.data['county'] == county) \
+                                                                     & (self.data['year'] == year)].mean()
+                _yield = self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) \
+                                                              & (self.data['year'] == year)].mean()
                 
                 self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
                                             (self.data['month'] < 6) ] = avg_yield
@@ -296,9 +267,12 @@ class ModelBase:
 
         for county in self.data_val['county'].unique():
             for year in self.data_val['year'].unique():
-                avg_yield = self.data_val[f'avg_{self.scrop}_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year)].mean()
-                med_yield = self.data_val[f'med_{self.scrop}_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year)].mean()
-                _yield = self.data_val[f'{self.scrop}_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year)].mean()
+                avg_yield = self.data_val[f'avg_{self.scrop}_yield'].loc[(self.data_val['county'] == county) \
+                                                                         & (self.data_val['year'] == year)].mean()
+                med_yield = self.data_val[f'med_{self.scrop}_yield'].loc[(self.data_val['county'] == county) \
+                                                                         & (self.data_val['year'] == year)].mean()
+                _yield = self.data_val[f'{self.scrop}_yield'].loc[(self.data_val['county'] == county) \
+                                                                  & (self.data_val['year'] == year)].mean()
                 
                 self.data_val[f'{self.scrop}_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
                                             (self.data_val['month'] < 6) ] = avg_yield
@@ -344,28 +318,68 @@ class ModelBase:
         self.data_inference['month'] = self.data_inference['month'].astype(str)
         
         
-        
+        # ADD ACTUALS FOR CONTROL  
         # self.data['actuals'] = self.data[f"{self.scrop}_yieldval"] / self.data[f"{self.scrop}_sownarea"]
         # self.data_val['actuals'] = self.data_val[f"{self.scrop}_yieldval"] / self.data_val[f"{self.scrop}_sownarea"]
         # self.data_inference['actuals'] = self.data_inference[f"{self.scrop}_yieldval"] / self.data_inference[f"{self.scrop}_sownarea"]
         
-        ############### INIT data_train with all years in timeseries ######################################~
-        self.data_train, _ = DataGenerator_split(TRAIN_DATA=self.data, VALID_DATA=self.data_val, YEARS_MAX_LENGTH=3)
+        #### ADD 'sample' COLUMN AS 'year' column & RENAME 'sample' column with INT NUMBER  ###################
+        self.data_val['sample'] = self.data_val['year'].values
+        
+        NSAMPLES = 0
+        for iyear in self.data_val['year'].unique():
+            self.data_val.loc[self.data_val['year'] == iyear, 'sample'] = str(NSAMPLES)
+            NSAMPLES = NSAMPLES + 1
+        
+        print('DATA_VAL:', self.data_val['sample'].unique(), self.data_val.shape)
+        
+        df = self.data_val[ (self.data_val['sample'] == self.data_val['sample'].unique()[0])]
+        
+        print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
+        
+        df = self.data_val[ (self.data_val['sample'] == self.data_val['sample'].unique()[0]) & (self.data_val['county'] == self.data_val['county'].unique()[0]) ]
+        
+        print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
+        
+        ############### INIT data_train and add data_val as last year to each sample ######################################
+        self.data_train, _ = DataGenerator(DATA=self.data, 
+                                           YEARS_MAX_LENGTH=3,
+                                           NSAMPLES=len(self.data_val['sample'].unique()))
+        
+        df_tr = pd.DataFrame()
+        for smpl in self.data_val['sample'].unique():
+            for county in self.data_val['county'].unique():
+                df_cn = pd.DataFrame()
+                dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
+                dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
+                df_cn = pd.concat([df_cn, dfa], axis=0)
+                df_cn = pd.concat([df_cn, dfb], axis=0)
+                
+                new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
+                df_cn.index = new_index
+                df_cn["time_idx"] = df_cn.index.astype(int)
+                df_tr = pd.concat([df_tr, df_cn], axis=0)
+        new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
+        df_tr.index = new_index
+        
+        self.data_train = df_tr
+        
+        ########### PLOT SAMPLE WITH ENCODER/DECODER FOR CONTROL ################################################
 
-        smpl = self.val_years[0]
+        smpl = self.data_train['sample'].unique()[0] #self.val_years[0]
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
         # fig, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(20,5))
         
-        print(type(self.data_train['time_idx']))
+        print('type(self.data_train[time_idx])', type(self.data_train['time_idx']))
         
         df = self.data_train[ (self.data_train['county'] == '0') & (self.data_train['sample'] == smpl) ]
         
-        print(df['time_idx'].to_numpy())
-        print(self.data_train['sample'].unique())
-        print(self.data_train['county'].unique())
-        print(df['year'].unique())
+        print('time_idx', df['time_idx'].to_numpy())
+        print('sample', self.data_train['sample'].unique())
+        print('county', self.data_train['county'].unique())
+        print('df[year].unique()', df['year'].unique())
         
-        print(df['time_idx'].to_numpy())
+        print('df[time_idx].to_numpy()', df['time_idx'].to_numpy())
         # print(dfali['time_idx'].to_numpy())
         
         ax.plot(df['time_idx'].to_numpy(), df[f'{self.scrop}_yield'].to_numpy(), 'o')
@@ -373,7 +387,7 @@ class ModelBase:
         ax2 = ax.twiny().twinx()
         ax2.plot(df['time_idx'].to_numpy(), df['gstage'], 'x', color='green')
 
-        ######### ENCODER-DECODER ############################################################################
+        ######### SET ENCODER-DECODER LENGTH AS 'gstage' phase: no/growth/yied ####################################################
         
         
         dfsmpl = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ]
@@ -405,7 +419,7 @@ class ModelBase:
         ax.plot(dfali['time_idx'].to_numpy(), dfali[f'{self.scrop}_yield'].to_numpy(), '-.')
         
         plt.show()
-        plt.savefig('A0B', bbox_inches='tight')           
+        plt.savefig('A0', bbox_inches='tight')           
         
         # fn
         
@@ -420,13 +434,9 @@ class ModelBase:
         print(f"Dataframe size: {memory_mb:.2f} Mb")
         
         print('DataGenerator done...')
-                
+        
             
-            # for ii in random_years:
-            #     data_gen = pd.concat([self.data_val, data[]], axis=0)
-                
-            
-
+        ##### SET ENCODER/DECODER COVARIATES #######################################################
         # avg_med = ["avg_rice_yield", "med_rice_yield", "avg_rice_sownarea", "med_rice_sownarea",\
         #                  "avg_rice_yieldval", "med_rice_yieldval"]
         
@@ -446,9 +456,10 @@ class ModelBase:
 
         # fn
 
-        ################ MODIS cloumns name################################
+        ################ MODIS cloumns name ################################
         mod_names = [f'b{iband}b{bins}' for iband in range(9) for bins in range(MOD_BINS)]
 
+        ################ FAMINA cloumns name ################################
         famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', 'Qair_f_tavg', 'Qg_tavg',\
                        'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', 'RadT_tavg', 'Rainf_f_tavg', \
                        'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
@@ -470,16 +481,16 @@ class ModelBase:
         self._time_varying_unknown_reals.extend(mod_names)
         # self._time_varying_unknown_reals.extend(famine_names)
 
-        print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
+        # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
 
         print(f'training mx_epochs, TimeSeriesDataSet:', max_epochs, time.asctime( time.localtime(time.time()) ) )
         
         print('D1: known-unknown go --------------------------')
         print('D2: --------------------------')
         
-        # fn
-
-        # training_cutoff = data["time_idx"].max() - max_prediction_length
+        
+        ###########################################################################################
+        ##### SET TRAIN/VALIDATION/TEST DATASETS ###################################################
         
         self.training = TimeSeriesDataSet(
             self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length],
@@ -510,17 +521,7 @@ class ModelBase:
 
         print( time.asctime( time.localtime(time.time()) ) )
         
-        self.data_val['sample'] = self.data_val['year'].values
-        
-        print('DATA_VAL:', self.data_val['sample'].unique(), self.data_val.shape)
-        
-        df = self.data_val[ (self.data_val['sample'] == self.data_val['sample'].unique()[0])]
-        
-        print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
-        
-        df = self.data_val[ (self.data_val['sample'] == self.data_val['sample'].unique()[0]) & (self.data_val['county'] == self.data_val['county'].unique()[0]) ]
-        
-        print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
+
         # fn
 
         # self.testing = TimeSeriesDataSet(
@@ -549,7 +550,7 @@ class ModelBase:
         #     add_encoder_length=True,
         # )
 
-        # create validation set (predict=True) which means to predict the last max_prediction_length points in time
+        ######### create validation set (predict=True) which means to predict the last max_prediction_length points in time
         # for each series
         self.validation = TimeSeriesDataSet.from_dataset(self.training, self.data_train, predict=True, stop_randomization=True)
         
@@ -557,9 +558,10 @@ class ModelBase:
 
         print(f'training & validation TimeSeriesDataSet loaded', time.asctime( time.localtime(time.time()) ) )
         
-        # create dataloaders for model
+        ######### CREATE TRAIN/VALIDATION/TEST DATALOADERS ####################################################
         # batch_size = 16  # set this between 32 to 128
         self.train_dataloader = self.training.to_dataloader(train=True, batch_size=self.batch_size, num_workers=8)
+        
         self.val_dataloader = self.validation.to_dataloader(train=False, batch_size=27, num_workers=8)
         
         self.test_dataloader = self.testing.to_dataloader(train=False, batch_size=27, num_workers=8)
@@ -571,15 +573,13 @@ class ModelBase:
         # fn
         
         print( time.asctime( time.localtime(time.time()) ) )
-        # calculate baseline mean absolute error, i.e. predict next value as the last available value from the history
-        # for x, (y, weight) in iter(val_dataloader):
-        #     print(type(y), y.size())
 
+        #### CREATE BASELINE ##########################################################
         actuals = torch.cat([y for x, (y, weight) in iter(self.val_dataloader)])
         baseline_predictions = Baseline().predict(self.val_dataloader)
         # print( 'Baseline:',type(actuals), actuals.size(), baseline_predictions.size(), actuals[0,:], baseline_predictions[0,:] )
         # print( torch.where(torch.isnan(actuals)), torch.where(torch.isnan(baseline_predictions)) )
-        # print( 'Baseline:', (actuals - baseline_predictions).abs().mean().item() )
+        print( 'Baseline:', (actuals - baseline_predictions).abs().mean() )
         print( 'Baseline:', time.asctime( time.localtime(time.time()) ) )
     
         
@@ -587,32 +587,39 @@ class ModelBase:
         # home_dir = '/content/gdrive/My Drive/AChina' 
         # _dir = os.path.join(home_dir, 'data')
         
+        #### SET CHECKPOINT ##############################
         _checkpoint_callback = ModelCheckpoint(dirpath = os.path.join(home_dir, self.name_for_files), every_n_epochs = 25)
 
         _dir = '/tf_logs'
         # dir = os.path.join(home_dir, 'data')
+        
+        ##### SET TENSORBOARD ############################################
         _logger = TensorBoardLogger(_dir, name = self.name_for_files, comment = self.name_for_files)
 
+        #### SEL LEARNING RATE MONITOR ###################################
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
+        #### LEARNING RATE TUNER #########################################
         _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, 
                                                           max_lr=0.01, 
                                                           step_size_up=100, 
                                                           step_size_down=500) 
         
+        #### GRADIENT ACCUMULATION SHEDULER ####################################
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
-
+        
+        #### STOCHASTIC WEIGHT AVERAGIN #######################################
         _SWA = StochasticWeightAveraging(swa_lrs=1e-2, 
                                          swa_epoch_start=50, 
                                          device='gpu')
         
+        #### RELOAD DATALOADER EVERY EPOCHS ########################################
         _reload_dataloader = ReloadDataLoader(self.training, self.batch_size)
         
-        _reload_dataset = ReloadDataSet(self.data, self.data_val, self.training, self.batch_size)
-        
-        # Composer will know which training run to resume
-        run_name = 'my_autoresume_training_run'
+        #### RELOAD TRAINING DATASET AND DATALOADER EVERY EPOCHS ###################
+        _reload_dataset = ReloadDataSet(self.data, self.training, self.batch_size)
 
+        #### SET TRAINER ###########################################################
         self.trainer = Trainer(accelerator = 'gpu', 
                                logger = _logger, 
                                log_every_n_steps = 1, 
@@ -627,7 +634,8 @@ class ModelBase:
                                callbacks = [_lr_finder, _checkpoint_callback, _lr_monitor, _reload_dataset])
         
 
-        # learning_rate = 0.01
+
+        #### SET TEMPORAL FUSION TRANSFORMER AS MODEL #######################################
 
         self.tft = TemporalFusionTransformer.from_dataset(
             self.training,

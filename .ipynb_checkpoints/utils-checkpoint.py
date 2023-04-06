@@ -185,58 +185,98 @@ class ReloadDataLoader(Callback):
         print('DataLoader was reloaded...')
         
 class ReloadDataSet(Callback):
-    def __init__(self, data_train, data_valid, dataset_train, batch_size):
+    def __init__(self, data_train, dataset_train, batch_size):
         super().__init__()
         self.data_train = data_train
-        self.data_valid = data_valid
+        # self.data_valid = data_valid
         self.dataset_train = dataset_train
         self.batch_size = batch_size
         
     def on_train_epoch_start(self, trainer, pl_module):
         # if trainer.current_epoch in self.milestones:
         print('DataGenerator reloading... epoch:', trainer.current_epoch)  
-        data_train, year_list = DataGenerator_split(TRAIN_DATA=self.data_train, 
-                                                    VALID_DATA=self.data_valid, 
-                                                    YEARS_MAX_LENGTH=3)
+        data_train, year_list = DataGenerator(DATA=self.data_train, 
+                                              YEARS_MAX_LENGTH=3, 
+                                              NSAMPLES=3)
         self.dataset_train = TimeSeriesDataSet.from_dataset(self.dataset_train, data_train)
         pl_module.train_dataloader = self.dataset_train.to_dataloader(batch_size=self.batch_size, shuffle=True)
         print('DataLoader was reloaded...')
-        # show list of the generated years in tensorboard
-        # year_dict = {}
-        # for i, year in enumerate(year_list):
-        #     year_dict[str(i)] = year
-        #     # print(type(year), year)
-        #     trainer.logger.experiment.add_scalar("Training Year List", year, trainer.current_epoch)
-        # trainer.logger.experiment.add_scalars("Training Year List", year_dict, trainer.current_epoch)
-        # self.logger.experiment.add_scalars("Train Metrics", {"Loss": train_loss, "Accuracy": train_acc}, global_step=trainer.global_step)
-        # print(year_list)
-        
+
+################################################################################################# 
+
 def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
     years_list = list(DATA['year'].astype(int).unique())
-    print(f'Augmentation for years list: {years_list}')
-
-    # random_years = random.sample(years, LENGTH)
-
-    start_year = DATA['year'].astype(int).min()
-    end_year = DATA['year'].astype(int).max()
+    print(f'Augmentation for years list: {years_list} by NSAMPLES={NSAMPLES} and YEARS_MAX_LENGTH={YEARS_MAX_LENGTH}')
 
     data_samples = pd.DataFrame()
     years_samples = []
     for ii in tqdm(range(NSAMPLES)):
-        # num_years = random.randint(1, YEARS_MAX_LENGTH)  # generate a random number between 1 and 10 for the list size
-        # years = [random.randint(start_year, end_year) for _ in range(num_years)]
-        # years = [random.randint(start_year, end_year) for _ in range(num_years)]
-        # years = random.sample(years_list, num_years)
-        # print('DataGenerator nsamples:', ii, type(years), years)
-        # df_concat = pd.DataFrame()
         for county in DATA["county"].unique():
+            # generate random number of trainig years
             num_years = random.randint(1, YEARS_MAX_LENGTH)
+            # get list of training years 
             years = random.sample(years_list, num_years)
             years_samples.append(years)
             df_concat_year = pd.DataFrame()
             for iyear in years:
                 df_concat_year = pd.concat([ df_concat_year, DATA.loc[ (DATA['year'].astype(int) == iyear) & \
                                                          (DATA['county'] == county)] ], axis=0)
+            # reindex the concatenated dataframe with a new index
+            new_index = pd.RangeIndex(start=0, stop=len(df_concat_year)+0, step=1)
+            df_concat_year.index = new_index
+            # add a new column with integer values equal to the index
+            df_concat_year["time_idx"] = df_concat_year.index.astype(int)
+            df_concat_year["sample"] = str(ii)
+            data_samples = pd.concat([data_samples, df_concat_year], axis=0)
+        # reindex the concatenated dataframe with a new index
+    new_index = pd.RangeIndex(start=0, stop=len(data_samples)+0, step=1)
+    data_samples.index = new_index
+
+    return data_samples, years_samples
+
+#################################################################################################
+
+def DataGenerator_experimental(TRAIN_DATA, VALID_DATA, YEARS_MAX_LENGTH, ADD_NSAMPLES_LIST=[]):
+    years_list = list(TRAIN_DATA['year'].astype(int).unique())
+    print(f'Augmentation for train years list: {years_list}')
+
+    valid_years_list = list(VALID_DATA['year'].astype(int).unique())
+    print(f'Augmentation for valid years list: {valid_years_list}')
+    
+    NSAMPLES_LIST = []
+    NSAMPLES_LIST.extend(valid_years_list)
+    NSAMPLES_LIST.extend(ADD_NSAMPLES_LIST)
+    print(f'Augmentation for nsamples list: {NSAMPLES_LIST}')
+
+    # random_years = random.sample(years, LENGTH)
+
+    # start_year = DATA['year'].astype(int).min()
+    # end_year = DATA['year'].astype(int).max()
+
+    data_samples = pd.DataFrame()
+    years_samples = []
+    # for ii in tqdm(range(NSAMPLES)):
+    for ii in tqdm(NSAMPLES_LIST):
+        # num_years = random.randint(1, YEARS_MAX_LENGTH)  # generate a random number between 1 and 10 for the list size
+        # years = [random.randint(start_year, end_year) for _ in range(num_years)]
+        # years = [random.randint(start_year, end_year) for _ in range(num_years)]
+        # years = random.sample(years_list, num_years)
+        # print('DataGenerator nsamples:', ii, type(years), years)
+        # df_concat = pd.DataFrame()
+        for county in TRAIN_DATA["county"].unique():
+            num_years = random.randint(1, YEARS_MAX_LENGTH)
+            years = random.sample(years_list, num_years)
+            years_samples.append(years)
+            df_concat_year = pd.DataFrame()
+            for iyear in years:
+                df_concat_year = pd.concat([ df_concat_year, TRAIN_DATA.loc[ (TRAIN_DATA['year'].astype(int) == iyear) & \
+                                                         (TRAIN_DATA['county'] == county)] ], axis=0)
+            # val_year = random.sample(valid_years_list, 1)
+            # # print('val_year', val_year[0])
+            # # add validation year as a last sample for train/validation splitting
+            # df_concat_year = pd.concat([df_concat_year, VALID_DATA.loc[ (VALID_DATA['year'].astype(int) == val_year[0]) & \
+            #                                              (VALID_DATA['county'] == county)] ], axis=0)
+            # years_samples.append(val_year)
             # reindex the concatenated dataframe with a new index
             new_index = pd.RangeIndex(start=0, stop=len(df_concat_year)+0, step=1)
             df_concat_year.index = new_index
@@ -262,7 +302,7 @@ def DataGenerator_split(TRAIN_DATA, VALID_DATA, YEARS_MAX_LENGTH, ADD_NSAMPLES_L
     NSAMPLES_LIST = []
     NSAMPLES_LIST.extend(valid_years_list)
     NSAMPLES_LIST.extend(ADD_NSAMPLES_LIST)
-    print(f'Augmentation for valid years list: {NSAMPLES_LIST}')
+    print(f'Augmentation for nsamples list: {NSAMPLES_LIST}')
 
     # random_years = random.sample(years, LENGTH)
 
@@ -271,8 +311,8 @@ def DataGenerator_split(TRAIN_DATA, VALID_DATA, YEARS_MAX_LENGTH, ADD_NSAMPLES_L
 
     data_samples = pd.DataFrame()
     years_samples = []
-    # for ii in tqdm(range(NSAMPLES)):
-    for ii in tqdm(NSAMPLES_LIST):
+    for ii in tqdm(range(len(NSAMPLES_LIST))):
+    # for ii in tqdm(NSAMPLES_LIST):
         # num_years = random.randint(1, YEARS_MAX_LENGTH)  # generate a random number between 1 and 10 for the list size
         # years = [random.randint(start_year, end_year) for _ in range(num_years)]
         # years = [random.randint(start_year, end_year) for _ in range(num_years)]
@@ -289,6 +329,7 @@ def DataGenerator_split(TRAIN_DATA, VALID_DATA, YEARS_MAX_LENGTH, ADD_NSAMPLES_L
                                                          (TRAIN_DATA['county'] == county)] ], axis=0)
             val_year = random.sample(valid_years_list, 1)
             # print('val_year', val_year[0])
+            # add validation year as a last sample for train/validation splitting
             df_concat_year = pd.concat([df_concat_year, VALID_DATA.loc[ (VALID_DATA['year'].astype(int) == val_year[0]) & \
                                                          (VALID_DATA['county'] == county)] ], axis=0)
             years_samples.append(val_year)
@@ -300,7 +341,7 @@ def DataGenerator_split(TRAIN_DATA, VALID_DATA, YEARS_MAX_LENGTH, ADD_NSAMPLES_L
             df_concat_year["sample"] = str(ii)
             data_samples = pd.concat([data_samples, df_concat_year], axis=0)
         # reindex the concatenated dataframe with a new index
-    new_index = pd.RangeIndex(start=1, stop=len(data_samples)+1, step=1)
+    new_index = pd.RangeIndex(start=0, stop=len(data_samples)+0, step=1)
     data_samples.index = new_index
 
     return data_samples, years_samples
