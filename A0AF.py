@@ -480,13 +480,13 @@ class ModelBase:
         
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        self._time_varying_known_reals.extend(mod_names) 
-        # self._time_varying_known_reals.extend(famine_names)
+        # self._time_varying_known_reals.extend(mod_names) 
+        self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
-        self._time_varying_unknown_reals.extend(mod_names)
-        # self._time_varying_unknown_reals.extend(famine_names)
+        # self._time_varying_unknown_reals.extend(mod_names)
+        self._time_varying_unknown_reals.extend(famine_names)
 
         # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
 
@@ -609,7 +609,7 @@ class ModelBase:
         #### LEARNING RATE TUNER #########################################
         _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, 
                                                           max_lr=0.01, 
-                                                          step_size_up=100, 
+                                                          step_size_up=120, 
                                                           step_size_down=500) 
         
         #### GRADIENT ACCUMULATION SHEDULER ####################################
@@ -829,7 +829,7 @@ class ModelBase:
         
         print('predict saved')
         
-    def test(self, checkpoit_file=f'{self.checkpoint}'):
+    def test(self, checkpoit_file=f'save.ckpt'):
         print('test')
         
         self.checkpoint = checkpoit_file

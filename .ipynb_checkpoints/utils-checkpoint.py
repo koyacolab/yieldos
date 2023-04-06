@@ -164,7 +164,7 @@ def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
     return data_samples, years_samples
 
 #################################################################################################
-class CheckpointCallback(pl.Callback):
+class CheckpointCallback(Callback):
     def __init__(self, checkpoint_dir, checkpoint_filename, checkpoint_interval):
         self.checkpoint_dir = checkpoint_dir
         self.checkpoint_filename = checkpoint_filename

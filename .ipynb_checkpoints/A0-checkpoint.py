@@ -221,7 +221,7 @@ class ModelBase:
             print(f'Set another exp_name...')
             os.exit(0)
         
-        print('self.name_for_files:', self.name_for_files)
+        print('Set basic filenames self.name_for_files:', self.name_for_files)
         
         # fn
         
@@ -243,7 +243,7 @@ class ModelBase:
         print('------------------------------')
 
 
-        #### CREATE INFERENCE DATAS 2019-2023 with added validation dataset for control accuracy #############
+        #### CREATE INFERENCE DATAS 2019-2023 with added validation dataset for control K-FOLD accuracy #############
         self.data_inference = pd.concat([self.data_val, data_infer], axis=0)
 
 
