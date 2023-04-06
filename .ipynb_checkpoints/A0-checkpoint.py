@@ -214,6 +214,10 @@ class ModelBase:
         
         ###### SET BASIC FILENAME #######################################
         self.name_for_files = f'A0_cr[{self.scrop}]-yr[{"_".join(self.val_years)}]-en[{self.exp_name}]-bs[{self.batch_size}]]'
+        if os.path.exist(self.name_for_files) == True:
+            print(f'Experiment exist: {self.name_for_files}')
+            print(f'Set another exp_name...')
+            os.exit(0)
         
         print('self.name_for_files:', self.name_for_files)
         
