@@ -812,7 +812,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'A0Bmod_{self.name_for_files}_predict.npz',
+            f'{self.name_for_files}_predict.npz',
             actuals = np.asarray(actuals), 
             predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
@@ -825,7 +825,7 @@ class ModelBase:
     def test(self,):
         print('test')
         
-        print('weights loading', time.asctime( time.localtime(time.time()) ) )
+        print(f'weights loading from checkpoint: {self.checkpoint}', time.asctime( time.localtime(time.time()) ) )
         self.best_tft = TemporalFusionTransformer.load_from_checkpoint(f'{self.checkpoint}.ckpt')
         print('weights loaded', time.asctime( time.localtime(time.time()) ) )
         
@@ -854,7 +854,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'A0Bmod_{self.name_for_files}_test.npz',
+            f'{self.name_for_files}_test.npz',
             actuals = np.asarray(actuals), 
             predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
@@ -924,7 +924,7 @@ class ModelBase:
         print(experiment['decoder_target'].size())
 
         np.savez(
-            f'A0Bmod_{self.name_for_files}_inference.npz',
+            f'{self.name_for_files}_inference.npz',
             actuals = np.asarray(actuals), 
             predictions = np.asarray(predictions),
             prediction = experiment['prediction'].numpy(),
