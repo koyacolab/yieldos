@@ -167,14 +167,16 @@ class ModelBase:
         ######### CLEAR UNNAMED COLUMNS FROM DATASETS #######################################
         alidata = alidata.loc[:, ~alidata.columns.str.contains('^Unnamed')]
 
+        #### SET 'county' and 'year' to categorical 'time_idx' to integer time step #################
         alidata['county']   = alidata['county'].astype(str)
         alidata['year']     = alidata['year'].astype(str)
         alidata['time_idx'] = alidata['time_idx'].astype(int)
         
         alidata['actuals'] = alidata[f'{self.scrop}_yield']
-
+        
         print(type(alidata['county']), type(alidata['year']), type(alidata['time_idx'].max()))
-
+        
+        #### GET yield info and move to the end columns for control ######################################
         yield_list = [f'{self.scrop}_sownarea', f'avg_{self.scrop}_sownarea', f'med_{self.scrop}_sownarea', \
                       f'{self.scrop}_yieldval', f'avg_{self.scrop}_yieldval', f'med_{self.scrop}_yieldval', \
                       f'{self.scrop}_yield', f'avg_{self.scrop}_yield', f'med_{self.scrop}_yield']
@@ -182,7 +184,7 @@ class ModelBase:
         cols_to_move = yield_list
         alidata = alidata[ [ col for col in alidata.columns if col not in cols_to_move ] + cols_to_move ]
 
-        # DON'T DELETE, cut dataset by month
+        ########## DON'T DELETE, cut dataset by month for encoder/decoder length reduce ##################################
         alidata = alidata[ alidata['month'] < 10 ]
         # alidata['month'] = alidata['month'].astype(str)
         
@@ -241,11 +243,11 @@ class ModelBase:
         print('------------------------------')
 
 
-        # CREATE INFERENCE DATAS 2019-2023 with added validation dataset for control accuracy
+        #### CREATE INFERENCE DATAS 2019-2023 with added validation dataset for control accuracy #############
         self.data_inference = pd.concat([self.data_val, data_infer], axis=0)
 
 
-        # CREATE TRAIN/VALIDATION/TEST DATASETS WITH AVERAGE IN ENCODER AND YIELD IN DECODER, ADD GROWTH STAGES. 
+        #### CREATE TRAIN/VALIDATION/TEST DATASETS WITH AVERAGE IN ENCODER AND GROWTH/YIELD IN DECODER ######## 
         for county in self.data['county'].unique():
             for year in self.data['year'].unique():
                 avg_yield = self.data[f'avg_{self.scrop}_yield'].loc[(self.data['county'] == county) \
@@ -317,6 +319,7 @@ class ModelBase:
                                                  "growth"        
                     
                     
+        #### SET 'month' to the catigorical #############################
         self.data['month'] = self.data['month'].astype(str)
         self.data_val['month'] = self.data_val['month'].astype(str)
         self.data_inference['month'] = self.data_inference['month'].astype(str)
@@ -406,7 +409,7 @@ class ModelBase:
         self.max_prediction_length = dfp.shape[0]
         self.max_encoder_length = dfe.shape[0]
         
-        ######## PLOT & CHECK DATASET ############################################################
+        ######## PLOT & CHECK ENCODER/DECODER DATASET ############################################################
         
         ax.plot(dfe['time_idx'].to_numpy(), dfe[f'{self.scrop}_yield'].to_numpy(), '.', color='yellow')
         ax.plot(dfp['time_idx'].to_numpy(), dfp[f'{self.scrop}_yield'].to_numpy(), '.', color='red')
@@ -826,8 +829,10 @@ class ModelBase:
         
         print('predict saved')
         
-    def test(self,):
+    def test(self, checkpoit_file=f'{self.checkpoint}'):
         print('test')
+        
+        self.checkpoint = checkpoit_file
         
         print(f'weights loading from checkpoint: {self.checkpoint}', time.asctime( time.localtime(time.time()) ) )
         self.best_tft = TemporalFusionTransformer.load_from_checkpoint(f'{self.checkpoint}.ckpt')
