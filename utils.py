@@ -164,8 +164,22 @@ def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
     return data_samples, years_samples
 
 #################################################################################################
+class CheckpointCallback(pl.Callback):
+    def __init__(self, checkpoint_dir, checkpoint_filename, checkpoint_interval):
+        self.checkpoint_dir = checkpoint_dir
+        self.checkpoint_filename = checkpoint_filename
+        self.checkpoint_interval = checkpoint_interval
 
+    def on_train_epoch_start(self, trainer, pl_module):
+        epoch = trainer.current_epoch
+        if (epoch + 1) % self.checkpoint_interval == 0:
+            checkpoint_path = os.path.join(self.checkpoint_dir, 
+                                           self.checkpoint_filename.format(epoch=epoch+1,
+                                           val_loss=trainer.callback_metrics['val_loss']))
+            trainer.save_checkpoint(checkpoint_path)
 
+# example 
+# trainer = pl.Trainer(callbacks=[CheckpointCallback(checkpoint_dir='checkpoints/', checkpoint_filename='model-{epoch:02d}-{val_loss:.2f}.ckpt', checkpoint_interval=5)])
 
 ################# DEPRICIATED #####################################################################
 def DataGenerator_experimental(TRAIN_DATA, VALID_DATA, YEARS_MAX_LENGTH, ADD_NSAMPLES_LIST=[]):
