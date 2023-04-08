@@ -97,7 +97,76 @@ class FineTuneLearningRateFinder_CyclicLR(LearningRateFinder):
         print('on_train_epoch_start:', self.scheduler.get_last_lr()[0])
         
 # ---------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------                  
 
+class FineTuneLearningRateFinder_CustomLR(LearningRateFinder):
+    def __init__(self, total_const_iters=20, base_lr=0.001, max_lr=0.085, step_size_up=30, step_size_down=70, mode='triangular2', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.base_lr = base_lr
+        self.max_lr = max_lr
+        self.step_size_up = step_size_up
+        self.step_size_down = step_size_down
+        self.total_const_iters = total_const_iters
+        self.mode = mode
+        self.optimizer = []
+        self.scheduler = []
+
+    def on_fit_start(self, trainer, pl_module):
+        print("CustomLR:", self.base_lr, self.max_lr, self.step_size_up, self.step_size_down, self.mode)
+        self.optimizer = trainer.optimizers[0]
+        self.scheduler.append(torch.optim.lr_scheduler.ConstantLR(self.optimizer, 
+                                                             factor=1.0, 
+                                                             total_iters=self.total_const_iters, 
+                                                             last_epoch=-1, 
+                                                             verbose=False))
+        
+        self.scheduler.append(torch.optim.lr_scheduler.CyclicLR(self.optimizer, 
+                                                           base_lr=self.base_lr, 
+                                                           max_lr=self.max_lr, 
+                                                           step_size_up=self.step_size_up, 
+                                                           step_size_down=self.step_size_down, 
+                                                           mode=self.mode, 
+                                                           gamma=1.0, 
+                                                           scale_fn=None, 
+                                                           scale_mode='cycle', 
+                                                           cycle_momentum=True, 
+                                                           base_momentum=0.8, 
+                                                           max_momentum=0.9, 
+                                                           last_epoch=-1, 
+                                                           verbose=False))
+        
+        self.scheduler.append(torch.optim.lr_scheduler.ConstantLR(self.optimizer, 
+                                                             factor=1.0, 
+                                                             total_iters=self.total_const_iters, 
+                                                             last_epoch=-1, 
+                                                             verbose=False))
+    
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.scheduler[0].get_last_lr()[0]
+        # self.scheduler.step()
+        print('on_fit_start:', self.scheduler[0].get_last_lr()[0])
+        return
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        self.optimizer = trainer.optimizers[0]
+        if trainer.current_epoch <= self.total_const_iters:        
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] = self.scheduler[0].get_last_lr()[0]
+            self.scheduler[0].step()
+            print('on_train_epoch_start:', self.scheduler[0].get_last_lr()[0])
+        elif (trainer.current_epoch > self.total_const_iters) & \
+             (trainer.current_epoch < self.total_const_iters + self.step_size_up + self.step_size_down):
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] = self.scheduler[1].get_last_lr()[0]
+            self.scheduler[1].step()
+            print('on_train_epoch_start:', self.scheduler[1].get_last_lr()[0])
+        else:        
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] = self.scheduler[2].get_last_lr()[0]
+            self.scheduler[2].step()
+            print('on_train_epoch_start:', self.scheduler[2].get_last_lr()[0])
+        
+# ---------------------------------------------------------------------------------------------------------------
     
 #-------------------------------------------------------------------------------------
 
