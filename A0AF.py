@@ -63,9 +63,10 @@ from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, FineTuneLearningRateFinder_2
-from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR
+from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR, FineTuneLearningRateFinder_CustomLR
 from utils import ReloadDataLoader, ReloadDataSet
 from utils import DataGenerator, DataGenerator_split
+from utils import ActualVsPredictedCallback
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
 
@@ -140,7 +141,12 @@ class ModelBase:
         self.crop_name = crop_name
         self.scrop = crop_name
         self.batch_size = batch_size
-        self.predicted_years = predicted_years.split()
+        print(predicted_years)
+        if type(predicted_years) is str:
+            self.predicted_years = predicted_years.split(' ')
+        elif type(predicted_years) is int:
+            self.predicted_years = [str(predicted_years),]
+            print(predicted_years, self.predicted_years, str(predicted_years))
         
         self.learning_rate = learning_rate
         
@@ -205,11 +211,15 @@ class ModelBase:
         self.val_years = self.predicted_years 
         #### REMOVE VALIDATION YEARS FROM TRAIN DATAS #################################### 
         for iyear in self.val_years:
+            print(years)
+            print(iyear, type(iyear))
             years.remove(iyear)      
         self.years = years
         
         print('Years to train:', self.years)
         print('Years to valid:', self.val_years)
+        
+        # fn
         
         # tt = [x for x in self.val_years]
         # print('tt', tt)
@@ -339,26 +349,26 @@ class ModelBase:
         
         ############### INIT data_train and add data_val as last year to each sample ######################################
         self.data_train, _ = DataGenerator(DATA=self.data, 
-                                           YEARS_MAX_LENGTH=3,
+                                           YEARS_MAX_LENGTH=1,
                                            NSAMPLES=len(self.data_val['sample'].unique()))
         
-        df_tr = pd.DataFrame()
-        for smpl in self.data_val['sample'].unique():
-            for county in self.data_val['county'].unique():
-                df_cn = pd.DataFrame()
-                dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
-                dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
-                df_cn = pd.concat([df_cn, dfa], axis=0)
-                df_cn = pd.concat([df_cn, dfb], axis=0)
+#         df_tr = pd.DataFrame()
+#         for smpl in self.data_val['sample'].unique():
+#             for county in self.data_val['county'].unique():
+#                 df_cn = pd.DataFrame()
+#                 dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
+#                 dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
+#                 df_cn = pd.concat([df_cn, dfa], axis=0)
+#                 df_cn = pd.concat([df_cn, dfb], axis=0)
                 
-                new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
-                df_cn.index = new_index
-                df_cn["time_idx"] = df_cn.index.astype(int)
-                df_tr = pd.concat([df_tr, df_cn], axis=0)
-        new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
-        df_tr.index = new_index
+#                 new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
+#                 df_cn.index = new_index
+#                 df_cn["time_idx"] = df_cn.index.astype(int)
+#                 df_tr = pd.concat([df_tr, df_cn], axis=0)
+#         new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
+#         df_tr.index = new_index
         
-        self.data_train = df_tr
+#         self.data_train = df_tr
         
         ########### PLOT SAMPLE WITH ENCODER/DECODER FOR CONTROL ################################################
 
@@ -385,15 +395,23 @@ class ModelBase:
 
         ######### SET ENCODER-DECODER LENGTH AS 'gstage' phase: no/growth/yied ####################################################
         
-        
-        dfsmpl = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ]
+        dfsmpl = self.data_train[ (self.data_train['sample'] == smpl)]
         print('self.val_years[0]:',self.val_years, dfsmpl['year'].unique())
         
-        dflast = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0')  & ( (self.data_train['year'] == self.val_years[0]) | (self.data_train['year'] == self.val_years[1]) | (self.data_train['year'] == self.val_years[2]) )]
+        dfsmpl = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ]
+        print('self.val_years[0]:',self.val_years[0], dfsmpl['year'].unique())
         
-        dfe = self.data_train[ (self.data_train['gstage'] == 'no') & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') & ( (self.data_train['year'] == self.val_years[0]) | (self.data_train['year'] == self.val_years[1]) | (self.data_train['year'] == self.val_years[2]) )] 
+#         dflast = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0')  & ( (self.data_train['year'] == self.val_years[0]) | (self.data_train['year'] == self.val_years[1]) | (self.data_train['year'] == self.val_years[2]) )]
         
-        dfp = self.data_train[ ( (self.data_train['gstage'] == 'growth') | (self.data_train['gstage'] == 'yield') ) & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0')  & ( (self.data_train['year'] == self.val_years[0]) | (self.data_train['year'] == self.val_years[1]) | (self.data_train['year'] == self.val_years[2]) )]
+#         dfe = self.data_train[ (self.data_train['gstage'] == 'no') & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') & ( (self.data_train['year'] == self.val_years[0]) | (self.data_train['year'] == self.val_years[1]) | (self.data_train['year'] == self.val_years[2]) )] 
+        
+#         dfp = self.data_train[ ( (self.data_train['gstage'] == 'growth') | (self.data_train['gstage'] == 'yield') ) & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0')  & ( (self.data_train['year'] == self.val_years[0]) | (self.data_train['year'] == self.val_years[1]) | (self.data_train['year'] == self.val_years[2]) )]
+        
+        dflast = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ]
+        
+        dfe = self.data_train[ (self.data_train['gstage'] == 'no') & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ] 
+        
+        dfp = self.data_train[ ( (self.data_train['gstage'] == 'growth') | (self.data_train['gstage'] == 'yield') ) & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ]
         
         self.max_prediction_length = dfp.shape[0]
         self.max_encoder_length = dfe.shape[0]
@@ -451,7 +469,7 @@ class ModelBase:
         
         # avg_med = ["avg_rice_yield", "rice_sownarea"]
         
-        avg_med = [f"avg_{self.scrop}_yield", f"avg_{self.scrop}_sownarea"]
+        avg_med = [f"avg_{self.scrop}_yield"]
         
         # avg_med = []
 
@@ -502,8 +520,8 @@ class ModelBase:
         ##### SET TRAIN/VALIDATION/TEST DATASETS ###################################################
         
         self.training = TimeSeriesDataSet(
-            self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length],
-            # self.data_train,
+            # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length],
+            self.data_train,
             time_idx="time_idx",
             target=f"{self.scrop}_yield",
             group_ids=["county", "sample"],
@@ -515,7 +533,7 @@ class ModelBase:
             # min_prediction_idx = min_prediction_idx,
             # static_categoricals = ["county", "year"],
             # static_reals = _static_reals,
-            time_varying_known_categoricals=["month"],
+            time_varying_known_categoricals=["month", "gstage"],
             # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
             time_varying_known_reals = self._time_varying_known_reals,
             # time_varying_unknown_categoricals=[],
@@ -561,7 +579,8 @@ class ModelBase:
 
         ######### create validation set (predict=True) which means to predict the last max_prediction_length points in time
         # for each series
-        self.validation = TimeSeriesDataSet.from_dataset(self.training, self.data_train, predict=True, stop_randomization=True)
+        # self.validation = TimeSeriesDataSet.from_dataset(self.training, self.data_train, predict=True, stop_randomization=True)
+        self.validation = TimeSeriesDataSet.from_dataset(self.training, self.data_val, predict=True, stop_randomization=True)
         
         self.testing = TimeSeriesDataSet.from_dataset(self.training, self.data_val, predict=True, stop_randomization=True)
 
@@ -603,16 +622,27 @@ class ModelBase:
         # dir = os.path.join(home_dir, 'data')
         
         ##### SET TENSORBOARD ############################################
-        _logger = TensorBoardLogger(_dir, name = self.name_for_files, comment = self.name_for_files)
+        _tb_logger = TensorBoardLogger(_dir, name = self.name_for_files, comment = self.name_for_files)
+        
+        _actvspred = ActualVsPredictedCallback(self.val_dataloader, 
+                                               filename=self.name_for_files)
 
         #### SEL LEARNING RATE MONITOR ###################################
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         #### LEARNING RATE TUNER #########################################
-        _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, 
+        self.learning_rate = 0.0001
+        
+        # _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=self.learning_rate, 
+        #                                                   max_lr=0.01, 
+        #                                                   step_size_up=80, 
+        #                                                   step_size_down=40) 
+        
+        _lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=20, 
+                                                          base_lr=self.learning_rate, 
                                                           max_lr=0.01, 
-                                                          step_size_up=100, 
-                                                          step_size_down=500) 
+                                                          step_size_up=40, 
+                                                          step_size_down=20) 
         
         #### GRADIENT ACCUMULATION SHEDULER ####################################
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -626,11 +656,15 @@ class ModelBase:
         _reload_dataloader = ReloadDataLoader(self.training, self.batch_size)
         
         #### RELOAD TRAINING DATASET AND DATALOADER EVERY EPOCHS ###################
-        _reload_dataset = ReloadDataSet(self.data, self.training, self.batch_size)
+        _reload_dataset = ReloadDataSet(self.data, 
+                                        self.training, 
+                                        self.batch_size, 
+                                        YEARS_MAX_LENGTH=1, 
+                                        NSAMPLES=len(self.data_val['sample'].unique()))
 
         #### SET TRAINER ###########################################################
         self.trainer = Trainer(accelerator = 'gpu', 
-                               logger = _logger, 
+                               logger = _tb_logger, 
                                log_every_n_steps = 1, 
                                max_epochs = self.max_epochs,
                                # devices = "0",          
@@ -640,7 +674,12 @@ class ModelBase:
                                # reload_dataloaders_every_epoch=True,
                                # Checkpoint configuration
                                # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
-                               callbacks = [_lr_finder, _checkpoint_callback, _lr_monitor, _reload_dataset])
+                               callbacks = [_lr_finder, 
+                                            _checkpoint_callback, 
+                                            _lr_monitor, 
+                                            _reload_dataset, 
+                                            # _tb_logger,
+                                            _actvspred])
         
 
 

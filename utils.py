@@ -2,12 +2,123 @@ import torch
 from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.callbacks import Callback
 from pytorch_forecasting.data import TimeSeriesDataSet
+from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_forecasting.metrics import MAPE, SMAPE
+
+import matplotlib.pyplot as plt
 
 import pandas as pd
 
 from tqdm import tqdm
 
 import random
+
+# -----------------------------------------------------------------------------
+
+from torch.utils.tensorboard import SummaryWriter
+
+# class ActualVsPredictedCallback(Callback):
+#     def __init__(self, val_dataloader, milestones=[1, 25, 50, 100, 120]):
+#         self.milestones = milestones
+#         self.val_dataloader = val_dataloader
+
+#     def on_validation_epoch_end(self, trainer, pl_module):
+#         if trainer.current_epoch not in self.milestones:
+#             return
+#         writer = SummaryWriter(trainer.logger.log_dir)
+#         device = pl_module.device
+
+#         # Get the actual and predicted values for the validation set
+#         val_loader = self.val_dataloader
+#         val_preds = []
+#         val_targets = []
+#         with torch.no_grad():
+#             for batch in val_loader:
+#                 x, y = batch
+#                 y_pred = pl_module(x.to(device)).cpu().numpy()
+#                 val_preds.append(y_pred)
+#                 val_targets.append(y.cpu().numpy())
+#         val_preds = np.concatenate(val_preds)
+#         val_targets = np.concatenate(val_targets)
+
+#         # Create a scatter plot of the actual vs. predicted values
+#         fig, ax = plt.subplots()
+#         ax.scatter(val_targets, val_preds)
+#         ax.set_xlabel("Actual")
+#         ax.set_ylabel("Predicted")
+#         ax.set_title("Actual vs. Predicted")
+#         writer.add_figure("actual_vs_predicted", fig, global_step=trainer.global_step)
+#         writer.close()
+        
+class ActualVsPredictedCallback(Callback):
+    def __init__(self, val_dataloader, filename='actuals_vs_predictions', milestones=[0, 25, 50, 100, 120]):
+        self.milestones = milestones
+        self.val_dataloader = val_dataloader
+        self.filename = filename
+        
+
+#     def on_validation_epoch_end(self, trainer, pl_module):
+#         if trainer.current_epoch not in self.milestones:
+#             return
+#         # calculate actuals and predictions
+#         actuals = []
+#         predictions = []
+#         for batch in self.val_dataloader:
+#             x, y = batch
+#             y_hat = pl_module(x).cpu().numpy()
+#             actuals.append(y.cpu().numpy())
+#             predictions.append(y_hat)
+#         actuals = torch.cat(actuals)
+#         predictions = torch.cat(predictions)
+        
+#         # create plot with actuals and predictions
+#         plt.figure()
+#         plt.plot(actuals, 'o', color='green', label="Actuals")
+#         plt.plot(predictions, '.', color='red', label="Predictions")
+#         plt.legend()
+#         plt.title("Actuals vs Predictions")
+        
+#         # save the plot as an image
+#         plt.savefig("actuals_vs_predictions.png")
+        
+#         # log the image to TensorBoard
+#         logger = trainer.logger.experiment
+#         logger.log_image("Actuals vs Predictions", "actuals_vs_predictions.png", 
+#                           global_step=trainer.global_step)
+        
+        
+    def on_validation_epoch_end(self, trainer, pl_module):
+        if trainer.current_epoch not in self.milestones:
+            return
+        # calculate actuals and predictions        
+        # self.writer = SummaryWriter(log_dir=trainer.log_dir)
+        y_true = torch.cat([y[0] for x, y in iter(self.val_dataloader)])
+        y_pred = pl_module.predict(self.val_dataloader)
+        
+        # # Calculate SMAPE for the entire dataset
+        # smape = SMAPE()
+        # smape_val = smape(torch.flatten(y_pred), torch.flatten(y_true))
+
+        # Create plot
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(y_true.cpu().numpy(), 'o', color='green', label='actuals')
+        ax.plot(y_pred.cpu().numpy(), '.', color='red', label='predictions')
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Value')
+        # ax.set_title(f'Validation SMAPE: {smape_val:.2%}')
+        ax.legend()
+        
+        # save the plot as an image
+        plt.savefig(f"{self.filename}.png")
+        
+        # log the image to TensorBoard
+        logger = trainer.logger.experiment
+        logger.add_figure('Validation/Actuals vs. Predictions', fig)
+
+        # Log plot to TensorBoard
+        # self.writer.add_figure('Validation/Actuals vs. Predictions', fig, global_step=trainer.global_step)
+
+# ---------------------------------------------------------------------------
 
 class FineTuneLearningRateFinder_0(LearningRateFinder):
     def __init__(self, milestones, *args, **kwargs):
@@ -135,11 +246,17 @@ class FineTuneLearningRateFinder_CustomLR(LearningRateFinder):
                                                            last_epoch=-1, 
                                                            verbose=False))
         
-        self.scheduler.append(torch.optim.lr_scheduler.ConstantLR(self.optimizer, 
-                                                             factor=1.0, 
-                                                             total_iters=self.total_const_iters, 
-                                                             last_epoch=-1, 
-                                                             verbose=False))
+        # self.scheduler.append(torch.optim.lr_scheduler.ConstantLR(self.optimizer, 
+        #                                                      factor=1.0, 
+        #                                                      total_iters=self.total_const_iters, 
+        #                                                      last_epoch=-1, 
+        #                                                      verbose=False))
+        
+        self.scheduler.append(torch.optim.lr_scheduler.StepLR(self.optimizer, 
+                                        step_size=10, 
+                                        gamma=0.1, 
+                                        last_epoch=- 1, 
+                                        verbose=False))
     
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = self.scheduler[0].get_last_lr()[0]
@@ -183,19 +300,21 @@ class ReloadDataLoader(Callback):
         print('DataLoader was reloaded...')
         
 class ReloadDataSet(Callback):
-    def __init__(self, data_train, dataset_train, batch_size):
+    def __init__(self, data_train, dataset_train, batch_size, YEARS_MAX_LENGTH=1, NSAMPLES=1):
         super().__init__()
         self.data_train = data_train
         # self.data_valid = data_valid
         self.dataset_train = dataset_train
         self.batch_size = batch_size
+        self.YEARS_MAX_LENGTH = YEARS_MAX_LENGTH
+        self.NSAMPLES = NSAMPLES
         
     def on_train_epoch_start(self, trainer, pl_module):
         # if trainer.current_epoch in self.milestones:
         print('DataGenerator reloading... epoch:', trainer.current_epoch)  
         data_train, year_list = DataGenerator(DATA=self.data_train, 
-                                              YEARS_MAX_LENGTH=3, 
-                                              NSAMPLES=3)
+                                              YEARS_MAX_LENGTH=self.YEARS_MAX_LENGTH, 
+                                              NSAMPLES=self.NSAMPLES)
         self.dataset_train = TimeSeriesDataSet.from_dataset(self.dataset_train, data_train)
         pl_module.train_dataloader = self.dataset_train.to_dataloader(batch_size=self.batch_size, shuffle=True)
         print('DataLoader was reloaded...')
@@ -251,6 +370,8 @@ class CheckpointCallback(Callback):
 # trainer = pl.Trainer(callbacks=[CheckpointCallback(checkpoint_dir='checkpoints/', checkpoint_filename='model-{epoch:02d}-{val_loss:.2f}.ckpt', checkpoint_interval=5)])
 
 ################# DEPRICIATED #####################################################################
+###################################################################################################
+
 def DataGenerator_experimental(TRAIN_DATA, VALID_DATA, YEARS_MAX_LENGTH, ADD_NSAMPLES_LIST=[]):
     years_list = list(TRAIN_DATA['year'].astype(int).unique())
     print(f'Augmentation for train years list: {years_list}')

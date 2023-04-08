@@ -603,7 +603,10 @@ class ModelBase:
         # dir = os.path.join(home_dir, 'data')
         
         ##### SET TENSORBOARD ############################################
-        _logger = TensorBoardLogger(_dir, name = self.name_for_files, comment = self.name_for_files)
+        _tb_logger = TensorBoardLogger(_dir, name = self.name_for_files, comment = self.name_for_files)
+        
+        _actvspred = ActualVsPredictedCallback(self.val_dataloader, 
+                                               filename=self.name_for_files)
 
         #### SEL LEARNING RATE MONITOR ###################################
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
@@ -626,11 +629,15 @@ class ModelBase:
         _reload_dataloader = ReloadDataLoader(self.training, self.batch_size)
         
         #### RELOAD TRAINING DATASET AND DATALOADER EVERY EPOCHS ###################
-        _reload_dataset = ReloadDataSet(self.data, self.training, self.batch_size)
+        _reload_dataset = ReloadDataSet(self.data, 
+                                        self.training, 
+                                        self.batch_size, 
+                                        YEARS_MAX_LENGTH=1, 
+                                        NSAMPLES=len(self.data_val['sample'].unique()))
 
         #### SET TRAINER ###########################################################
         self.trainer = Trainer(accelerator = 'gpu', 
-                               logger = _logger, 
+                               logger = _tb_logger, 
                                log_every_n_steps = 1, 
                                max_epochs = self.max_epochs,
                                # devices = "0",          
@@ -640,7 +647,11 @@ class ModelBase:
                                # reload_dataloaders_every_epoch=True,
                                # Checkpoint configuration
                                # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
-                               callbacks = [_lr_finder, _checkpoint_callback, _lr_monitor, _reload_dataset])
+                               callbacks = [_lr_finder, 
+                                            _checkpoint_callback, 
+                                            _lr_monitor, 
+                                            _reload_dataset,
+                                            _actvspred])
         
 
 
