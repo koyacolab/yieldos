@@ -253,10 +253,10 @@ class FineTuneLearningRateFinder_CustomLR(LearningRateFinder):
         #                                                      verbose=False))
         
         self.scheduler.append(torch.optim.lr_scheduler.StepLR(self.optimizer, 
-                                        step_size=10, 
-                                        gamma=0.1, 
-                                        last_epoch=- 1, 
-                                        verbose=False))
+                                                              step_size=10, 
+                                                              gamma=0.1, 
+                                                              last_epoch=- 1, 
+                                                              verbose=False))
     
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = self.scheduler[0].get_last_lr()[0]

@@ -10,7 +10,7 @@
 # echo "${inputs[@]}" | tr ' ' '\n' | parallel -j $parallel_jobs python AAChinaTFT-D.py {}
 # QuantileLoss
 
-python A0AF.py train_TFT -exp_name 'A0AF_MOD_simple6_RMSE' -predicted_years "2005" -batch_size 128 -learning_rate 0.00001 -loss_func_metric 'RMSE' -max_epochs 120
+python A0AF.py train_TFT -exp_name 'A0AF_MOD_TRAIN_RMSE' -predicted_years "2005" -batch_size 128 -learning_rate 0.00001 -loss_func_metric 'RMSE' -max_epochs 120
 
 # for Yr in 2017; do
 #    python A0.py train_TFT -exp_name 'A0_RMSE_cyclic' -predicted_year $Yr -batch_size 128 -learning_rate 0.01 -loss_func_metric 'RMSE' -max_epochs 240

@@ -56,37 +56,6 @@ class ActualVsPredictedCallback(Callback):
         self.val_dataloader = val_dataloader
         self.filename = filename
         
-
-#     def on_validation_epoch_end(self, trainer, pl_module):
-#         if trainer.current_epoch not in self.milestones:
-#             return
-#         # calculate actuals and predictions
-#         actuals = []
-#         predictions = []
-#         for batch in self.val_dataloader:
-#             x, y = batch
-#             y_hat = pl_module(x).cpu().numpy()
-#             actuals.append(y.cpu().numpy())
-#             predictions.append(y_hat)
-#         actuals = torch.cat(actuals)
-#         predictions = torch.cat(predictions)
-        
-#         # create plot with actuals and predictions
-#         plt.figure()
-#         plt.plot(actuals, 'o', color='green', label="Actuals")
-#         plt.plot(predictions, '.', color='red', label="Predictions")
-#         plt.legend()
-#         plt.title("Actuals vs Predictions")
-        
-#         # save the plot as an image
-#         plt.savefig("actuals_vs_predictions.png")
-        
-#         # log the image to TensorBoard
-#         logger = trainer.logger.experiment
-#         logger.log_image("Actuals vs Predictions", "actuals_vs_predictions.png", 
-#                           global_step=trainer.global_step)
-        
-        
     def on_validation_epoch_end(self, trainer, pl_module):
         if trainer.current_epoch not in self.milestones:
             return
@@ -253,10 +222,10 @@ class FineTuneLearningRateFinder_CustomLR(LearningRateFinder):
         #                                                      verbose=False))
         
         self.scheduler.append(torch.optim.lr_scheduler.StepLR(self.optimizer, 
-                                        step_size=10, 
-                                        gamma=0.1, 
-                                        last_epoch=- 1, 
-                                        verbose=False))
+                                                              step_size=10, 
+                                                              gamma=0.1, 
+                                                              last_epoch=- 1, 
+                                                              verbose=False))
     
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = self.scheduler[0].get_last_lr()[0]

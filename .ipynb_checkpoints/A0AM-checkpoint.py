@@ -66,6 +66,7 @@ from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, Fi
 from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR
 from utils import ReloadDataLoader, ReloadDataSet
 from utils import DataGenerator, DataGenerator_split
+from utils import ActualVsPredictedCallback
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
 
@@ -451,7 +452,7 @@ class ModelBase:
         
         # avg_med = ["avg_rice_yield", "rice_sownarea"]
         
-        avg_med = [f"avg_{self.scrop}_yield"]
+        avg_med = [f"avg_{self.scrop}_yield", "actuals"]
         
         # avg_med = []
 
@@ -510,7 +511,7 @@ class ModelBase:
             # group_ids=["county", "year"],
             min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
             max_encoder_length = self.max_encoder_length,
-            min_prediction_length = 1,                     #max_prediction_length // 2,
+            # min_prediction_length = 1,                     #max_prediction_length // 2,
             max_prediction_length = self.max_prediction_length,
             # min_prediction_idx = min_prediction_idx,
             # static_categoricals = ["county", "year"],
@@ -632,7 +633,7 @@ class ModelBase:
         _reload_dataset = ReloadDataSet(self.data, 
                                         self.training, 
                                         self.batch_size, 
-                                        YEARS_MAX_LENGTH=1, 
+                                        YEARS_MAX_LENGTH=3, 
                                         NSAMPLES=len(self.data_val['sample'].unique()))
 
         #### SET TRAINER ###########################################################

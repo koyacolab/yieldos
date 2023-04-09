@@ -349,7 +349,7 @@ class ModelBase:
         
         ############### INIT data_train and add data_val as last year to each sample ######################################
         self.data_train, _ = DataGenerator(DATA=self.data, 
-                                           YEARS_MAX_LENGTH=1,
+                                           YEARS_MAX_LENGTH=5,
                                            NSAMPLES=len(self.data_val['sample'].unique()))
         
 #         df_tr = pd.DataFrame()
@@ -359,7 +359,7 @@ class ModelBase:
 #                 dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
 #                 dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
 #                 df_cn = pd.concat([df_cn, dfa], axis=0)
-#                 df_cn = pd.concat([df_cn, dfb], axis=0)
+#                 # df_cn = pd.concat([df_cn, dfb], axis=0)
                 
 #                 new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
 #                 df_cn.index = new_index
@@ -401,17 +401,34 @@ class ModelBase:
         dfsmpl = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ]
         print('self.val_years[0]:',self.val_years[0], dfsmpl['year'].unique())
         
+        df_ = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ]
+        # ival_years = self.val_years.copy()
+        ival_years = [df_['year'].unique()[-1],]
+        for ii in range(3-len(ival_years)):
+            ival_years.append(ival_years[0])
+        
+        print('ival_years:', ival_years)
+                       
+            
+        
 #         dflast = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0')  & ( (self.data_train['year'] == self.val_years[0]) | (self.data_train['year'] == self.val_years[1]) | (self.data_train['year'] == self.val_years[2]) )]
         
 #         dfe = self.data_train[ (self.data_train['gstage'] == 'no') & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') & ( (self.data_train['year'] == self.val_years[0]) | (self.data_train['year'] == self.val_years[1]) | (self.data_train['year'] == self.val_years[2]) )] 
         
 #         dfp = self.data_train[ ( (self.data_train['gstage'] == 'growth') | (self.data_train['gstage'] == 'yield') ) & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0')  & ( (self.data_train['year'] == self.val_years[0]) | (self.data_train['year'] == self.val_years[1]) | (self.data_train['year'] == self.val_years[2]) )]
+
+        dflast = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0')  & ( (self.data_train['year'] == ival_years[0]) | (self.data_train['year'] == ival_years[1]) | (self.data_train['year'] == ival_years[2]) )]
         
-        dflast = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ]
+        dfe = self.data_train[ (self.data_train['gstage'] == 'no') & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') & ( (self.data_train['year'] == ival_years[0]) | (self.data_train['year'] == ival_years[1]) | (self.data_train['year'] == ival_years[2]) )] 
         
-        dfe = self.data_train[ (self.data_train['gstage'] == 'no') & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ] 
+        dfp = self.data_train[ ( (self.data_train['gstage'] == 'growth') | (self.data_train['gstage'] == 'yield') ) & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0')  & ( (self.data_train['year'] == ival_years[0]) | (self.data_train['year'] == ival_years[1]) | (self.data_train['year'] == ival_years[2]) )]
+
         
-        dfp = self.data_train[ ( (self.data_train['gstage'] == 'growth') | (self.data_train['gstage'] == 'yield') ) & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ]
+#         dflast = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ]
+        
+#         dfe = self.data_train[ (self.data_train['gstage'] == 'no') & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ] 
+        
+#         dfp = self.data_train[ ( (self.data_train['gstage'] == 'growth') | (self.data_train['gstage'] == 'yield') ) & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ]
         
         self.max_prediction_length = dfp.shape[0]
         self.max_encoder_length = dfe.shape[0]
@@ -459,6 +476,27 @@ class ModelBase:
         print('Set basic filenames self.name_for_files:', self.name_for_files)
         
         # fn
+        
+        ##### CHECK data_train #####################################
+        df_ = self.data_train #[(self.data_train['gstage'] == 'yield')]
+        y_true1 = df_[f'{self.scrop}_yield'].to_numpy()
+        df_ = self.data_train[(self.data_train['gstage'] == 'no')]
+        y_true2 = df_[f'{self.scrop}_yield'].to_numpy()
+        # Create plot
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(y_true1, 'o', color='green', label='actuals')
+        ax.plot(y_true2, '.', color='blue', label='actuals')
+        # ax.plot(y_pred.cpu().numpy(), '.', color='red', label='predictions')
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Value')
+        # ax.set_title(f'Validation SMAPE: {smape_val:.2%}')
+        ax.legend()
+        
+        # save the plot as an image
+        plt.savefig(f"A00001.png")
+        
+        # fn
+        ####################################################################
         
         # fn
         
@@ -528,7 +566,7 @@ class ModelBase:
             # group_ids=["county", "year"],
             min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
             max_encoder_length = self.max_encoder_length,
-            min_prediction_length = 1,                     #max_prediction_length // 2,
+            # min_prediction_length = 2,                     #max_prediction_length // 2,
             max_prediction_length = self.max_prediction_length,
             # min_prediction_idx = min_prediction_idx,
             # static_categoricals = ["county", "year"],
@@ -594,6 +632,27 @@ class ModelBase:
         
         self.test_dataloader = self.testing.to_dataloader(train=False, batch_size=27, num_workers=8)
         
+        ##### CHECK train_dataloader #####################################
+        # y_true = torch.cat([y[0] for x, y in iter(self.train_dataloader)])
+        y_true1 = torch.cat([y for x, (y, weight) in iter(self.train_dataloader)])
+        y_true2 = torch.cat([y for x, (y, weight) in iter(self.val_dataloader)])
+        # Create plot
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(y_true1.cpu().numpy(), 'o', color='green', label='actuals')
+        ax.plot(y_true2.cpu().numpy(), '.', color='red', label='actuals')
+        # ax.plot(y_pred.cpu().numpy(), '.', color='red', label='predictions')
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Value')
+        # ax.set_title(f'Validation SMAPE: {smape_val:.2%}')
+        ax.legend()
+        
+        # save the plot as an image
+        plt.savefig(f"A00002.png")
+        # plt.savefig(f"{self.filename}.png")
+        
+        # fn
+        ####################################################################
+        
         print('self.train_dataloader:', len(self.train_dataloader))
         print('self.val_dataloader:', len(self.val_dataloader))
         print('self.test_dataloader:', len(self.test_dataloader))
@@ -624,7 +683,7 @@ class ModelBase:
         ##### SET TENSORBOARD ############################################
         _tb_logger = TensorBoardLogger(_dir, name = self.name_for_files, comment = self.name_for_files)
         
-        _actvspred = ActualVsPredictedCallback(self.val_dataloader, 
+        _actvspred = ActualVsPredictedCallback(self.train_dataloader, 
                                                filename=self.name_for_files)
 
         #### SEL LEARNING RATE MONITOR ###################################
@@ -633,16 +692,16 @@ class ModelBase:
         #### LEARNING RATE TUNER #########################################
         self.learning_rate = 0.0001
         
-        # _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=self.learning_rate, 
-        #                                                   max_lr=0.01, 
-        #                                                   step_size_up=80, 
-        #                                                   step_size_down=40) 
-        
-        _lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=20, 
-                                                          base_lr=self.learning_rate, 
+        _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=self.learning_rate, 
                                                           max_lr=0.01, 
-                                                          step_size_up=40, 
-                                                          step_size_down=20) 
+                                                          step_size_up=80, 
+                                                          step_size_down=40) 
+        
+        # _lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=20, 
+        #                                                   base_lr=self.learning_rate, 
+        #                                                   max_lr=0.01, 
+        #                                                   step_size_up=40, 
+        #                                                   step_size_down=20) 
         
         #### GRADIENT ACCUMULATION SHEDULER ####################################
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -659,7 +718,7 @@ class ModelBase:
         _reload_dataset = ReloadDataSet(self.data, 
                                         self.training, 
                                         self.batch_size, 
-                                        YEARS_MAX_LENGTH=1, 
+                                        YEARS_MAX_LENGTH=5, 
                                         NSAMPLES=len(self.data_val['sample'].unique()))
 
         #### SET TRAINER ###########################################################
