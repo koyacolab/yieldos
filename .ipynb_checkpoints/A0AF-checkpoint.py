@@ -683,7 +683,11 @@ class ModelBase:
         ##### SET TENSORBOARD ############################################
         _tb_logger = TensorBoardLogger(_dir, name = self.name_for_files, comment = self.name_for_files)
         
-        _actvspred = ActualVsPredictedCallback(self.train_dataloader, 
+        _actvspred_train = ActualVsPredictedCallback(self.train_dataloader, 
+                                               filename=f'{self.name_for_files}_train', 
+                                               milestones=[0, 25, 50, 100, 120, 150, 200, 250, 300, 350])
+        
+        _actvspred_valid = ActualVsPredictedCallback(f'{self.val_dataloader}_valid', 
                                                filename=self.name_for_files, 
                                                milestones=[0, 25, 50, 100, 120, 150, 200, 250, 300, 350])
 
@@ -739,7 +743,8 @@ class ModelBase:
                                             _lr_monitor, 
                                             _reload_dataset, 
                                             # _tb_logger, in logger
-                                            _actvspred])
+                                            _actvspred_train, 
+                                            _actvspred_valid])
         
 
 
