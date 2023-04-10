@@ -684,7 +684,8 @@ class ModelBase:
         _tb_logger = TensorBoardLogger(_dir, name = self.name_for_files, comment = self.name_for_files)
         
         _actvspred = ActualVsPredictedCallback(self.train_dataloader, 
-                                               filename=self.name_for_files)
+                                               filename=self.name_for_files, 
+                                               milestones=[0, 25, 50, 100, 120, 150, 200, 250, 300, 350])
 
         #### SEL LEARNING RATE MONITOR ###################################
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
@@ -694,8 +695,8 @@ class ModelBase:
         
         _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=self.learning_rate, 
                                                           max_lr=0.01, 
-                                                          step_size_up=80, 
-                                                          step_size_down=40) 
+                                                          step_size_up=300, 
+                                                          step_size_down=60) 
         
         # _lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=20, 
         #                                                   base_lr=self.learning_rate, 
@@ -737,7 +738,7 @@ class ModelBase:
                                             _checkpoint_callback, 
                                             _lr_monitor, 
                                             _reload_dataset, 
-                                            # _tb_logger,
+                                            # _tb_logger, in logger
                                             _actvspred])
         
 

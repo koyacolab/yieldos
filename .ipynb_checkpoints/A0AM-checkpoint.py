@@ -606,7 +606,7 @@ class ModelBase:
         ##### SET TENSORBOARD ############################################
         _tb_logger = TensorBoardLogger(_dir, name = self.name_for_files, comment = self.name_for_files)
         
-        _actvspred = ActualVsPredictedCallback(self.val_dataloader, 
+        _actvspred = ActualVsPredictedCallback(self.train_dataloader, 
                                                filename=self.name_for_files)
 
         #### SEL LEARNING RATE MONITOR ###################################
@@ -616,7 +616,7 @@ class ModelBase:
         _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, 
                                                           max_lr=0.01, 
                                                           step_size_up=100, 
-                                                          step_size_down=500) 
+                                                          step_size_down=40) 
         
         #### GRADIENT ACCUMULATION SHEDULER ####################################
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
