@@ -51,9 +51,9 @@ from torch.utils.tensorboard import SummaryWriter
 #         writer.close()
         
 class ActualVsPredictedCallback(Callback):
-    def __init__(self, val_dataloader, filename='actuals_vs_predictions', milestones=[0, 25, 50, 100, 120]):
+    def __init__(self, dataloader, filename='actuals_vs_predictions', milestones=[0, 25, 50, 100, 120]):
         self.milestones = milestones
-        self.val_dataloader = val_dataloader
+        self.dataloader = dataloader
         self.filename = filename
         
     def on_validation_epoch_end(self, trainer, pl_module):
@@ -61,8 +61,8 @@ class ActualVsPredictedCallback(Callback):
             return
         # calculate actuals and predictions        
         # self.writer = SummaryWriter(log_dir=trainer.log_dir)
-        y_true = torch.cat([y[0] for x, y in iter(self.val_dataloader)])
-        y_pred = pl_module.predict(self.val_dataloader)
+        y_true = torch.cat([y[0] for x, y in iter(self.dataloader)])
+        y_pred = pl_module.predict(self.dataloader)
         
         # # Calculate SMAPE for the entire dataset
         # smape = SMAPE()
@@ -253,7 +253,38 @@ class FineTuneLearningRateFinder_CustomLR(LearningRateFinder):
             print('on_train_epoch_start:', self.scheduler[2].get_last_lr()[0])
         
 # ---------------------------------------------------------------------------------------------------------------
-    
+# ---------------------------------------------------------------------------------------------------------------                  
+
+class FineTuneLearningRateFinder_StepLR(LearningRateFinder):
+    def __init__(self, step_size=50, gamma=0.1, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.step_size = step_size
+        self.gamma = gamma
+        self.optimizer = []
+        self.scheduler = []
+
+    def on_fit_start(self, trainer, pl_module):
+        self.optimizer = trainer.optimizers[0]
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, 
+                                                         step_size=self.step_size, 
+                                                         gamma=self.gamma, 
+                                                         last_epoch=- 1, 
+                                                         verbose=False)
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.scheduler.get_last_lr()[0]
+        # self.scheduler.step()
+        print('on_fit_start:', self.scheduler.get_last_lr()[0])
+        return
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        self.optimizer = trainer.optimizers[0]
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.scheduler.get_last_lr()[0]
+        self.scheduler.step()
+        print('on_train_epoch_start:', self.scheduler.get_last_lr()[0])
+        
+# ---------------------------------------------------------------------------------------------------------------
+
 #-------------------------------------------------------------------------------------
 
 class ReloadDataLoader(Callback):
@@ -291,6 +322,38 @@ class ReloadDataSet(Callback):
 ################################################################################################# 
 
 def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
+    years_list = list(DATA['year'].astype(int).unique())
+    print(f'Augmentation for years list: {years_list} by NSAMPLES={NSAMPLES} and YEARS_MAX_LENGTH={YEARS_MAX_LENGTH}')
+
+    data_samples = pd.DataFrame()
+    years_samples = []
+    for ii in tqdm(range(NSAMPLES)):
+        for county in DATA["county"].unique():
+            # generate random number of trainig years
+            num_years = random.randint(1, YEARS_MAX_LENGTH)
+            # get list of training years 
+            years = random.sample(years_list, num_years)
+            years_samples.append(years)
+            df_concat_year = pd.DataFrame()
+            for iyear in years:
+                df_concat_year = pd.concat([ df_concat_year, DATA.loc[ (DATA['year'].astype(int) == iyear) & \
+                                                         (DATA['county'] == county)] ], axis=0)
+            # reindex the concatenated dataframe with a new index
+            new_index = pd.RangeIndex(start=0, stop=len(df_concat_year)+0, step=1)
+            df_concat_year.index = new_index
+            # add a new column with integer values equal to the index
+            df_concat_year["time_idx"] = df_concat_year.index.astype(int)
+            df_concat_year["sample"] = str(ii)
+            data_samples = pd.concat([data_samples, df_concat_year], axis=0)
+        # reindex the concatenated dataframe with a new index
+    new_index = pd.RangeIndex(start=0, stop=len(data_samples)+0, step=1)
+    data_samples.index = new_index
+
+    return data_samples, years_samples
+
+################################################################################################# 
+
+def DataGenerator2(DATA, YEARS_MAX_LENGTH, NSAMPLES):
     years_list = list(DATA['year'].astype(int).unique())
     print(f'Augmentation for years list: {years_list} by NSAMPLES={NSAMPLES} and YEARS_MAX_LENGTH={YEARS_MAX_LENGTH}')
 

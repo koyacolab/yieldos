@@ -51,49 +51,18 @@ from torch.utils.tensorboard import SummaryWriter
 #         writer.close()
         
 class ActualVsPredictedCallback(Callback):
-    def __init__(self, val_dataloader, filename='actuals_vs_predictions', milestones=[0, 25, 50, 100, 120]):
+    def __init__(self, dataloader, filename='actuals_vs_predictions', milestones=[0, 25, 50, 100, 120]):
         self.milestones = milestones
-        self.val_dataloader = val_dataloader
+        self.dataloader = dataloader
         self.filename = filename
-        
-
-#     def on_validation_epoch_end(self, trainer, pl_module):
-#         if trainer.current_epoch not in self.milestones:
-#             return
-#         # calculate actuals and predictions
-#         actuals = []
-#         predictions = []
-#         for batch in self.val_dataloader:
-#             x, y = batch
-#             y_hat = pl_module(x).cpu().numpy()
-#             actuals.append(y.cpu().numpy())
-#             predictions.append(y_hat)
-#         actuals = torch.cat(actuals)
-#         predictions = torch.cat(predictions)
-        
-#         # create plot with actuals and predictions
-#         plt.figure()
-#         plt.plot(actuals, 'o', color='green', label="Actuals")
-#         plt.plot(predictions, '.', color='red', label="Predictions")
-#         plt.legend()
-#         plt.title("Actuals vs Predictions")
-        
-#         # save the plot as an image
-#         plt.savefig("actuals_vs_predictions.png")
-        
-#         # log the image to TensorBoard
-#         logger = trainer.logger.experiment
-#         logger.log_image("Actuals vs Predictions", "actuals_vs_predictions.png", 
-#                           global_step=trainer.global_step)
-        
         
     def on_validation_epoch_end(self, trainer, pl_module):
         if trainer.current_epoch not in self.milestones:
             return
         # calculate actuals and predictions        
         # self.writer = SummaryWriter(log_dir=trainer.log_dir)
-        y_true = torch.cat([y[0] for x, y in iter(self.val_dataloader)])
-        y_pred = pl_module.predict(self.val_dataloader)
+        y_true = torch.cat([y[0] for x, y in iter(self.dataloader)])
+        y_pred = pl_module.predict(self.dataloader)
         
         # # Calculate SMAPE for the entire dataset
         # smape = SMAPE()
@@ -284,7 +253,38 @@ class FineTuneLearningRateFinder_CustomLR(LearningRateFinder):
             print('on_train_epoch_start:', self.scheduler[2].get_last_lr()[0])
         
 # ---------------------------------------------------------------------------------------------------------------
-    
+# ---------------------------------------------------------------------------------------------------------------                  
+
+class FineTuneLearningRateFinder_StepLR(LearningRateFinder):
+    def __init__(self, step_size=50, gamma=0.1, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.step_size = step_size
+        self.gamma = gamma
+        self.optimizer = []
+        self.scheduler = []
+
+    def on_fit_start(self, trainer, pl_module):
+        self.optimizer = trainer.optimizers[0]
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, 
+                                                         step_size=self.step_size, 
+                                                         gamma=self.gamma, 
+                                                         last_epoch=- 1, 
+                                                         verbose=False)
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.scheduler.get_last_lr()[0]
+        # self.scheduler.step()
+        print('on_fit_start:', self.scheduler.get_last_lr()[0])
+        return
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        self.optimizer = trainer.optimizers[0]
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.scheduler.get_last_lr()[0]
+        self.scheduler.step()
+        print('on_train_epoch_start:', self.scheduler.get_last_lr()[0])
+        
+# ---------------------------------------------------------------------------------------------------------------
+
 #-------------------------------------------------------------------------------------
 
 class ReloadDataLoader(Callback):

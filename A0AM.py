@@ -63,7 +63,8 @@ from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, FineTuneLearningRateFinder_2
-from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR
+from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR, FineTuneLearningRateFinder_CustomLR
+from utils import FineTuneLearningRateFinder_StepLR
 from utils import ReloadDataLoader, ReloadDataSet
 from utils import DataGenerator, DataGenerator_split
 from utils import ActualVsPredictedCallback
@@ -173,6 +174,71 @@ class ModelBase:
         alidata['year']     = alidata['year'].astype(str)
         alidata['time_idx'] = alidata['time_idx'].astype(int)
         
+        ####### CREATE 'actuals' for yield control ##################################
+        alidata['actuals'] = alidata[f'{self.scrop}_yield']
+        alidata[f'norm_{self.scrop}_yield'] = alidata[f'{self.scrop}_yield']
+        alidata[f'norm_avg_{self.scrop}_yield'] = alidata[f'avg_{self.scrop}_yield']
+        
+        ######## CALCULATE NORMALIZED YIELD #########################################
+        yild = []
+        avg_yild = []
+        iyears = [x for x in alidata['year'].unique() if x not in ['2019', '2020', '2021', '2022']]
+        for iyear in iyears:
+            for icounty in alidata['county'].unique():
+                df = alidata.loc[(alidata['year'] == iyear) & (alidata['county'] == icounty)]
+                if len(df[f'{self.scrop}_yield'].unique()) > 1:
+                    print(df[f'{self.scrop}_yield'].unique())
+                    fn
+                yild.append(df[f'{self.scrop}_yield'].unique())
+                avg_yild.append(df[f'avg_{self.scrop}_yield'].unique())
+        
+        print(len(yild), len(alidata['year'].unique()) * len(alidata['county'].unique()))
+        # fn
+        
+        yild = np.asarray(yild)
+        print('yild:', yild.shape)
+        # fin
+        
+        norm_yield = ( yild - np.mean(yild, axis=0) ) / np.std(yild, axis=0)
+        norm_avg_yield = ( avg_yild - np.mean(avg_yild, axis=0) ) / np.std(avg_yild, axis=0)
+        
+        print('norm_yield:', norm_yield.shape)
+        
+        # fin
+        
+        ii = 0
+        for iyear in iyears:
+            for icounty in alidata['county'].unique():
+                print('norm_yield[ii]:', norm_yield[ii][0])
+                alidata.loc[(alidata['year'] == iyear) & (alidata['county'] == icounty), f'norm_{self.scrop}_yield'] = \
+                norm_yield[ii][0]
+                alidata.loc[(alidata['year'] == iyear) & (alidata['county'] == icounty), f'norm_avg_{self.scrop}_yield'] = \
+                norm_avg_yield[ii][0]
+                ii = ii + 1
+        
+        df = alidata[ alidata['year'].isin(iyears) ]
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(20,5))           
+        ax.plot(df[f'norm_{self.scrop}_yield'].values)   
+        ax.plot(df[f'norm_avg_{self.scrop}_yield'].values)
+        plt.show()
+        plt.savefig('A0NORM', bbox_inches='tight')       
+        
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(20,5))           
+        ax.plot(df[f'{self.scrop}_yield'].values)  
+        ax.plot( [df[f'{self.scrop}_yield'].mean()] * len(df[f'{self.scrop}_yield']))
+        ax.plot( df[f'avg_{self.scrop}_yield'].values )
+        plt.show()
+        plt.savefig('A0NONORM', bbox_inches='tight')    
+        
+        ######## cracks ###############
+        
+        # alidata[f'{self.scrop}_yield'] = alidata[f'norm_{self.scrop}_yield']
+        # alidata[f'avg_{self.scrop}_yield'] = alidata[f'norm_avg_{self.scrop}_yield']
+        
+        # fn
+        
+        
+        ####### CREATE 'actuals' for yield control ##################################
         alidata['actuals'] = alidata[f'{self.scrop}_yield']
         
         print(type(alidata['county']), type(alidata['year']), type(alidata['time_idx'].max()))
@@ -191,6 +257,7 @@ class ModelBase:
         
         #### ADD 'gstage' COLUMN FOR GROWTH STAGES ###################################
         alidata['gstage'] = 'yield'
+        alidata['country'] = 'china'
             
         #### SET INFERENCE DATAS #######################################################
         infer_mask = alidata['year'].isin(['2019', '2020', '2021', '2022'])
@@ -246,6 +313,7 @@ class ModelBase:
                                                                      & (self.data['year'] == year)].mean()
                 _yield = self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) \
                                                               & (self.data['year'] == year)].mean()
+                
                 
                 self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
                                             (self.data['month'] < MAYDAY) ] = avg_yield
@@ -380,6 +448,7 @@ class ModelBase:
         # print(dfali['time_idx'].to_numpy())
         
         ax.plot(df['time_idx'].to_numpy(), df[f'{self.scrop}_yield'].to_numpy(), 'o')
+        ax.plot(df['time_idx'].to_numpy(), df[f'actuals'].to_numpy(), '.', color='black')
         # Create the second y-axis
         ax2 = ax.twiny().twinx()
         ax2.plot(df['time_idx'].to_numpy(), df['gstage'], 'x', color='green')
@@ -437,7 +506,7 @@ class ModelBase:
         if os.path.exists(self.name_for_files) == True:
             print(f'Experiment exist: {self.name_for_files}')
             print(f'Set another exp_name...')
-            sys.exit(0)
+            # sys.exit(0)
         
         print('Set basic filenames self.name_for_files:', self.name_for_files)
         
@@ -452,9 +521,9 @@ class ModelBase:
         
         # avg_med = ["avg_rice_yield", "rice_sownarea"]
         
-        avg_med = [f"avg_{self.scrop}_yield", "actuals"]
+        avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
-        # avg_med = []
+        # avg_med = [f"actuals"]
 
         _static_reals = avg_med
         
@@ -483,12 +552,12 @@ class ModelBase:
         
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        self._time_varying_known_reals.extend(mod_names) 
+        # self._time_varying_known_reals.extend(mod_names) 
         # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
-        self._time_varying_unknown_reals.extend(mod_names)
+        # self._time_varying_unknown_reals.extend(mod_names)
         # self._time_varying_unknown_reals.extend(famine_names)
 
         # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
@@ -509,24 +578,24 @@ class ModelBase:
             target=f"{self.scrop}_yield",
             group_ids=["county", "sample"],
             # group_ids=["county", "year"],
-            min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
+            # min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
             max_encoder_length = self.max_encoder_length,
             # min_prediction_length = 1,                     #max_prediction_length // 2,
             max_prediction_length = self.max_prediction_length,
             # min_prediction_idx = min_prediction_idx,
             # static_categoricals = ["county", "year"],
-            # static_reals = _static_reals,
+            # static_reals = [f"avg_{self.scrop}_yield"],
             time_varying_known_categoricals=["month"],
             # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
             time_varying_known_reals = self._time_varying_known_reals,
             # time_varying_unknown_categoricals=[],
-            time_varying_unknown_reals = self._time_varying_unknown_reals,
+            # time_varying_unknown_reals = self._time_varying_unknown_reals,
             target_normalizer=GroupNormalizer(
-                groups=["county"], transformation="relu"
+                groups=["county", "year"], #transformation="softplus"
             ),  # use softplus and normalize by group
-            add_relative_time_idx=True,
-            add_target_scales=True,
-            add_encoder_length=True,
+            # add_relative_time_idx=True,
+            # add_target_scales=True,
+            # add_encoder_length=True,
         )
 
         print( time.asctime( time.localtime(time.time()) ) )
@@ -608,20 +677,32 @@ class ModelBase:
         
         _actvspred_train = ActualVsPredictedCallback(self.train_dataloader, 
                                                filename=f'{self.name_for_files}_train', 
-                                               milestones=[0, 25, 50, 100, 120, 150, 200, 250, 300, 350])
+                                               milestones=[0, 25, 50, 100, 120, 150, 200, 210, 300, 350, 390])
         
-        _actvspred_valid = ActualVsPredictedCallback(f'{self.val_dataloader}_valid', 
-                                               filename=self.name_for_files, 
-                                               milestones=[0, 25, 50, 100, 120, 150, 200, 250, 300, 350])
+        _actvspred_valid = ActualVsPredictedCallback(self.val_dataloader, 
+                                               filename=f'{self.name_for_files}_valid', 
+                                               milestones=[0, 25, 50, 100, 120, 150, 200, 210, 300, 350, 390])
 
         #### SEL LEARNING RATE MONITOR ###################################
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         #### LEARNING RATE TUNER #########################################
+        
+        self.learning_rate = 0.0005
+        
         _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=0.0001, 
                                                           max_lr=0.01, 
                                                           step_size_up=100, 
-                                                          step_size_down=40) 
+                                                          step_size_down=10000, 
+                                                          mode='triangular') 
+        
+        # _lr_finder = FineTuneLearningRateFinder_StepLR(step_size=50, gamma=0.1)
+
+        # _lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=20, 
+        #                                                   base_lr=self.learning_rate, 
+        #                                                   max_lr=0.01, 
+        #                                                   step_size_up=100, 
+        #                                                   step_size_down=40) 
         
         #### GRADIENT ACCUMULATION SHEDULER ####################################
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -649,12 +730,12 @@ class ModelBase:
                                # devices = "0",          
                                # fast_dev_run=True, 
                                # precision=16,
-                               gradient_clip_val = 0.2,
+                               # gradient_clip_val = 0.2,
                                # reload_dataloaders_every_epoch=True,
                                # Checkpoint configuration
                                # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
-                               callbacks = [_lr_finder, 
-                                            _checkpoint_callback, 
+                               callbacks = [_checkpoint_callback, 
+                                            _lr_finder, 
                                             _lr_monitor, 
                                             _reload_dataset,
                                             _actvspred_train, 
@@ -671,7 +752,7 @@ class ModelBase:
             # hidden_size=31,             # most important hyperparameter apart from learning rate
             # hidden_continuous_size=30,  # set to <= hidden_size
             # attention_head_size=4,      # number of attention heads. Set to up to 4 for large datasets
-            dropout=0.3,           
+            # dropout=0.3,           
             # output_size=7,  # 7 quantiles by default      
             loss=self.loss_func,
             # loss=QuantileLoss(),
@@ -863,11 +944,33 @@ class ModelBase:
         predictions = self.best_tft.predict(self.test_dataloader)
         (actuals - predictions).abs().mean()
         
+        mape  = 100 * ((actuals - predictions) / actuals).abs().mean()
+        smape = 100 * ((actuals - predictions) / ((actuals + predictions)/2)).abs().mean()
+        # smape = np.mean(np.abs((actual - predicted) / ((actual + predicted)/2))) * 100
+        
+        print('MAPE:', {mape})
+        print('SMAPE:', {smape})
+        
+        # Create plot
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(actuals.cpu().numpy(), 'o', color='green', label='actuals')
+        ax.plot(predictions.cpu().numpy(), '.', color='red', label='predictions')
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Value')
+        # ax.set_title(f'Validation SMAPE: {smape_val:.2%}')
+        ax.legend()
+        
+        # save the plot as an image
+        plt.savefig(f"A0MTEST_{self.filename}.png")
+        print(f"A0MTEST_{self.filename}.png saved...")
+        
+        # mape = np.mean(np.abs((actuals - predictions) / actuals)) * 100
+        
         raw_predictions, x = self.best_tft.predict(self.test_dataloader, mode="raw", return_x=True)
         
-        print(type(raw_predictions), raw_predictions.keys()) 
-        print(type(x), x.keys()) 
-        print(type(raw_predictions['prediction']), raw_predictions['prediction'].shape)
+        # print(type(raw_predictions), raw_predictions.keys()) 
+        # print(type(x), x.keys()) 
+        # print(type(raw_predictions['prediction']), raw_predictions['prediction'].shape)
         for idx in range(81):  # plot 10 examples
             self.best_tft.plot_prediction(x, raw_predictions, idx=idx, add_loss_to_title=True);
             
