@@ -538,7 +538,7 @@ class ModelBase:
         
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        # self._time_varying_known_reals.extend(mod_names) 
+        self._time_varying_known_reals.extend(mod_names) 
         # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []

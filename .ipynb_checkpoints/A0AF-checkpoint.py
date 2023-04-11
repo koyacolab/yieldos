@@ -352,23 +352,23 @@ class ModelBase:
                                            YEARS_MAX_LENGTH=5,
                                            NSAMPLES=len(self.data_val['sample'].unique()))
         
-#         df_tr = pd.DataFrame()
-#         for smpl in self.data_val['sample'].unique():
-#             for county in self.data_val['county'].unique():
-#                 df_cn = pd.DataFrame()
-#                 dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
-#                 dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
-#                 df_cn = pd.concat([df_cn, dfa], axis=0)
-#                 # df_cn = pd.concat([df_cn, dfb], axis=0)
+        df_tr = pd.DataFrame()
+        for smpl in self.data_val['sample'].unique():
+            for county in self.data_val['county'].unique():
+                df_cn = pd.DataFrame()
+                dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
+                dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
+                df_cn = pd.concat([df_cn, dfa], axis=0)
+                df_cn = pd.concat([df_cn, dfb], axis=0)
                 
-#                 new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
-#                 df_cn.index = new_index
-#                 df_cn["time_idx"] = df_cn.index.astype(int)
-#                 df_tr = pd.concat([df_tr, df_cn], axis=0)
-#         new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
-#         df_tr.index = new_index
+                new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
+                df_cn.index = new_index
+                df_cn["time_idx"] = df_cn.index.astype(int)
+                df_tr = pd.concat([df_tr, df_cn], axis=0)
+        new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
+        df_tr.index = new_index
         
-#         self.data_train = df_tr
+        self.data_train = df_tr
         
         ########### PLOT SAMPLE WITH ENCODER/DECODER FOR CONTROL ################################################
 
@@ -558,8 +558,8 @@ class ModelBase:
         ##### SET TRAIN/VALIDATION/TEST DATASETS ###################################################
         
         self.training = TimeSeriesDataSet(
-            # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length],
-            self.data_train,
+            self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length],
+            # self.data_train,
             time_idx="time_idx",
             target=f"{self.scrop}_yield",
             group_ids=["county", "sample"],
@@ -618,7 +618,7 @@ class ModelBase:
         ######### create validation set (predict=True) which means to predict the last max_prediction_length points in time
         # for each series
         # self.validation = TimeSeriesDataSet.from_dataset(self.training, self.data_train, predict=True, stop_randomization=True)
-        self.validation = TimeSeriesDataSet.from_dataset(self.training, self.data_val, predict=True, stop_randomization=True)
+        self.validation = TimeSeriesDataSet.from_dataset(self.training, self.data_train, predict=True, stop_randomization=True)
         
         self.testing = TimeSeriesDataSet.from_dataset(self.training, self.data_val, predict=True, stop_randomization=True)
 

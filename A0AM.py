@@ -590,7 +590,7 @@ class ModelBase:
             # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
             time_varying_known_reals = self._time_varying_known_reals,
             # time_varying_unknown_categoricals=[],
-            time_varying_unknown_reals = self._time_varying_unknown_reals,
+            # time_varying_unknown_reals = self._time_varying_unknown_reals,
             target_normalizer=GroupNormalizer(
                 groups=["county", "sample"], #transformation="softplus"
             ),  # use softplus and normalize by group
