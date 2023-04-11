@@ -65,7 +65,7 @@ from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, FineTuneLearningRateFinder_2
 from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR, FineTuneLearningRateFinder_CustomLR
 from utils import ReloadDataLoader, ReloadDataSet
-from utils import DataGenerator, DataGenerator_split
+from utils import DataGenerator, DataGenerator2
 from utils import ActualVsPredictedCallback
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
@@ -348,7 +348,7 @@ class ModelBase:
         print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
         
         ############### INIT data_train and add data_val as last year to each sample ######################################
-        self.data_train, _ = DataGenerator(DATA=self.data, 
+        self.data_train, _ = DataGenerator2(DATA=self.data, 
                                            YEARS_MAX_LENGTH=5,
                                            NSAMPLES=len(self.data_val['sample'].unique()))
         
@@ -507,7 +507,7 @@ class ModelBase:
         
         # avg_med = ["avg_rice_yield", "rice_sownarea"]
         
-        avg_med = [f"avg_{self.scrop}_yield"]
+        avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
         # avg_med = []
 
@@ -538,12 +538,12 @@ class ModelBase:
         
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        self._time_varying_known_reals.extend(mod_names) 
+        # self._time_varying_known_reals.extend(mod_names) 
         # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
-        self._time_varying_unknown_reals.extend(mod_names)
+        # self._time_varying_unknown_reals.extend(mod_names)
         # self._time_varying_unknown_reals.extend(famine_names)
 
         # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
@@ -564,7 +564,7 @@ class ModelBase:
             target=f"{self.scrop}_yield",
             group_ids=["county", "sample"],
             # group_ids=["county", "year"],
-            min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
+            # min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
             max_encoder_length = self.max_encoder_length,
             # min_prediction_length = 2,                     #max_prediction_length // 2,
             max_prediction_length = self.max_prediction_length,
@@ -575,9 +575,9 @@ class ModelBase:
             # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
             time_varying_known_reals = self._time_varying_known_reals,
             # time_varying_unknown_categoricals=[],
-            time_varying_unknown_reals = self._time_varying_unknown_reals,
+            # time_varying_unknown_reals = self._time_varying_unknown_reals,
             target_normalizer=GroupNormalizer(
-                groups=["county"], transformation="relu"
+                groups=["county", "sample"], #transformation="relu"
             ),  # use softplus and normalize by group
             add_relative_time_idx=True,
             add_target_scales=True,
@@ -685,11 +685,11 @@ class ModelBase:
         
         _actvspred_train = ActualVsPredictedCallback(self.train_dataloader, 
                                                filename=f'{self.name_for_files}_train', 
-                                               milestones=[0, 25, 50, 100, 120, 150, 200, 250, 300, 350])
+                                               milestones=[0, 25, 50, 100, 120, 150, 200, 210, 300, 350, 390, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 990])
         
-        _actvspred_valid = ActualVsPredictedCallback(f'{self.val_dataloader}_valid', 
-                                               filename=self.name_for_files, 
-                                               milestones=[0, 25, 50, 100, 120, 150, 200, 250, 300, 350])
+        _actvspred_valid = ActualVsPredictedCallback(self.val_dataloader, 
+                                               filename=f'{self.name_for_files}_valid', 
+                                               milestones=[0, 25, 50, 100, 120, 150, 200, 210, 300, 350, 390, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 990])
 
         #### SEL LEARNING RATE MONITOR ###################################
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
@@ -699,8 +699,8 @@ class ModelBase:
         
         _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=self.learning_rate, 
                                                           max_lr=0.01, 
-                                                          step_size_up=300, 
-                                                          step_size_down=60) 
+                                                          step_size_up=100, 
+                                                          step_size_down=600) 
         
         # _lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=20, 
         #                                                   base_lr=self.learning_rate, 

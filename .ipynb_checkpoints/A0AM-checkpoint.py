@@ -66,7 +66,7 @@ from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, Fi
 from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR, FineTuneLearningRateFinder_CustomLR
 from utils import FineTuneLearningRateFinder_StepLR
 from utils import ReloadDataLoader, ReloadDataSet
-from utils import DataGenerator, DataGenerator_split
+from utils import DataGenerator, DataGenerator2
 from utils import ActualVsPredictedCallback
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
@@ -395,6 +395,7 @@ class ModelBase:
         for iyear in self.data_val['year'].unique():
             self.data_val.loc[self.data_val['year'] == iyear, 'sample'] = str(NSAMPLES)
             NSAMPLES = NSAMPLES + 1
+            
         
         print('DATA_VAL:', self.data_val['sample'].unique(), self.data_val.shape)
         
@@ -407,7 +408,7 @@ class ModelBase:
         print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
         
         ############### INIT data_train and add data_val as last year to each sample ######################################
-        self.data_train, _ = DataGenerator(DATA=self.data, 
+        self.data_train, _ = DataGenerator2(DATA=self.data, 
                                            YEARS_MAX_LENGTH=3,
                                            NSAMPLES=len(self.data_val['sample'].unique()))
         
@@ -450,8 +451,8 @@ class ModelBase:
         ax.plot(df['time_idx'].to_numpy(), df[f'{self.scrop}_yield'].to_numpy(), 'o')
         ax.plot(df['time_idx'].to_numpy(), df[f'actuals'].to_numpy(), '.', color='black')
         # Create the second y-axis
-        ax2 = ax.twiny().twinx()
-        ax2.plot(df['time_idx'].to_numpy(), df['gstage'], 'x', color='green')
+        # ax2 = ax.twiny().twinx()
+        # ax2.plot(df['time_idx'].to_numpy(), df['gstage'], 'x', color='green')
 
         ######### SET ENCODER-DECODER LENGTH AS 'gstage' phase: no/growth/yied ####################################################
         
@@ -579,9 +580,9 @@ class ModelBase:
             group_ids=["county", "sample"],
             # group_ids=["county", "year"],
             # min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
-            max_encoder_length = self.max_encoder_length,
+            max_encoder_length = self.max_encoder_length - 4,
             # min_prediction_length = 1,                     #max_prediction_length // 2,
-            max_prediction_length = self.max_prediction_length,
+            max_prediction_length = self.max_prediction_length + 4,
             # min_prediction_idx = min_prediction_idx,
             # static_categoricals = ["county", "year"],
             # static_reals = [f"avg_{self.scrop}_yield"],
@@ -591,11 +592,11 @@ class ModelBase:
             # time_varying_unknown_categoricals=[],
             # time_varying_unknown_reals = self._time_varying_unknown_reals,
             target_normalizer=GroupNormalizer(
-                groups=["county", "year"], #transformation="softplus"
+                groups=["county", "sample"], #transformation="softplus"
             ),  # use softplus and normalize by group
-            # add_relative_time_idx=True,
-            # add_target_scales=True,
-            # add_encoder_length=True,
+            add_relative_time_idx=True,
+            add_target_scales=True,
+            add_encoder_length=True,
         )
 
         print( time.asctime( time.localtime(time.time()) ) )
@@ -677,11 +678,11 @@ class ModelBase:
         
         _actvspred_train = ActualVsPredictedCallback(self.train_dataloader, 
                                                filename=f'{self.name_for_files}_train', 
-                                               milestones=[0, 25, 50, 100, 120, 150, 200, 210, 300, 350, 390])
+                                               milestones=[0, 25, 50, 100, 120, 150, 200, 210, 300, 350, 390, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 990])
         
         _actvspred_valid = ActualVsPredictedCallback(self.val_dataloader, 
                                                filename=f'{self.name_for_files}_valid', 
-                                               milestones=[0, 25, 50, 100, 120, 150, 200, 210, 300, 350, 390])
+                                               milestones=[0, 25, 50, 100, 120, 150, 200, 210, 300, 350, 390, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 990])
 
         #### SEL LEARNING RATE MONITOR ###################################
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
