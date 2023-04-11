@@ -590,7 +590,7 @@ class ModelBase:
             # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
             time_varying_known_reals = self._time_varying_known_reals,
             # time_varying_unknown_categoricals=[],
-            # time_varying_unknown_reals = self._time_varying_unknown_reals,
+            time_varying_unknown_reals = self._time_varying_unknown_reals,
             target_normalizer=GroupNormalizer(
                 groups=["county", "sample"], #transformation="softplus"
             ),  # use softplus and normalize by group
@@ -676,13 +676,15 @@ class ModelBase:
         ##### SET TENSORBOARD ############################################
         _tb_logger = TensorBoardLogger(_dir, name = self.name_for_files, comment = self.name_for_files)
         
+        milstones_list = [x for x in range(0, self.max_epochs, 25)]
+        
         _actvspred_train = ActualVsPredictedCallback(self.train_dataloader, 
                                                filename=f'{self.name_for_files}_train', 
-                                               milestones=[0, 25, 50, 100, 120, 150, 200, 210, 300, 350, 390, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 990])
+                                               milestones=milstones_list)
         
         _actvspred_valid = ActualVsPredictedCallback(self.val_dataloader, 
                                                filename=f'{self.name_for_files}_valid', 
-                                               milestones=[0, 25, 50, 100, 120, 150, 200, 210, 300, 350, 390, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 990])
+                                               milestones=milstones_list)
 
         #### SEL LEARNING RATE MONITOR ###################################
         _lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
@@ -962,8 +964,8 @@ class ModelBase:
         ax.legend()
         
         # save the plot as an image
-        plt.savefig(f"A0MTEST_{self.filename}.png")
-        print(f"A0MTEST_{self.filename}.png saved...")
+        plt.savefig(f"A0MTEST_{self.name_for_files}.png")
+        print(f"A0MTEST_{self.name_for_files}.png saved...")
         
         # mape = np.mean(np.abs((actuals - predictions) / actuals)) * 100
         
