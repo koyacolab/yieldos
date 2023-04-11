@@ -471,7 +471,7 @@ class ModelBase:
         if os.path.exists(self.name_for_files) == True:
             print(f'Experiment exist: {self.name_for_files}')
             print(f'Set another exp_name...')
-            sys.exit(0)
+            # sys.exit(0)
         
         print('Set basic filenames self.name_for_files:', self.name_for_files)
         
@@ -700,7 +700,7 @@ class ModelBase:
         _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=self.learning_rate, 
                                                           max_lr=0.01, 
                                                           step_size_up=100, 
-                                                          step_size_down=600) 
+                                                          step_size_down=1600) 
         
         # _lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=20, 
         #                                                   base_lr=self.learning_rate, 
