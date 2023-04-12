@@ -507,9 +507,9 @@ class ModelBase:
         
         # avg_med = ["avg_rice_yield", "rice_sownarea"]
         
-        avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
+        # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
-        # avg_med = []
+        avg_med = [f"avg_{self.scrop}_yield"]
 
         _static_reals = avg_med
         
@@ -539,7 +539,7 @@ class ModelBase:
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
         # self._time_varying_known_reals.extend(mod_names) 
-        # self._time_varying_known_reals.extend(famine_names)
+        self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)

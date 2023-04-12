@@ -232,8 +232,8 @@ class ModelBase:
         
         ######## cracks ###############
         
-        # alidata[f'{self.scrop}_yield'] = alidata[f'norm_{self.scrop}_yield']
-        # alidata[f'avg_{self.scrop}_yield'] = alidata[f'norm_avg_{self.scrop}_yield']
+        alidata[f'{self.scrop}_yield'] = alidata[f'norm_{self.scrop}_yield']
+        alidata[f'avg_{self.scrop}_yield'] = alidata[f'norm_avg_{self.scrop}_yield']
         
         # fn
         
@@ -553,12 +553,12 @@ class ModelBase:
         
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        self._time_varying_known_reals.extend(mod_names) 
+        # self._time_varying_known_reals.extend(mod_names) 
         # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
-        self._time_varying_unknown_reals.extend(mod_names)
+        # self._time_varying_unknown_reals.extend(mod_names)
         # self._time_varying_unknown_reals.extend(famine_names)
 
         # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
@@ -591,12 +591,12 @@ class ModelBase:
             time_varying_known_reals = self._time_varying_known_reals,
             # time_varying_unknown_categoricals=[],
             # time_varying_unknown_reals = self._time_varying_unknown_reals,
-            target_normalizer=GroupNormalizer(
-                groups=["county", "sample"], #transformation="softplus"
-            ),  # use softplus and normalize by group
-            add_relative_time_idx=True,
-            add_target_scales=True,
-            add_encoder_length=True,
+            # target_normalizer=GroupNormalizer(
+            #     groups=["county", "sample"], #transformation="softplus"
+            # ),  # use softplus and normalize by group
+            # add_relative_time_idx=True,
+            # add_target_scales=True,
+            # add_encoder_length=True,
         )
 
         print( time.asctime( time.localtime(time.time()) ) )
