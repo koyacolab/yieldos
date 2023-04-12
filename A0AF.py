@@ -64,7 +64,7 @@ from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, FineTuneLearningRateFinder_2
 from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR, FineTuneLearningRateFinder_CustomLR
-from utils import ReloadDataLoader, ReloadDataSet
+from utils import ReloadDataLoader, ReloadDataSet, ReloadDataSet_12
 from utils import DataGenerator, DataGenerator2
 from utils import ActualVsPredictedCallback
     
@@ -196,8 +196,17 @@ class ModelBase:
         
         #### ADD 'gstage' COLUMN FOR GROWTH STAGES ###################################
         alidata['gstage'] = 'yield'
+        
+        #### GET info alidata columns names #######
+        
+        alidata_list = [f'county', f'year', f'month', f'gstage', f'time_idx', f'actuals']
+        
+        #### GET MODIS column names #####################
+        ################ MODIS cloumns name ################################
+        mod_names = [f'b{iband}b{bins}' for iband in range(9) for bins in range(MOD_BINS)]        
+        
             
-        #### SET INFERENCE DATAS #######################################################
+################### SET INFERENCE DATAS #######################################################
         infer_mask = alidata['year'].isin(['2019', '2020', '2021', '2022'])
 
         data_infer = alidata[infer_mask]
@@ -348,7 +357,7 @@ class ModelBase:
         print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
         
         ############### INIT data_train and add data_val as last year to each sample ######################################
-        self.data_train, _ = DataGenerator2(DATA=self.data, 
+        self.data_train, _ = DataGenerator(DATA=self.data, 
                                            YEARS_MAX_LENGTH=5,
                                            NSAMPLES=len(self.data_val['sample'].unique()))
         
@@ -507,9 +516,9 @@ class ModelBase:
         
         # avg_med = ["avg_rice_yield", "rice_sownarea"]
         
-        # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
+        avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
-        avg_med = [f"avg_{self.scrop}_yield"]
+        # avg_med = [f"avg_{self.scrop}_yield"]
 
         _static_reals = avg_med
         
@@ -536,10 +545,12 @@ class ModelBase:
 
         famine_names = [famine + bb for famine in famine_list for bb in nbins]
         
+        
+        #### SET TimeSeriesDataSet variables #################################
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        # self._time_varying_known_reals.extend(mod_names) 
-        self._time_varying_known_reals.extend(famine_names)
+        self._time_varying_known_reals.extend(mod_names) 
+        # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
@@ -565,9 +576,9 @@ class ModelBase:
             group_ids=["county", "sample"],
             # group_ids=["county", "year"],
             # min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
-            max_encoder_length = self.max_encoder_length,
+            max_encoder_length = self.max_encoder_length - 4,
             # min_prediction_length = 2,                     #max_prediction_length // 2,
-            max_prediction_length = self.max_prediction_length,
+            max_prediction_length = self.max_prediction_length + 4,
             # min_prediction_idx = min_prediction_idx,
             # static_categoricals = ["county", "year"],
             # static_reals = _static_reals,
@@ -575,7 +586,7 @@ class ModelBase:
             # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
             time_varying_known_reals = self._time_varying_known_reals,
             # time_varying_unknown_categoricals=[],
-            # time_varying_unknown_reals = self._time_varying_unknown_reals,
+            time_varying_unknown_reals = self._time_varying_unknown_reals,
             target_normalizer=GroupNormalizer(
                 groups=["county", "sample"], #transformation="relu"
             ),  # use softplus and normalize by group
@@ -722,11 +733,12 @@ class ModelBase:
         _reload_dataloader = ReloadDataLoader(self.training, self.batch_size)
         
         #### RELOAD TRAINING DATASET AND DATALOADER EVERY EPOCHS ###################
-        _reload_dataset = ReloadDataSet(self.data, 
-                                        self.training, 
-                                        self.batch_size, 
-                                        YEARS_MAX_LENGTH=5, 
-                                        NSAMPLES=len(self.data_val['sample'].unique()))
+        _reload_dataset = ReloadDataSet_12(self.data, 
+                                           self.training, 
+                                           self.batch_size, 
+                                           self.train_dataloader,
+                                           YEARS_MAX_LENGTH=5, 
+                                           NSAMPLES=len(self.data_val['sample'].unique()))
 
         #### SET TRAINER ###########################################################
         self.trainer = Trainer(accelerator = 'gpu', 
