@@ -203,7 +203,23 @@ class ModelBase:
         
         #### GET MODIS column names #####################
         ################ MODIS cloumns name ################################
-        mod_names = [f'b{iband}b{bins}' for iband in range(9) for bins in range(MOD_BINS)]        
+        mod_names = [f'b{iband}b{bins}' for iband in range(9) for bins in range(MOD_BINS)]      
+        
+        
+        #### GET ONLY MODIS #########
+        
+        alimodis_list = []
+        alimodis_list.extend(alidata_list)
+        alimodis_list.extend(yield_list)
+        print(alimodis_list)
+        alimodis_list.extend(mod_names)
+        
+        
+        alimodis = alidata.loc[:, alimodis_list]
+        
+        # alidata = alimodis
+        
+        # fn
         
             
 ################### SET INFERENCE DATAS #######################################################
@@ -735,8 +751,8 @@ class ModelBase:
         #### RELOAD TRAINING DATASET AND DATALOADER EVERY EPOCHS ###################
         _reload_dataset = ReloadDataSet_12(self.data, 
                                            self.training, 
-                                           self.batch_size, 
                                            self.train_dataloader,
+                                           self.batch_size, 
                                            YEARS_MAX_LENGTH=5, 
                                            NSAMPLES=len(self.data_val['sample'].unique()))
 
