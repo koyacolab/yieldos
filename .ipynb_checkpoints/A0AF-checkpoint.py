@@ -62,10 +62,9 @@ from pytorch_lightning.callbacks import LearningRateFinder
 
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
-from utils import FineTuneLearningRateFinder_0, FineTuneLearningRateFinder_1, FineTuneLearningRateFinder_2
 from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR, FineTuneLearningRateFinder_CustomLR
-from utils import ReloadDataLoader, ReloadDataSet, ReloadDataSet_12
-from utils import DataGenerator, DataGenerator2
+from utils_data import ReloadDataLoader, ReloadDataSet, ReloadDataSet_12
+from utils_data import DataGenerator, DataGenerator2
 from utils import ActualVsPredictedCallback
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
@@ -182,7 +181,7 @@ class ModelBase:
         
         print(type(alidata['county']), type(alidata['year']), type(alidata['time_idx'].max()))
         
-        #### GET yield info and move to the end columns for control ######################################
+        #### GET yield info and move to the end columns for view control ######################################
         yield_list = [f'{self.scrop}_sownarea', f'avg_{self.scrop}_sownarea', f'med_{self.scrop}_sownarea', \
                       f'{self.scrop}_yieldval', f'avg_{self.scrop}_yieldval', f'med_{self.scrop}_yieldval', \
                       f'{self.scrop}_yield', f'avg_{self.scrop}_yield', f'med_{self.scrop}_yield']
@@ -272,6 +271,7 @@ class ModelBase:
 
         MAYDAY = 9
         #### CREATE TRAIN/VALIDATION/TEST DATASETS WITH AVERAGE IN ENCODER AND GROWTH/YIELD IN DECODER ######## 
+        #### SET 'gstage'='no' for encoder and growth/yield in decoder ############################
         for county in self.data['county'].unique():
             for year in self.data['year'].unique():
                 avg_yield = self.data[f'avg_{self.scrop}_yield'].loc[(self.data['county'] == county) \
@@ -372,7 +372,7 @@ class ModelBase:
         
         print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
         
-        ############### INIT data_train and add data_val as last year to each sample ######################################
+        ############### INIT data_train appears and add data_val as last year to each sample ######################################
         self.data_train, _ = DataGenerator(DATA=self.data, 
                                            YEARS_MAX_LENGTH=5,
                                            NSAMPLES=len(self.data_val['sample'].unique()))
@@ -565,7 +565,7 @@ class ModelBase:
         #### SET TimeSeriesDataSet variables #################################
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        self._time_varying_known_reals.extend(mod_names) 
+        # self._time_varying_known_reals.extend(mod_names) 
         # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
@@ -753,7 +753,7 @@ class ModelBase:
                                            self.training, 
                                            self.train_dataloader,
                                            self.batch_size, 
-                                           YEARS_MAX_LENGTH=5, 
+                                           YEARS_MAX_LENGTH=10, 
                                            NSAMPLES=len(self.data_val['sample'].unique()))
 
         #### SET TRAINER ###########################################################
