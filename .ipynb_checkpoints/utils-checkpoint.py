@@ -1,13 +1,13 @@
 import torch 
-from pytorch_lightning.callbacks import LearningRateFinder
-from pytorch_lightning.callbacks import Callback
+from lightning.pytorch.callbacks import LearningRateFinder
+from lightning.pytorch.callbacks import Callback
 
 from pytorch_forecasting.data import TimeSeriesDataSet
-from pytorch_lightning.loggers import TensorBoardLogger
+from lightning.pytorch.loggers import TensorBoardLogger
 from pytorch_forecasting.metrics import MAPE, SMAPE
 # from pytorch_forecasting.data import CombinedLoader
 
-from torch.utils.data import DataLoader
+# from torch.utils.data import DataLoader
 
 import matplotlib.pyplot as plt
 
@@ -19,7 +19,7 @@ import random
 
 # -----------------------------------------------------------------------------
 
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 
 # class ActualVsPredictedCallback(Callback):
 #     def __init__(self, val_dataloader, milestones=[1, 25, 50, 100, 120]):

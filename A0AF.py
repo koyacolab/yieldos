@@ -36,20 +36,20 @@ import random
 
 import numpy as np
 import pandas as pd
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor
-from pytorch_lightning.loggers import TensorBoardLogger
+import lightning.pytorch  as pl
+from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor
+from lightning.pytorch.loggers import TensorBoardLogger
 import torch
 
 from pytorch_forecasting import Baseline, TemporalFusionTransformer, TimeSeriesDataSet
 from pytorch_forecasting.data import GroupNormalizer
 from pytorch_forecasting.metrics import MAPE, SMAPE, PoissonLoss, QuantileLoss, RMSE, MAE, MASE
 from matplotlib import pyplot as plt
-from pytorch_lightning.utilities.model_summary import summarize
+from lightning.pytorch.utilities.model_summary import summarize
 from pytorch_forecasting import TemporalFusionTransformer
-from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.callbacks import ModelCheckpoint, StochasticWeightAveraging
+from lightning.pytorch import Trainer
+from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.callbacks import ModelCheckpoint, StochasticWeightAveraging
 from matplotlib import pyplot as plt
 
 from pytorch_forecasting.metrics import MultiHorizonMetric  #, CompositeMetric
@@ -58,9 +58,9 @@ from multiprocessing import Pool, freeze_support
 
 from multiprocessing import Pool, freeze_support
 
-from pytorch_lightning.callbacks import LearningRateFinder
+from lightning.pytorch.callbacks import LearningRateFinder
 
-from pytorch_lightning.callbacks import GradientAccumulationScheduler
+from lightning.pytorch.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR, FineTuneLearningRateFinder_CustomLR
 from utils_data import ReloadDataLoader, ReloadDataSet, ReloadDataSet_12
@@ -689,11 +689,16 @@ class ModelBase:
         print( time.asctime( time.localtime(time.time()) ) )
 
         #### CREATE BASELINE ##########################################################
-        actuals = torch.cat([y for x, (y, weight) in iter(self.val_dataloader)])
-        baseline_predictions = Baseline().predict(self.val_dataloader)
-        # print( 'Baseline:',type(actuals), actuals.size(), baseline_predictions.size(), actuals[0,:], baseline_predictions[0,:] )
-        # print( torch.where(torch.isnan(actuals)), torch.where(torch.isnan(baseline_predictions)) )
-        print( 'Baseline:', (actuals - baseline_predictions).abs().mean() )
+        # actuals = torch.cat([y for x, (y, weight) in iter(self.val_dataloader)])
+        # baseline_predictions = Baseline().predict(self.val_dataloader)
+        # calculate baseline mean absolute error, i.e. predict next value as the last available value from the history
+        baseline_predictions = Baseline().predict(self.val_dataloader, return_y=True)
+        actuals = baseline_predictions.y
+        MAE()(baseline_predictions.output, baseline_predictions.y)
+        print( 'Baseline:', MAE()(baseline_predictions.output, baseline_predictions.y) )
+        print( 'Baseline:', type(actuals), type(baseline_predictions.output), type(baseline_predictions.y) )
+        print( 'Baseline:', baseline_predictions.y )
+        print( 'Baseline:', (actuals[0] - baseline_predictions.output).abs().mean() )
         print( 'Baseline:', time.asctime( time.localtime(time.time()) ) )
     
         
@@ -772,9 +777,10 @@ class ModelBase:
                                             _checkpoint_callback, 
                                             _lr_monitor, 
                                             _reload_dataset, 
-                                            # _tb_logger, in logger
-                                            _actvspred_train, 
-                                            _actvspred_valid])
+                                            # # _tb_logger, in logger
+                                            # _actvspred_train, 
+                                            # _actvspred_valid,
+                                            ])
         
 
 
@@ -890,8 +896,8 @@ class ModelBase:
         print( time.asctime( time.localtime(time.time()) ) )
         self.trainer.fit(
             self.tft,
-            train_dataloaders = self.train_dataloader,
-            val_dataloaders   = self.val_dataloader,
+            # train_dataloaders = self.train_dataloader,
+            # val_dataloaders   = self.val_dataloader,
         )
         print('fit:', time.asctime( time.localtime(time.time()) ) )
         

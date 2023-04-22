@@ -1,13 +1,13 @@
 import torch 
-from pytorch_lightning.callbacks import LearningRateFinder
-from pytorch_lightning.callbacks import Callback
+from lightning.pytorch.callbacks import LearningRateFinder
+from lightning.pytorch.callbacks import Callback
 
 from pytorch_forecasting.data import TimeSeriesDataSet
-from pytorch_lightning.loggers import TensorBoardLogger
+from lightning.pytorch.loggers import TensorBoardLogger
 from pytorch_forecasting.metrics import MAPE, SMAPE
 # from pytorch_forecasting.data import CombinedLoader
 
-from torch.utils.data import DataLoader
+# from torch.utils.data import DataLoader
 
 import matplotlib.pyplot as plt
 
@@ -19,7 +19,7 @@ import random
 
 # -----------------------------------------------------------------------------
 
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter 
 
 #-------------------------------------------------------------------------------------
 
@@ -69,57 +69,38 @@ class ReloadDataSet_12(Callback):
         self.NSAMPLES = NSAMPLES
         
     def on_train_epoch_start(self, trainer, pl_module):
-        # Get the current datasets from the parent CombinedLoader
-        current_datasets = trainer.train_dataloader.loaders.dataset
         if trainer.current_epoch <= 2:
             print('DataGenerator_1 reloading... epoch:', trainer.current_epoch)  
             data_train, year_list = DataGenerator2(DATA=self.data_train, 
                                                   YEARS_MAX_LENGTH=self.YEARS_MAX_LENGTH, 
                                                   NSAMPLES=self.NSAMPLES)
             self.dataset_train = TimeSeriesDataSet.from_dataset(self.dataset_train, data_train)
-            print(f'jbuii {len(trainer.train_dataloader)}')
-                    # Update the dataloader with the new dataset
-                
-            # trainer.train_dataloader = DataLoader(
-            #     self.dataset_train,
-            #     batch_size=trainer.train_dataloader.batch_size,
-            #     shuffle=trainer.train_dataloader.shuffle,
-            #     num_workers=trainer.train_dataloader.num_workers,
-            #     pin_memory=trainer.train_dataloader.pin_memory)
             
-            
-            pl_module.train_dataloader = self.dataset_train.to_dataloader(train=True, 
+            self.dataloader_train = self.dataset_train.to_dataloader(train=True, 
                                                                 batch_size=self.batch_size, 
                                                                 shuffle=True)
-            # assert isinstance(trainer.train_dataloader, CombinedLoader)
-            # self.dataloader_train = self.dataset_train.to_dataloader(train=True, batch_size=self.batch_size, num_workers=8)
-            # new_combined_loader = CombinedLoader([current_datasets, train_dataloader])
-            # trainer.reset_train_dataloader(new_combined_loader)
-            print(f'DataLoader_1 was reloaded... {len(data_train)}, {len(year_list)}, {len(trainer.train_dataloader)}')
+            pl_module.train_dataloader = lambda: self.dataloader_train
+            # self.dataloader_train = self.dataset_train.to_dataloader(train=True, 
+            #                                                     batch_size=self.batch_size, 
+            #                                                     shuffle=True)
+            # trainer.train_dataloader = self.dataloader_train
+            print(f'DataLoader_1 was reloaded... {len(data_train)}, {len(year_list)}, {len(trainer.train_dataloader)},')#{len(pl_module.train_dataloader)}')
         elif trainer.current_epoch > 2:
             print('DataGenerator_2 reloading... epoch:', trainer.current_epoch)  
             data_train, year_list = DataGenerator2(DATA=self.data_train, 
                                                   YEARS_MAX_LENGTH=self.YEARS_MAX_LENGTH, 
                                                   NSAMPLES=self.NSAMPLES)
             self.dataset_train = TimeSeriesDataSet.from_dataset(self.dataset_train, data_train)
-            print(f'jbuii {len(trainer.train_dataloader)}')
             
-            # trainer.train_dataloader = DataLoader(
-            #     self.dataset_train,
-            #     batch_size=self.batch_size,
-            #     shuffle=trainer.train_dataloader.shuffle,
-            #     num_workers=trainer.train_dataloader.num_workers,
-            #     pin_memory=trainer.train_dataloader.pin_memory)
-            
-            pl_module.train_dataloader = self.dataset_train.to_dataloader(train=True, 
+            self.dataloader_train = self.dataset_train.to_dataloader(train=True, 
                                                                 batch_size=self.batch_size, 
                                                                 shuffle=True)
-            # pl_module.train_dataloader = trainer.train_dataloader
-            # assert isinstance(trainer.train_dataloader, CombinedLoader)
-            # self.dataloader_train = self.dataset_train.to_dataloader(train=True, batch_size=self.batch_size, num_workers=8)
-            # new_combined_loader = CombinedLoader([train_dataloader])
-            # trainer.reset_train_dataloader(new_combined_loader)
-            print(f'DataLoader_2 was reloaded... {len(data_train)}, {len(year_list)}, {len(trainer.train_dataloader)}')
+            pl_module.train_dataloader = lambda: self.dataloader_train
+            # trainer.train_dataloader = lambda: self.dataloader_train
+            # trainer.train_dataloader = self.dataset_train.to_dataloader(train=True, 
+            #                                                     batch_size=self.batch_size, 
+            #                                                     shuffle=True)
+            print(f'DataLoader_2 was reloaded... {len(data_train)}, {len(year_list)}, {len(trainer.train_dataloader)},')#{len(pl_module.train_dataloader)}')
 
 ################################################################################################# 
 
