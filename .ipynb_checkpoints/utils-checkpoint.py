@@ -53,24 +53,61 @@ import random
 #         ax.set_title("Actual vs. Predicted")
 #         writer.add_figure("actual_vs_predicted", fig, global_step=trainer.global_step)
 #         writer.close()
+
+import sys
         
 class ActualVsPredictedCallback(Callback):
     def __init__(self, dataloader, filename='actuals_vs_predictions', milestones=[0, 25, 50, 100, 120]):
+        super().__init__
         self.milestones = milestones
         self.dataloader = dataloader
         self.filename = filename
         
+    # def on_train_epoch_end0(self, trainer, pl_module):
+    #     # get the last training batch to get the targets and predicted values
+    #     # last_batch = self.trainer.datamodule.train_dataloader().dataset[-1]
+    #     last_batch = self.dataloader.dataset[-1]
+    #     print(trainer.__dict__)
+    #     # fn
+    #     print(pl_module.__dict__)
+    #     fn
+    #     print(type(last_batch), type(last_batch[0]))
+    #     print(last_batch[0].keys())
+    #     fn
+    #     x, y = last_batch['encoder_cont'].to(self.device), last_batch['decoder_cont'].to(self.device)
+    #     y_hat = self.tft.predict(x).reshape(y.shape) # predict using the trained model
+    #     print('Targets vs Predicted:')
+    #     print(torch.cat((y.unsqueeze(0), y_hat.unsqueeze(0)), dim=0))
+        
     def on_validation_epoch_end(self, trainer, pl_module):
-        if trainer.current_epoch not in self.milestones:
-            return
+        # if trainer.current_epoch not in self.milestones:
+        #     return
+        print('on_validaton_epoch_end')
+        # print('ActPred1', type(pl_module.train_dataloader))
+        print("Start predicting!")
+        # this will fetch the dataloader from the LM or LDM
+        predict_dataloader = trainer._data_connector
+        print(trainer._data_connector.__dict__)
+        sys.exit(0)
+        # pl_module.eval()
         # calculate actuals and predictions        
         # self.writer = SummaryWriter(log_dir=trainer.log_dir)
         y_true = torch.cat([y[0] for x, y in iter(self.dataloader)])
+        y_pred = y_true
+        # with torch.no_grad():
         y_pred = pl_module.predict(self.dataloader)
+        print(len(y_pred), y_pred[0])
+        # sys.exit(0)
+        # y_pred = trainer.predict(pl_module, self.dataloader)
+        # print(trainer.__doc__)
+        # fn
+        # y_pred = pl_module(self.dataloader)
         
-        # # Calculate SMAPE for the entire dataset
-        # smape = SMAPE()
-        # smape_val = smape(torch.flatten(y_pred), torch.flatten(y_true))
+        print('ActPred2', y_true.device, y_true.shape, y_pred.device)
+        
+#         # # Calculate SMAPE for the entire dataset
+#         # smape = SMAPE()
+#         # smape_val = smape(torch.flatten(y_pred), torch.flatten(y_true))
 
         # Create plot
         fig, ax = plt.subplots(figsize=(10, 6))
@@ -81,15 +118,19 @@ class ActualVsPredictedCallback(Callback):
         # ax.set_title(f'Validation SMAPE: {smape_val:.2%}')
         ax.legend()
         
+        print('ActPred3', y_true.device, y_pred.device)
+        
         # save the plot as an image
         plt.savefig(f"{self.filename}.png")
+        # fn
         
         # log the image to TensorBoard
-        logger = trainer.logger.experiment
-        logger.add_figure('Validation/Actuals vs. Predictions', fig)
+        # logger = trainer.logger.experiment
+        # logger.add_figure('Validation/Actuals vs. Predictions', fig)
+        # fn
 
-        # Log plot to TensorBoard
-        # self.writer.add_figure('Validation/Actuals vs. Predictions', fig, global_step=trainer.global_step)
+#         # Log plot to TensorBoard
+#         # self.writer.add_figure('Validation/Actuals vs. Predictions', fig, global_step=trainer.global_step)
 
 # ---------------------------------------------------------------------------
 

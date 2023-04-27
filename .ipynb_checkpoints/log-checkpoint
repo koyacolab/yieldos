@@ -1,0 +1,239 @@
+Global seed set to 123456
+A0A_test rice
+2005
+2005 ['2005'] 2005
+predicted_years: ['2005'] max_epochs: 1500 batch_size: 128 learning_rate 0.0001 loss_func_metric: RMSE seed: 123456 lr_milestones_list: [20, 50, 600, 800]
+loading data/ALIM128F64DATASET_rice.csv Thu Apr 27 19:49:19 2023
+data/ALIM128F64DATASET_rice.csv loaded Thu Apr 27 19:49:29 2023
+<class 'pandas.core.series.Series'> <class 'pandas.core.series.Series'> <class 'numpy.int64'>
+['county', 'year', 'month', 'gstage', 'time_idx', 'actuals', 'rice_sownarea', 'avg_rice_sownarea', 'med_rice_sownarea', 'rice_yieldval', 'avg_rice_yieldval', 'med_rice_yieldval', 'rice_yield', 'avg_rice_yield', 'med_rice_yield']
+['2003', '2004', '2005', '2006', '2007', '2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018']
+2005 <class 'str'>
+Years to train: ['2003', '2004', '2006', '2007', '2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018']
+Years to valid: ['2005']
+--------check 2008----------------------
+Years to train: ['2003' '2004' '2006' '2007' '2009' '2010' '2011' '2012' '2013' '2014'
+ '2015' '2016' '2017' '2018']
+Years to valid: ['2005']
+Years to valid: ['2005']
+------------------------------
+DATA_VAL: ['0'] (918, 2809)
+DATA_VAL: ['0'] (918, 2809)
+DATA_VAL: ['0'] (34, 2809)
+Augmentation for years list: [2003, 2004, 2006, 2007, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018] by NSAMPLES=1 and YEARS_MAX_LENGTH=5
+  0%|                                                                                                          | 0/1 [00:00<?, ?it/s]100%|██████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00,  1.80it/s]100%|██████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00,  1.80it/s]type(self.data_train[time_idx]) <class 'pandas.core.series.Series'>
+time_idx [  0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17
+  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35
+  36  37  38  39  40  41  42  43  44  45  46  47  48  49  50  51  52  53
+  54  55  56  57  58  59  60  61  62  63  64  65  66  67  68  69  70  71
+  72  73  74  75  76  77  78  79  80  81  82  83  84  85  86  87  88  89
+  90  91  92  93  94  95  96  97  98  99 100 101 102 103 104 105 106 107
+ 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125
+ 126 127 128 129 130 131 132 133 134 135]
+sample ['0']
+county ['0' '1' '2' '3' '4' '5' '6' '7' '8' '9' '11' '12' '13' '14' '15' '16'
+ '17' '19' '21' '22' '23' '24' '25' '26' '27' '29' '30']
+df[year].unique() ['2003' '2017' '2006' '2005']
+df[time_idx].to_numpy() [  0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17
+  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35
+  36  37  38  39  40  41  42  43  44  45  46  47  48  49  50  51  52  53
+  54  55  56  57  58  59  60  61  62  63  64  65  66  67  68  69  70  71
+  72  73  74  75  76  77  78  79  80  81  82  83  84  85  86  87  88  89
+  90  91  92  93  94  95  96  97  98  99 100 101 102 103 104 105 106 107
+ 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125
+ 126 127 128 129 130 131 132 133 134 135]
+self.val_years[0]: ['2005'] ['2003' '2017' '2006' '2005' '2015' '2004' '2007' '2013' '2018' '2010'
+ '2012' '2009' '2014' '2016' '2011']
+self.val_years[0]: 2005 ['2003' '2017' '2006' '2005']
+ival_years: ['2005', '2005', '2005']
+30 4
+last_year: ['2005']
+34 [ 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
+ 24 25 26 27 28 29 30 31 32 33]
+34 [102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119
+ 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135]
+[102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119
+ 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135]
+Dataframe size: 77.24 Mb
+DataGenerator done...
+Set basic filenames self.name_for_files: EXP_[A0A_test]-Cr[rice]-KF[2005]-BS[128]]
+avg_med: ['avg_rice_yield', 'actuals']
+training mx_epochs, TimeSeriesDataSet: 1500 Thu Apr 27 19:49:51 2023
+D1: known-unknown go --------------------------
+D2: --------------------------
+Thu Apr 27 19:49:52 2023
+training & validation TimeSeriesDataSet loaded Thu Apr 27 19:49:52 2023
+
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+self.train_dataloader: 21
+self.val_dataloader: 1
+self.test_dataloader: 1
+Thu Apr 27 19:49:54 2023
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+
+   | Name                               | Type                            | Params
+----------------------------------------------------------------------------------------
+0  | loss                               | RMSE                            | 0     
+1  | logging_metrics                    | ModuleList                      | 0     
+2  | input_embeddings                   | MultiEmbedding                  | 47    
+3  | prescalers                         | ModuleDict                      | 96    
+4  | static_variable_selection          | VariableSelectionNetwork        | 1.7 K 
+5  | encoder_variable_selection         | VariableSelectionNetwork        | 2.0 K 
+6  | decoder_variable_selection         | VariableSelectionNetwork        | 2.0 K 
+7  | static_context_variable_selection  | GatedResidualNetwork            | 1.1 K 
+8  | static_context_initial_hidden_lstm | GatedResidualNetwork            | 1.1 K 
+9  | static_context_initial_cell_lstm   | GatedResidualNetwork            | 1.1 K 
+10 | static_context_enrichment          | GatedResidualNetwork            | 1.1 K 
+11 | lstm_encoder                       | LSTM                            | 2.2 K 
+12 | lstm_decoder                       | LSTM                            | 2.2 K 
+13 | post_lstm_gate_encoder             | GatedLinearUnit                 | 544   
+14 | post_lstm_add_norm_encoder         | AddNorm                         | 32    
+15 | static_enrichment                  | GatedResidualNetwork            | 1.4 K 
+16 | multihead_attn                     | InterpretableMultiHeadAttention | 676   
+17 | post_attn_gate_norm                | GateAddNorm                     | 576   
+18 | pos_wise_ff                        | GatedResidualNetwork            | 1.1 K 
+19 | pre_output_gate_norm               | GateAddNorm                     | 576   
+20 | output_layer                       | Linear                          | 17    
+----------------------------------------------------------------------------------------
+19.5 K    Trainable params
+0         Non-trainable params
+19.5 K    Total params
+0.078     Total estimated model params size (MB)
+Baseline: tensor(0.0251, device='cuda:0')
+Baseline: <class 'tuple'> <class 'torch.Tensor'> <class 'tuple'>
+Baseline: (tensor([[0.8400, 0.8400, 0.8400, 0.8400, 0.6250, 0.6250, 0.6250, 0.6250],
+        [0.7600, 0.7600, 0.7600, 0.7600, 0.7293, 0.7293, 0.7293, 0.7293],
+        [0.6400, 0.6400, 0.6400, 0.6400, 0.6129, 0.6129, 0.6129, 0.6129],
+        [0.6200, 0.6200, 0.6200, 0.6200, 0.5851, 0.5851, 0.5851, 0.5851],
+        [0.6400, 0.6400, 0.6400, 0.6400, 0.6427, 0.6427, 0.6427, 0.6427],
+        [0.8200, 0.8200, 0.8200, 0.8200, 0.7997, 0.7997, 0.7997, 0.7997],
+        [0.7400, 0.7400, 0.7400, 0.7400, 0.7040, 0.7040, 0.7040, 0.7040],
+        [0.8400, 0.8400, 0.8400, 0.8400, 0.8387, 0.8387, 0.8387, 0.8387],
+        [0.7000, 0.7000, 0.7000, 0.7000, 0.6773, 0.6773, 0.6773, 0.6773],
+        [0.6000, 0.6000, 0.6000, 0.6000, 0.5692, 0.5692, 0.5692, 0.5692],
+        [0.6400, 0.6400, 0.6400, 0.6400, 0.5882, 0.5882, 0.5882, 0.5882],
+        [0.7200, 0.7200, 0.7200, 0.7200, 0.6973, 0.6973, 0.6973, 0.6973],
+        [0.7500, 0.7500, 0.7500, 0.7500, 0.7215, 0.7215, 0.7215, 0.7215],
+        [0.5700, 0.5700, 0.5700, 0.5700, 0.6552, 0.6552, 0.6552, 0.6552],
+        [0.6000, 0.6000, 0.6000, 0.6000, 0.6208, 0.6208, 0.6208, 0.6208],
+        [0.5500, 0.5500, 0.5500, 0.5500, 0.5392, 0.5392, 0.5392, 0.5392],
+        [0.6800, 0.6800, 0.6800, 0.6800, 0.6064, 0.6064, 0.6064, 0.6064],
+        [0.7100, 0.7100, 0.7100, 0.7100, 0.8059, 0.8059, 0.8059, 0.8059],
+        [0.8300, 0.8300, 0.8300, 0.8300, 0.8570, 0.8570, 0.8570, 0.8570],
+        [0.5100, 0.5100, 0.5100, 0.5100, 0.3358, 0.3358, 0.3358, 0.3358],
+        [0.8300, 0.8300, 0.8300, 0.8300, 0.7765, 0.7765, 0.7765, 0.7765],
+        [0.6800, 0.6800, 0.6800, 0.6800, 0.7359, 0.7359, 0.7359, 0.7359],
+        [0.7700, 0.7700, 0.7700, 0.7700, 0.7328, 0.7328, 0.7328, 0.7328],
+        [0.7800, 0.7800, 0.7800, 0.7800, 0.7237, 0.7237, 0.7237, 0.7237],
+        [0.7000, 0.7000, 0.7000, 0.7000, 0.6796, 0.6796, 0.6796, 0.6796],
+        [0.8300, 0.8300, 0.8300, 0.8300, 0.7592, 0.7592, 0.7592, 0.7592],
+        [0.8200, 0.8200, 0.8200, 0.8200, 0.7726, 0.7726, 0.7726, 0.7726]],
+       device='cuda:0'), None)
+Baseline: tensor(0.0251, device='cuda:0')
+Baseline: Thu Apr 27 19:49:58 2023
+Thu Apr 27 19:49:58 2023
+CycicLR: 0.0001 0.01 350 2600 triangular2
+on_fit_start: 0.0001
+Sanity Checking: 0it [00:00, ?it/s]Sanity Checking:   0%|                                                                                         | 0/1 [00:00<?, ?it/s]Sanity Checking DataLoader 0:   0%|                                                                            | 0/1 [00:00<?, ?it/s]Sanity Checking DataLoader 0: 100%|████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00,  6.65it/s]on_validaton_epoch_end
+ActPred1
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+ActPred2 cpu torch.Size([2688, 8]) cuda:0
+ActPred3 cpu cuda:0
+                                                                                                                                     Training: 0it [00:00, ?it/s]on_train_epoch_start: 0.0001282857142857231
+Training:   0%|                                                                                               | 0/21 [00:00<?, ?it/s]Epoch 0:   0%|                                                                                                | 0/21 [00:00<?, ?it/s]Traceback (most recent call last):
+  File "A0A.py", line 1213, in <module>
+    fire.Fire(RunTask)
+  File "/usr/local/lib/python3.8/dist-packages/fire/core.py", line 141, in Fire
+    component_trace = _Fire(component, args, parsed_flag_args, context, name)
+  File "/usr/local/lib/python3.8/dist-packages/fire/core.py", line 475, in _Fire
+    component, remaining_args = _CallAndUpdateTrace(
+  File "/usr/local/lib/python3.8/dist-packages/fire/core.py", line 691, in _CallAndUpdateTrace
+    component = fn(*varargs, **kwargs)
+  File "A0A.py", line 1200, in train_TFT
+    model.train()
+  File "A0A.py", line 901, in train
+    self.trainer.fit(
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/trainer/trainer.py", line 520, in fit
+    call._call_and_handle_interrupt(
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/trainer/call.py", line 44, in _call_and_handle_interrupt
+    return trainer_fn(*args, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/trainer/trainer.py", line 559, in _fit_impl
+    self._run(model, ckpt_path=ckpt_path)
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/trainer/trainer.py", line 935, in _run
+    results = self._run_stage()
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/trainer/trainer.py", line 978, in _run_stage
+    self.fit_loop.run()
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/loops/fit_loop.py", line 201, in run
+    self.advance()
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/loops/fit_loop.py", line 354, in advance
+    self.epoch_loop.run(self._data_fetcher)
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/loops/training_epoch_loop.py", line 133, in run
+    self.advance(data_fetcher)
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/loops/training_epoch_loop.py", line 218, in advance
+    batch_output = self.automatic_optimization.run(trainer.optimizers[0], kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/loops/optimization/automatic.py", line 185, in run
+    self._optimizer_step(kwargs.get("batch_idx", 0), closure)
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/loops/optimization/automatic.py", line 261, in _optimizer_step
+    call._call_lightning_module_hook(
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/trainer/call.py", line 142, in _call_lightning_module_hook
+    output = fn(*args, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/core/module.py", line 1265, in optimizer_step
+    optimizer.step(closure=optimizer_closure)
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/core/optimizer.py", line 158, in step
+    step_output = self._strategy.optimizer_step(self._optimizer, closure, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/strategies/strategy.py", line 224, in optimizer_step
+    return self.precision_plugin.optimizer_step(optimizer, model=model, closure=closure, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/plugins/precision/precision_plugin.py", line 114, in optimizer_step
+    return optimizer.step(closure=closure, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/torch/optim/lr_scheduler.py", line 69, in wrapper
+    return wrapped(*args, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/torch/optim/optimizer.py", line 280, in wrapper
+    out = func(*args, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/torch/optim/optimizer.py", line 33, in _use_grad
+    ret = func(self, *args, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/torch/optim/sgd.py", line 67, in step
+    loss = closure()
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/plugins/precision/precision_plugin.py", line 101, in _wrap_closure
+    closure_result = closure()
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/loops/optimization/automatic.py", line 140, in __call__
+    self._result = self.closure(*args, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/loops/optimization/automatic.py", line 126, in closure
+    step_output = self._step_fn()
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/loops/optimization/automatic.py", line 308, in _training_step
+    training_step_output = call._call_strategy_hook(trainer, "training_step", *kwargs.values())
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/trainer/call.py", line 288, in _call_strategy_hook
+    output = fn(*args, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/lightning/pytorch/strategies/strategy.py", line 366, in training_step
+    return self.model.training_step(*args, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/pytorch_forecasting/models/base_model.py", line 614, in training_step
+    log, out = self.step(x, y, batch_idx)
+  File "/usr/local/lib/python3.8/dist-packages/pytorch_forecasting/models/base_model.py", line 777, in step
+    out = self(x, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/pytorch_forecasting/models/temporal_fusion_transformer/__init__.py", line 408, in forward
+    input_vectors = self.input_embeddings(x_cat)
+  File "/usr/local/lib/python3.8/dist-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/pytorch_forecasting/models/nn/embeddings.py", line 188, in forward
+    input_vectors[name] = emb(x[..., self.x_categoricals.index(name)])
+  File "/usr/local/lib/python3.8/dist-packages/torch/nn/modules/module.py", line 1501, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/usr/local/lib/python3.8/dist-packages/torch/nn/modules/sparse.py", line 162, in forward
+    return F.embedding(
+  File "/usr/local/lib/python3.8/dist-packages/torch/nn/functional.py", line 2210, in embedding
+    return torch.embedding(weight, input, padding_idx, scale_grad_by_freq, sparse)
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and cuda:0! (when checking argument for argument index in method wrapper_CUDA__index_select)
+Epoch 0:   0%|          | 0/21 [00:01<?, ?it/s]                                                                                      

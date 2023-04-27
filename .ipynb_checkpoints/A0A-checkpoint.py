@@ -374,7 +374,7 @@ class ModelBase:
         print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
         
         ############### INIT data_train appears and add data_val as last year to each sample ######################################
-        self.data_train, _ = DataGenerator2(DATA=self.data, 
+        self.data_train, _ = DataGenerator(DATA=self.data, 
                                            YEARS_MAX_LENGTH=5,
                                            NSAMPLES=len(self.data_val['sample'].unique()))
         
@@ -551,22 +551,11 @@ class ModelBase:
         mod_names = [f'b{iband}b{bins}' for iband in range(9) for bins in range(MOD_BINS)]
 
         ################ FAMINA cloumns name ################################
-        # famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', 'Qair_f_tavg', 'Qg_tavg',\
-        #                'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', 'RadT_tavg', 'Rainf_f_tavg', \
-        #                'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
-        #                'SoilMoi00_10cm_tavg', 'SoilMoi10_40cm_tavg', 'SoilMoi40_100cm_tavg', \
-        #                'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', 'SoilTemp40_100cm_tavg', \
-        #                'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
-        
-        famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', \
-                       # 'Qair_f_tavg', 'Qg_tavg',\
-                       # 'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', \
-                       'RadT_tavg', 'Rainf_f_tavg', \
-                       # 'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
-                       'SoilMoi00_10cm_tavg', 'SoilMoi10_40cm_tavg', \
-                       # 'SoilMoi40_100cm_tavg', \
-                       'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', \
-                       # 'SoilTemp40_100cm_tavg', \
+        famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', 'Qair_f_tavg', 'Qg_tavg',\
+                       'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', 'RadT_tavg', 'Rainf_f_tavg', \
+                       'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
+                       'SoilMoi00_10cm_tavg', 'SoilMoi10_40cm_tavg', 'SoilMoi40_100cm_tavg', \
+                       'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', 'SoilTemp40_100cm_tavg', \
                        'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
 
         nbins = ['_' + str(x) for x in range(0, FAM_BINS - 1)]
@@ -578,12 +567,12 @@ class ModelBase:
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
         # self._time_varying_known_reals.extend(mod_names) 
-        self._time_varying_known_reals.extend(famine_names)
+        # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
-        self._time_varying_unknown_reals.extend(avg_med)
+        # self._time_varying_unknown_reals.extend(avg_med)
         # self._time_varying_unknown_reals.extend(mod_names)
-        self._time_varying_unknown_reals.extend(famine_names)
+        # self._time_varying_unknown_reals.extend(famine_names)
 
         # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
 
@@ -733,7 +722,7 @@ class ModelBase:
                                                filename = f'{self.name_for_files}_train', 
                                                milestones = milstones_list)
         
-        _actvspred_valid = ActualVsPredictedCallback(self.val_dataloader, 
+        _actvspred_valid = ActualVsPredictedCallback(self.test_dataloader, 
                                                filename = f'{self.name_for_files}_valid', 
                                                milestones = milstones_list)
         
@@ -794,7 +783,7 @@ class ModelBase:
                                             # _reload_dataset, 
                                             # # _tb_logger, in logger
                                             # _actvspred_train, 
-                                            # _actvspred_valid,
+                                            _actvspred_valid,
                                             ])
         
 
