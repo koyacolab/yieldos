@@ -63,6 +63,7 @@ from lightning.pytorch.callbacks import LearningRateFinder
 from lightning.pytorch.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR, FineTuneLearningRateFinder_CustomLR
+from utils import FineTuneLearningRateFinder_CyclicLR2, ShouldStop
 from utils_data import ReloadDataLoader, ReloadDataSet, ReloadDataSet_12
 from utils_data import DataGenerator, DataGenerator2
 from utils import ActualVsPredictedCallback
@@ -374,7 +375,7 @@ class ModelBase:
         print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
         
         ############### INIT data_train appears and add data_val as last year to each sample ######################################
-        self.data_train, _ = DataGenerator(DATA=self.data, 
+        self.data_train, _ = DataGenerator2(DATA=self.data, 
                                            YEARS_MAX_LENGTH=5,
                                            NSAMPLES=len(self.data_val['sample'].unique()))
         
@@ -551,11 +552,22 @@ class ModelBase:
         mod_names = [f'b{iband}b{bins}' for iband in range(9) for bins in range(MOD_BINS)]
 
         ################ FAMINA cloumns name ################################
-        famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', 'Qair_f_tavg', 'Qg_tavg',\
-                       'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', 'RadT_tavg', 'Rainf_f_tavg', \
-                       'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
-                       'SoilMoi00_10cm_tavg', 'SoilMoi10_40cm_tavg', 'SoilMoi40_100cm_tavg', \
-                       'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', 'SoilTemp40_100cm_tavg', \
+        # famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', 'Qair_f_tavg', 'Qg_tavg',\
+        #                'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', 'RadT_tavg', 'Rainf_f_tavg', \
+        #                'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
+        #                'SoilMoi00_10cm_tavg', 'SoilMoi10_40cm_tavg', 'SoilMoi40_100cm_tavg', \
+        #                'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', 'SoilTemp40_100cm_tavg', \
+        #                'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
+        
+        famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', \
+                       # 'Qair_f_tavg', 'Qg_tavg',\
+                       # 'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', \
+                       'RadT_tavg', 'Rainf_f_tavg', \
+                       # 'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
+                       'SoilMoi00_10cm_tavg', 'SoilMoi10_40cm_tavg', \
+                       # 'SoilMoi40_100cm_tavg', \
+                       'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', \
+                       # 'SoilTemp40_100cm_tavg', \
                        'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
 
         nbins = ['_' + str(x) for x in range(0, FAM_BINS - 1)]
@@ -570,7 +582,7 @@ class ModelBase:
         # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
-        # self._time_varying_unknown_reals.extend(avg_med)
+        self._time_varying_unknown_reals.extend(avg_med)
         # self._time_varying_unknown_reals.extend(mod_names)
         # self._time_varying_unknown_reals.extend(famine_names)
 
@@ -658,7 +670,7 @@ class ModelBase:
         
         self.val_dataloader = self.validation.to_dataloader(train=False, batch_size=27, num_workers=8)
         
-        self.test_dataloader = self.testing.to_dataloader(train=False, batch_size=27, num_workers=8)
+        self.test_dataloader = self.training.to_dataloader(train=False, batch_size=27, num_workers=8)
         
         ##### CHECK train_dataloader #####################################
         # y_true = torch.cat([y[0] for x, y in iter(self.train_dataloader)])
@@ -708,7 +720,10 @@ class ModelBase:
         # _dir = os.path.join(home_dir, 'data')
         
         #### SET CHECKPOINT ##############################
-        _checkpoint_callback = ModelCheckpoint(dirpath = os.path.join(home_dir, self.name_for_files), every_n_epochs = 25)
+        self.ModelCheckpointPath = os.path.join(home_dir, self.name_for_files)
+        _checkpoint_callback = ModelCheckpoint(dirpath = self.ModelCheckpointPath, every_n_epochs = 10)
+        
+        _should_stop = ShouldStop(ModelCheckpointPath = self.ModelCheckpointPath)
 
         _dir = '/tf_logs'
         # dir = os.path.join(home_dir, 'data')
@@ -722,7 +737,7 @@ class ModelBase:
                                                filename = f'{self.name_for_files}_train', 
                                                milestones = milstones_list)
         
-        _actvspred_valid = ActualVsPredictedCallback(self.test_dataloader, 
+        _actvspred_valid = ActualVsPredictedCallback(self.val_dataloader, 
                                                filename = f'{self.name_for_files}_valid', 
                                                milestones = milstones_list)
         
@@ -734,7 +749,7 @@ class ModelBase:
         #### LEARNING RATE TUNER #########################################
         self.learning_rate = 0.0001
         
-        _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=self.learning_rate, 
+        _lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
                                                           max_lr=0.01, 
                                                           step_size_up=350, 
                                                           step_size_down=2600) 
@@ -784,6 +799,7 @@ class ModelBase:
                                             # # _tb_logger, in logger
                                             # _actvspred_train, 
                                             _actvspred_valid,
+                                            _should_stop,
                                             ])
         
 
@@ -792,7 +808,7 @@ class ModelBase:
 
         self.tft = TemporalFusionTransformer.from_dataset(
             self.training,
-            learning_rate=self.learning_rate,
+            # learning_rate=self.learning_rate,
             # lstm_layers=2,
             # hidden_size=31,             # most important hyperparameter apart from learning rate
             # hidden_continuous_size=30,  # set to <= hidden_size
@@ -896,13 +912,76 @@ class ModelBase:
         fig = res.plot(show=True, suggest=True)
         fig.show()
         
+    def pltprd(self, dataloader):
+        baseline_predictions = self.tft.predict(dataloader, return_y=True)
+        actuals = baseline_predictions.y
+        # MAE()(baseline_predictions.output, baseline_predictions.y)
+        print(actuals[0])
+        y_true = actuals[0]
+        y_pred = baseline_predictions.output
+        # Create plot
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(y_true.cpu().numpy(), 'o', color='green', label='actuals')
+        ax.plot(y_pred.cpu().numpy(), '.', color='red', label='predictions')
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Value')
+        # ax.set_title(f'Validation SMAPE: {smape_val:.2%}')
+        ax.legend()
+
+        # print('ActPred3', y_true.device, y_pred.device)
+
+        # save the plot as an image
+        plt.savefig(f"actuals_vs_predictions.png")
+        
     def train(self,):
-        print( time.asctime( time.localtime(time.time()) ) )
-        self.trainer.fit(
-            self.tft,
-            train_dataloaders = self.train_dataloader,
-            val_dataloaders   = self.val_dataloader,
-        )
+        print( time.asctime( time.localtime(time.time()) ) )       
+        # initialize a list to hold the .ckpt files
+        for iepoch in range(self.max_epochs):
+            
+            ckpt_files = []
+            try:
+                # get a list of all the files in the parent directory with a .ckpt extension
+                ckpt_files = [f for f in os.listdir(self.ModelCheckpointPath) if f.endswith('.ckpt')]
+            except FileNotFoundError:
+                # handle the case where the parent directory doesn't exist
+                print("No checkpoint found, maybe it's first start")
+            print(ckpt_files)
+        
+            if len(ckpt_files) == 0:
+
+                self.trainer.fit(
+                    self.tft,
+                    train_dataloaders = self.train_dataloader,
+                    val_dataloaders   = self.val_dataloader,
+                )
+                self.pltprd(self.val_dataloader)
+                # self.trainer.should_stop = False
+
+            else:
+                data_train, _ = DataGenerator2(DATA=self.data_train, 
+                                                   YEARS_MAX_LENGTH=5,
+                                                   NSAMPLES=len(self.data_val['sample'].unique()))
+                
+                self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, data_train)
+                
+                self.train_dataloader = self.dataset_train.to_dataloader(train=True, 
+                                                                batch_size=self.batch_size, 
+                                                                shuffle=True)
+                
+                self.trainer.fit(
+                    self.tft,
+                    train_dataloaders = self.train_dataloader,
+                    val_dataloaders   = self.val_dataloader,
+                    ckpt_path=f"{self.ModelCheckpointPath}/{ckpt_files[0]}",
+                )
+                
+            self.trainer.should_stop = False
+                
+            iepoch = self.trainer.current_epoch
+            print('train epoch:', iepoch)
+                
+            
+                
         print('fit:', time.asctime( time.localtime(time.time()) ) )
         
         # load the best model according to the validation loss
@@ -939,41 +1018,42 @@ class ModelBase:
     def predict(self,):
         print('predict')
         # calcualte mean absolute error on validation set
-        actuals = torch.cat([y[0] for x, y in iter(self.val_dataloader)])
+        # actuals = torch.cat([y[0] for x, y in iter(self.val_dataloader)])
         predictions = self.best_tft.predict(self.val_dataloader)
-        (actuals - predictions).abs().mean()
+        # (actuals - predictions).abs().mean()
         
         print('raw predict')
         
-        raw_predictions, x = self.best_tft.predict(self.val_dataloader, mode="raw", return_x=True)
+        # raw predictions are a dictionary from which all kind of information including quantiles can be extracted
+        raw_predictions = self.best_tft.predict(self.val_dataloader, mode="raw", return_x=True)
         
         print(type(raw_predictions), raw_predictions.keys()) 
-        print(type(x), x.keys()) 
-        print(type(raw_predictions['prediction']), raw_predictions['prediction'].shape)
+        # print(type(x), x.keys()) 
+        # print(type(raw_predictions['prediction']), raw_predictions['prediction'].shape)
         # for idx in range(27):  # plot 10 examples
         #     self.best_tft.plot_prediction(x, raw_predictions, idx=idx, add_loss_to_title=True);
             
-        import json
+#         import json
 
-        experiment = {}
-        experiment.update( raw_predictions )
-        experiment.update( x )
+#         experiment = {}
+#         experiment.update( raw_predictions )
+#         experiment.update( x )
 
-        print(experiment.keys())
-        print(experiment['prediction'].numpy().shape)
-        print(experiment['encoder_target'].size())
-        print(experiment['decoder_target'].size())
+#         print(experiment.keys())
+#         print(experiment['prediction'].numpy().shape)
+#         print(experiment['encoder_target'].size())
+#         print(experiment['decoder_target'].size())
 
-        np.savez(
-            f'{self.name_for_files}_predict.npz',
-            actuals = np.asarray(actuals), 
-            predictions = np.asarray(predictions),
-            prediction = experiment['prediction'].numpy(),
-            encoder_target = experiment['encoder_target'].numpy(),
-            decoder_target = experiment['decoder_target'].numpy(),
-            )   
+#         np.savez(
+#             f'{self.name_for_files}_predict.npz',
+#             actuals = np.asarray(actuals), 
+#             predictions = np.asarray(predictions),
+#             prediction = experiment['prediction'].numpy(),
+#             encoder_target = experiment['encoder_target'].numpy(),
+#             decoder_target = experiment['decoder_target'].numpy(),
+#             )   
         
-        print('predict saved')
+#         print('predict saved')
         
     def test(self, checkpoit_file=f'checkpoint.ckpt'):
         print('test')
@@ -1199,8 +1279,8 @@ class RunTask:
         # model.custom_finder()
         model.train()
         model.predict()
-        model.test()
-        model.inference()
+        # model.test()
+        # model.inference()
         # model.plot_predict()
         print('The end...')
         sys.exit(0)

@@ -55,73 +55,85 @@ import random
 #         writer.close()
 
 import sys
+import os
+
+class ShouldStop(Callback):
+    def __init__(self, ModelCheckpointPath):
+        super().__init__
+        # self.milestones = milestones
+        ckpt_files = []
+        self.milestones = 10
+        self.ModelCheckpointPath = ModelCheckpointPath
+        # sys.exit(0)
+    
+    def on_validation_epoch_end(self, trainer, pl_module):
+        print('trainer.should_stop:', trainer.should_stop )
+        try:
+            # get a list of all the files in the parent directory with a .ckpt extension
+            ckpt_files = [f for f in os.listdir(self.ModelCheckpointPath) if f.endswith('.ckpt')]
+        except FileNotFoundError:
+            # handle the case where the parent directory doesn't exist
+            print("No checkpoint found, maybe it's first start")
+            # self.milestones = 10
+            
+        if trainer.current_epoch >= self.milestones:
+            trainer.should_stop = True
+            
+        if len(ckpt_files) > 0:
+            self.milestones = int(ckpt_files[0].split('-')[0].split('epoch=')[1]) + 10
+        print('ShouldStop.__init__:', self.milestones)
+        
+
         
 class ActualVsPredictedCallback(Callback):
-    def __init__(self, dataloader, filename='actuals_vs_predictions', milestones=[0, 25, 50, 100, 120]):
+    def __init__(self, dataloader, filename='actuals_vs_predictions', milestones=[0, 2, 25, 50, 100, 120]):
         super().__init__
         self.milestones = milestones
         self.dataloader = dataloader
         self.filename = filename
         
-    # def on_train_epoch_end0(self, trainer, pl_module):
-    #     # get the last training batch to get the targets and predicted values
-    #     # last_batch = self.trainer.datamodule.train_dataloader().dataset[-1]
-    #     last_batch = self.dataloader.dataset[-1]
-    #     print(trainer.__dict__)
-    #     # fn
-    #     print(pl_module.__dict__)
-    #     fn
-    #     print(type(last_batch), type(last_batch[0]))
-    #     print(last_batch[0].keys())
-    #     fn
-    #     x, y = last_batch['encoder_cont'].to(self.device), last_batch['decoder_cont'].to(self.device)
-    #     y_hat = self.tft.predict(x).reshape(y.shape) # predict using the trained model
-    #     print('Targets vs Predicted:')
-    #     print(torch.cat((y.unsqueeze(0), y_hat.unsqueeze(0)), dim=0))
-        
-    def on_validation_epoch_end(self, trainer, pl_module):
+    # def on_validation_epoch_end(self, trainer, pl_module):
         # if trainer.current_epoch not in self.milestones:
         #     return
-        print('on_validaton_epoch_end')
+        # print('on_validaton_epoch_end')
         # print('ActPred1', type(pl_module.train_dataloader))
-        print("Start predicting!")
+        # print("Start predicting!")
         # this will fetch the dataloader from the LM or LDM
-        predict_dataloader = trainer._data_connector
-        print(trainer._data_connector.__dict__)
-        sys.exit(0)
         # pl_module.eval()
         # calculate actuals and predictions        
         # self.writer = SummaryWriter(log_dir=trainer.log_dir)
-        y_true = torch.cat([y[0] for x, y in iter(self.dataloader)])
-        y_pred = y_true
+        # y_true = torch.cat([y[0] for x, y in iter(self.dataloader)])
+        # y_pred = y_true
         # with torch.no_grad():
-        y_pred = pl_module.predict(self.dataloader)
-        print(len(y_pred), y_pred[0])
+        # y_pred = pl_module.predict(self.dataloader)
+        # print(len(y_pred), y_pred[0])
         # sys.exit(0)
         # y_pred = trainer.predict(pl_module, self.dataloader)
         # print(trainer.__doc__)
         # fn
         # y_pred = pl_module(self.dataloader)
         
-        print('ActPred2', y_true.device, y_true.shape, y_pred.device)
+        # raw_predictions = pl_module.predict(self.dataloader, mode="raw", return_x=True)
+        
+#         print('ActPred2', y_true.device, y_true.shape, y_pred.device)
         
 #         # # Calculate SMAPE for the entire dataset
 #         # smape = SMAPE()
 #         # smape_val = smape(torch.flatten(y_pred), torch.flatten(y_true))
 
-        # Create plot
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(y_true.cpu().numpy(), 'o', color='green', label='actuals')
-        ax.plot(y_pred.cpu().numpy(), '.', color='red', label='predictions')
-        ax.set_xlabel('Time')
-        ax.set_ylabel('Value')
-        # ax.set_title(f'Validation SMAPE: {smape_val:.2%}')
-        ax.legend()
+#         # Create plot
+#         fig, ax = plt.subplots(figsize=(10, 6))
+#         ax.plot(y_true.cpu().numpy(), 'o', color='green', label='actuals')
+#         ax.plot(y_pred.cpu().numpy(), '.', color='red', label='predictions')
+#         ax.set_xlabel('Time')
+#         ax.set_ylabel('Value')
+#         # ax.set_title(f'Validation SMAPE: {smape_val:.2%}')
+#         ax.legend()
         
-        print('ActPred3', y_true.device, y_pred.device)
+#         print('ActPred3', y_true.device, y_pred.device)
         
-        # save the plot as an image
-        plt.savefig(f"{self.filename}.png")
+#         # save the plot as an image
+#         plt.savefig(f"{self.filename}.png")
         # fn
         
         # log the image to TensorBoard
@@ -129,8 +141,8 @@ class ActualVsPredictedCallback(Callback):
         # logger.add_figure('Validation/Actuals vs. Predictions', fig)
         # fn
 
-#         # Log plot to TensorBoard
-#         # self.writer.add_figure('Validation/Actuals vs. Predictions', fig, global_step=trainer.global_step)
+# #         # Log plot to TensorBoard
+# #         # self.writer.add_figure('Validation/Actuals vs. Predictions', fig, global_step=trainer.global_step)
 
 # ---------------------------------------------------------------------------
 
@@ -222,6 +234,59 @@ class FineTuneLearningRateFinder_CyclicLR(LearningRateFinder):
         print('on_train_epoch_start:', self.scheduler.get_last_lr()[0])
         
 # ---------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------                  
+
+class FineTuneLearningRateFinder_CyclicLR2(LearningRateFinder):
+    def __init__(self, base_lr=0.001, max_lr=0.085, step_size_up=30, step_size_down=70, mode='triangular2', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.base_lr = base_lr
+        self.max_lr = max_lr
+        self.step_size_up = step_size_up
+        self.step_size_down = step_size_down
+        self.mode = mode
+        self.optimizer = []
+        self.scheduler = []
+
+    def on_fit_start(self, trainer, pl_module):
+        lr = trainer.optimizers[0].param_groups[0]['lr']
+        print('CycicLR lr:', lr, trainer.current_epoch)
+        # self.base_lr = lr
+        print("CycicLR:", self.base_lr, self.max_lr, self.step_size_up, self.step_size_down, self.mode)
+        self.optimizer = trainer.optimizers[0]
+        # lr = trainer.optimizers[0].param_groups[0]['lr']
+        # print('lr:', lr)
+        self.scheduler = torch.optim.lr_scheduler.CyclicLR(self.optimizer, 
+                                                           base_lr=self.base_lr, 
+                                                           max_lr=self.max_lr, 
+                                                           step_size_up=self.step_size_up, 
+                                                           step_size_down=self.step_size_down, 
+                                                           mode=self.mode, 
+                                                           gamma=1.0, 
+                                                           scale_fn=None, 
+                                                           scale_mode='cycle', 
+                                                           cycle_momentum=True, 
+                                                           base_momentum=0.8, 
+                                                           max_momentum=0.9, 
+                                                           last_epoch=- 1, 
+                                                           verbose=False)
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.scheduler.get_last_lr()[0]
+        for ii in range(trainer.current_epoch):
+            self.scheduler.step()
+        print('on_fit_start:', self.scheduler.get_last_lr()[0])
+        print('on_fit_start:', trainer.optimizers[0].param_groups[0]['lr'])
+        return
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        self.optimizer = trainer.optimizers[0]
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.scheduler.get_last_lr()[0]
+        self.scheduler.step()
+        print('on_train_epoch_start:', self.scheduler.get_last_lr()[0])
+        print('on_train_epoch_start:', trainer.optimizers[0].param_groups[0]['lr'])
+        
+# ---------------------------------------------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------------------------------------------                  
 
 class FineTuneLearningRateFinder_CustomLR(LearningRateFinder):
