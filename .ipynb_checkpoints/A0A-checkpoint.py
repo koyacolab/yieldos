@@ -959,8 +959,8 @@ class ModelBase:
 
             else:
                 data_train, _ = DataGenerator2(DATA=self.data_train, 
-                                                   YEARS_MAX_LENGTH=5,
-                                                   NSAMPLES=len(self.data_val['sample'].unique()))
+                                               YEARS_MAX_LENGTH=5,
+                                               NSAMPLES=len(self.data_val['sample'].unique()))
                 
                 self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, data_train)
                 
