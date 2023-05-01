@@ -87,15 +87,15 @@ class Myloss(MultiHorizonMetric):
 # MOD_BINS = 512
 # FAM_BINS = 256
 
-MOD_BINS = 128
-FAM_BINS = 64
+MOD_BINS = 64
+FAM_BINS = 32
 
 class ModelBase:
     
     def __init__(self, 
                  home_dir = '/hy-tmp',
-                 datasetfile = f'data/ALIM{MOD_BINS}F{FAM_BINS}DATASET_rice.csv',
-                 # datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_corn.csv',           
+                 # datasetfile = f'data/ALIM{MOD_BINS}F{FAM_BINS}DATASET_rice.csv',
+                 datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_rice.csv',           
                  # datasetfile = 'corn_china_pandas_onebands.csv',
                  predicted_years = "2004 2010 2017",
                  batch_size = 16, 
@@ -560,14 +560,14 @@ class ModelBase:
         #                'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
         
         famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', \
-                       # 'Qair_f_tavg', 'Qg_tavg',\
-                       # 'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', \
+                       'Qair_f_tavg', 'Qg_tavg',\
+                       'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', \
                        'RadT_tavg', 'Rainf_f_tavg', \
-                       # 'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
+                       'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
                        'SoilMoi00_10cm_tavg', 'SoilMoi10_40cm_tavg', \
-                       # 'SoilMoi40_100cm_tavg', \
+                       'SoilMoi40_100cm_tavg', \
                        'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', \
-                       # 'SoilTemp40_100cm_tavg', \
+                       'SoilTemp40_100cm_tavg', \
                        'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
 
         nbins = ['_' + str(x) for x in range(0, FAM_BINS - 1)]
@@ -579,12 +579,12 @@ class ModelBase:
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
         # self._time_varying_known_reals.extend(mod_names) 
-        # self._time_varying_known_reals.extend(famine_names)
+        self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
         # self._time_varying_unknown_reals.extend(mod_names)
-        # self._time_varying_unknown_reals.extend(famine_names)
+        self._time_varying_unknown_reals.extend(famine_names)
 
         # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
 
@@ -931,7 +931,7 @@ class ModelBase:
         # print('ActPred3', y_true.device, y_pred.device)
 
         # save the plot as an image
-        plt.savefig(f"actuals_vs_predictions.png")
+        plt.savefig(f"{self.name_for_files}_actuals_vs_predictions.png")
         
     def train(self,):
         print( time.asctime( time.localtime(time.time()) ) )       
@@ -954,7 +954,7 @@ class ModelBase:
                     train_dataloaders = self.train_dataloader,
                     val_dataloaders   = self.val_dataloader,
                 )
-                self.pltprd(self.val_dataloader)
+                # self.pltprd(self.val_dataloader)
                 # self.trainer.should_stop = False
 
             else:
@@ -974,13 +974,12 @@ class ModelBase:
                     val_dataloaders   = self.val_dataloader,
                     ckpt_path=f"{self.ModelCheckpointPath}/{ckpt_files[0]}",
                 )
-                
             self.trainer.should_stop = False
+            
+            self.pltprd(self.val_dataloader)
                 
             iepoch = self.trainer.current_epoch
-            print('train epoch:', iepoch)
-                
-            
+            print('train epoch:', iepoch)         
                 
         print('fit:', time.asctime( time.localtime(time.time()) ) )
         

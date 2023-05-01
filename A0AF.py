@@ -86,14 +86,15 @@ class Myloss(MultiHorizonMetric):
 # MOD_BINS = 512
 # FAM_BINS = 256
 
-MOD_BINS = 128
-FAM_BINS = 64
+MOD_BINS = 64
+FAM_BINS = 32
 
 class ModelBase:
     
     def __init__(self, 
                  home_dir = '/hy-tmp',
-                 datasetfile = f'data/ALIM{MOD_BINS}F{FAM_BINS}DATASET_rice.csv',
+                 # datasetfile = f'data/ALIM{MOD_BINS}F{FAM_BINS}DATASET_rice.csv',
+                 datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_rice.csv',
                  # datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_corn.csv',           
                  # datasetfile = 'corn_china_pandas_onebands.csv',
                  predicted_years = "2004 2010 2017",
