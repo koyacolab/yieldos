@@ -721,9 +721,9 @@ class ModelBase:
         
         #### SET CHECKPOINT ##############################
         self.ModelCheckpointPath = os.path.join(home_dir, self.name_for_files)
-        self._checkpoint_callback = ModelCheckpoint(dirpath = self.ModelCheckpointPath, every_n_epochs = 10)
+        self._checkpoint_callback = ModelCheckpoint(dirpath = self.ModelCheckpointPath, every_n_epochs = 2)
         
-        self._should_stop = ShouldStop(ModelCheckpointPath = self.ModelCheckpointPath, milestones = 10)
+        self._should_stop = ShouldStop(ModelCheckpointPath = self.ModelCheckpointPath, milestones = 2)
 
         _dir = '/tf_logs'
         # dir = os.path.join(home_dir, 'data')
@@ -834,80 +834,79 @@ class ModelBase:
 #                                        YEARS_MAX_LENGTH=5,
 #                                        NSAMPLES=len(self.data_val['sample'].unique()))
                 
-#         self.training = TimeSeriesDataSet(
-#             # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length],
-#             self.data_train,
-#             time_idx="time_idx",
-#             target=f"{self.scrop}_yield",
-#             group_ids=["county", "sample"],
-#             # group_ids=["county", "year"],
-#             # min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
-#             max_encoder_length = self.max_encoder_length - 4,
-#             # min_prediction_length = 2,                     #max_prediction_length // 2,
-#             max_prediction_length = self.max_prediction_length + 4,
-#             # min_prediction_idx = min_prediction_idx,
-#             # static_categoricals = ["county", "year"],
-#             # static_reals = _static_reals,
-#             time_varying_known_categoricals=["month", "gstage"],
-#             # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
-#             time_varying_known_reals = self._time_varying_known_reals,
-#             # time_varying_unknown_categoricals=[],
-#             time_varying_unknown_reals = self._time_varying_unknown_reals,
-#             target_normalizer=GroupNormalizer(
-#                 groups=["county", "sample"], #transformation="relu"
-#             ),  # use softplus and normalize by group
-#             add_relative_time_idx=True,
-#             add_target_scales=True,
-#             add_encoder_length=True,
-#         )
+        self.training = TimeSeriesDataSet(
+            # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length],
+            self.data_train,
+            time_idx="time_idx",
+            target=f"{self.scrop}_yield",
+            group_ids=["county", "sample"],
+            # group_ids=["county", "year"],
+            # min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
+            max_encoder_length = self.max_encoder_length - 4,
+            # min_prediction_length = 2,                     #max_prediction_length // 2,
+            max_prediction_length = self.max_prediction_length + 4,
+            # min_prediction_idx = min_prediction_idx,
+            # static_categoricals = ["county", "year"],
+            # static_reals = _static_reals,
+            time_varying_known_categoricals=["month", "gstage"],
+            # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
+            time_varying_known_reals = self._time_varying_known_reals,
+            # time_varying_unknown_categoricals=[],
+            time_varying_unknown_reals = self._time_varying_unknown_reals,
+            target_normalizer=GroupNormalizer(
+                groups=["county", "sample"], #transformation="relu"
+            ),  # use softplus and normalize by group
+            add_relative_time_idx=True,
+            add_target_scales=True,
+            add_encoder_length=True,
+        )
                 
-# #         # self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
-# #         #                                                     self.data_train)
+#         # self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
+#         #                                                     self.data_train)
 
-#         self.train_dataloader = self.training.to_dataloader(train=True, 
-#                                                             batch_size=self.batch_size, 
-#                                                             shuffle=True, 
-#                                                             num_workers=12)
+        self.train_dataloader = self.training.to_dataloader(train=True, 
+                                                                 batch_size=self.batch_size, 
+                                                                 shuffle=True)
 
-#         self.validation = TimeSeriesDataSet.from_dataset(self.training, 
-#                                                          self.data_val, 
-#                                                          predict=True, 
-#                                                          stop_randomization=True)
+        self.validation = TimeSeriesDataSet.from_dataset(self.training, 
+                                                         self.data_val, 
+                                                         predict=True, 
+                                                         stop_randomization=True)
 
-#         self.val_dataloader = self.validation.to_dataloader(train=False, 
-#                                                             batch_size=27, 
-#                                                             num_workers=8)
+        self.val_dataloader = self.validation.to_dataloader(train=False, 
+                                                            batch_size=27, 
+                                                            num_workers=8)
         
-#         self.trainer = Trainer(accelerator = 'gpu', 
-#                logger = self._tb_logger, 
-#                log_every_n_steps = 1, 
-#                max_epochs = self.max_epochs,
-#                # devices = "0",          
-#                # fast_dev_run=True, 
-#                # precision=16,
-#                gradient_clip_val = 0.2,
-#                # reload_dataloaders_every_epoch=True,
-#                # Checkpoint configuration
-#                # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
-#                reload_dataloaders_every_n_epochs = 1,
-#                callbacks = [self._lr_finder, 
-#                             self._checkpoint_callback, 
-#                             self._lr_monitor, 
-#                             # _reload_dataset, 
-#                             # # _tb_logger, in logger
-#                             # _actvspred_train, 
-#                             # _actvspred_valid,
-#                             self._should_stop,
-#                             ])
+        self.trainer = Trainer(accelerator = 'gpu', 
+               logger = self._tb_logger, 
+               log_every_n_steps = 1, 
+               max_epochs = self.max_epochs,
+               # devices = "0",          
+               # fast_dev_run=True, 
+               # precision=16,
+               gradient_clip_val = 0.2,
+               # reload_dataloaders_every_epoch=True,
+               # Checkpoint configuration
+               # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
+               reload_dataloaders_every_n_epochs = 1,
+               callbacks = [self._lr_finder, 
+                            self._checkpoint_callback, 
+                            self._lr_monitor, 
+                            # _reload_dataset, 
+                            # # _tb_logger, in logger
+                            # _actvspred_train, 
+                            # _actvspred_valid,
+                            self._should_stop,
+                            ])
 
-#         self.tft = TemporalFusionTransformer.from_dataset(
-#         self.training,
-#         dropout=0.3,           
-#         loss=self.loss_func,
-#         # loss=QuantileLoss(),
-#         # optimizer = 'adam',
-#         optimizer = 'sgd',
-#         )
+        self.tft = TemporalFusionTransformer.from_dataset(
+        self.training,
+        dropout=0.3,           
+        loss=self.loss_func,
+        # loss=QuantileLoss(),
+        # optimizer = 'adam',
+        optimizer = 'sgd',
+        )
 
           
     def pltprd(self, dataloader):
@@ -947,84 +946,80 @@ class ModelBase:
         
             if len(ckpt_files) == 0:
                 
-                self.data_train, _ = DataGenerator2(DATA=self.data_train, 
-                                                    YEARS_MAX_LENGTH=5,
-                                                    NSAMPLES=len(self.data_val['sample'].unique()))
+#                 self.trainer = Trainer(accelerator = 'gpu', 
+#                        logger = self._tb_logger, 
+#                        log_every_n_steps = 1, 
+#                        max_epochs = self.max_epochs,
+#                        # devices = "0",          
+#                        # fast_dev_run=True, 
+#                        # precision=16,
+#                        gradient_clip_val = 0.2,
+#                        # reload_dataloaders_every_epoch=True,
+#                        # Checkpoint configuration
+#                        # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
+#                        reload_dataloaders_every_n_epochs = 1,
+#                        callbacks = [self._lr_finder, 
+#                                     self._checkpoint_callback, 
+#                                     self._lr_monitor, 
+#                                     # _reload_dataset, 
+#                                     # # _tb_logger, in logger
+#                                     # _actvspred_train, 
+#                                     # _actvspred_valid,
+#                                     self._should_stop,
+#                                     ])
                 
-                self.training = TimeSeriesDataSet(
-                    # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length],
-                    self.data_train,
-                    time_idx="time_idx",
-                    target=f"{self.scrop}_yield",
-                    group_ids=["county", "sample"],
-                    # group_ids=["county", "year"],
-                    # min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
-                    max_encoder_length = self.max_encoder_length - 4,
-                    # min_prediction_length = 2,                     #max_prediction_length // 2,
-                    max_prediction_length = self.max_prediction_length + 4,
-                    # min_prediction_idx = min_prediction_idx,
-                    # static_categoricals = ["county", "year"],
-                    # static_reals = _static_reals,
-                    time_varying_known_categoricals=["month", "gstage"],
-                    # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
-                    time_varying_known_reals = self._time_varying_known_reals,
-                    # time_varying_unknown_categoricals=[],
-                    time_varying_unknown_reals = self._time_varying_unknown_reals,
-                    target_normalizer=GroupNormalizer(
-                        groups=["county", "sample"], #transformation="relu"
-                    ),  # use softplus and normalize by group
-                    add_relative_time_idx=True,
-                    add_target_scales=True,
-                    add_encoder_length=True,
-                )
+#                 self.data_train, _ = DataGenerator2(DATA=self.data_train, 
+#                                                YEARS_MAX_LENGTH=5,
+#                                                NSAMPLES=len(self.data_val['sample'].unique()))
+                
+#                 self.training = TimeSeriesDataSet(
+#                     # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length],
+#                     self.data_train,
+#                     time_idx="time_idx",
+#                     target=f"{self.scrop}_yield",
+#                     group_ids=["county", "sample"],
+#                     max_encoder_length = self.max_encoder_length - 4,
+#                     # min_prediction_length = 2,                     #max_prediction_length // 2,
+#                     max_prediction_length = self.max_prediction_length + 4,
+#                     # min_prediction_idx = min_prediction_idx,
+#                     # static_categoricals = ["county", "year"],
+#                     # static_reals = _static_reals,
+#                     time_varying_known_categoricals=["month", "gstage"],
+#                     time_varying_known_reals = self._time_varying_known_reals,
+#                     # time_varying_unknown_categoricals=[],
+#                     time_varying_unknown_reals = self._time_varying_unknown_reals,
+#                     target_normalizer=GroupNormalizer(
+#                         groups=["county", "sample"], #transformation="relu"
+#                     ),  # use softplus and normalize by group
+#                     add_relative_time_idx=True,
+#                     add_target_scales=True,
+#                     add_encoder_length=True,
+#                 )
+                
+#                 self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
+#                                                                     self.data_train)
 
-        #         # self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
-        #         #                                                     self.data_train)
+#                 self.train_dataloader = self.dataset_train.to_dataloader(train=True, 
+#                                                                          batch_size=self.batch_size, 
+#                                                                          shuffle=True)
 
-                self.train_dataloader = self.training.to_dataloader(train=True, 
-                                                                    batch_size=self.batch_size, 
-                                                                    shuffle=True, 
-                                                                    num_workers=12)
+#                 self.validation = TimeSeriesDataSet.from_dataset(self.training, 
+#                                                                  self.data_val, 
+#                                                                  predict=True, 
+#                                                                  stop_randomization=True)
 
-                self.validation = TimeSeriesDataSet.from_dataset(self.training, 
-                                                                 self.data_val, 
-                                                                 predict=True, 
-                                                                 stop_randomization=True)
+#                 self.val_dataloader = self.validation.to_dataloader(train=False, 
+#                                                                     batch_size=27, 
+#                                                                     num_workers=8)
 
-                self.val_dataloader = self.validation.to_dataloader(train=False, 
-                                                                    batch_size=27, 
-                                                                    num_workers=8)
-
-                self.trainer = Trainer(accelerator = 'gpu', 
-                       logger = self._tb_logger, 
-                       log_every_n_steps = 1, 
-                       max_epochs = self.max_epochs,
-                       # devices = "0",          
-                       # fast_dev_run=True, 
-                       # precision=16,
-                       gradient_clip_val = 0.2,
-                       # reload_dataloaders_every_epoch=True,
-                       # Checkpoint configuration
-                       # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
-                       reload_dataloaders_every_n_epochs = 1,
-                       callbacks = [self._lr_finder, 
-                                    self._checkpoint_callback, 
-                                    self._lr_monitor, 
-                                    # _reload_dataset, 
-                                    # # _tb_logger, in logger
-                                    # _actvspred_train, 
-                                    # _actvspred_valid,
-                                    self._should_stop,
-                                    ])
-
-                self.tft = TemporalFusionTransformer.from_dataset(
-                self.training,
-                dropout=0.3,           
-                loss=self.loss_func,
-                # loss=QuantileLoss(),
-                # optimizer = 'adam',
-                optimizer = 'sgd',
-                )
+#                 self.tft = TemporalFusionTransformer.from_dataset(
+#                 self.training,
+#                 dropout=0.3,           
+#                 loss=self.loss_func,
+#                 # loss=QuantileLoss(),
+#                 # optimizer = 'adam',
+#                 optimizer = 'sgd',
+#                 )
 
                 self.trainer.fit(
                     self.tft,
@@ -1043,9 +1038,8 @@ class ModelBase:
                                                                     self.data_train)
 
                 self.train_dataloader = self.dataset_train.to_dataloader(train=True, 
-                                                                         batch_size=self.batch_size, 
-                                                                         shuffle=True, 
-                                                                         num_workers=10)
+                                                                batch_size=self.batch_size, 
+                                                                shuffle=True)
 
                 self.validation = TimeSeriesDataSet.from_dataset(self.training, 
                                                                  self.data_val, 

@@ -55,14 +55,14 @@ import random
 #         writer.close()
 
 import sys
-import os
+import os 
 
 class ShouldStop(Callback):
-    def __init__(self, ModelCheckpointPath):
+    def __init__(self, ModelCheckpointPath, milestones):
         super().__init__
         # self.milestones = milestones
-        ckpt_files = []
-        self.milestones = 10
+        self.ckpt_files = []
+        self.milestones = milestones
         self.ModelCheckpointPath = ModelCheckpointPath
         # sys.exit(0)
     
@@ -70,7 +70,7 @@ class ShouldStop(Callback):
         print('trainer.should_stop:', trainer.should_stop )
         try:
             # get a list of all the files in the parent directory with a .ckpt extension
-            ckpt_files = [f for f in os.listdir(self.ModelCheckpointPath) if f.endswith('.ckpt')]
+            self.ckpt_files = [f for f in os.listdir(self.ModelCheckpointPath) if f.endswith('.ckpt')]
         except FileNotFoundError:
             # handle the case where the parent directory doesn't exist
             print("No checkpoint found, maybe it's first start")
@@ -79,8 +79,8 @@ class ShouldStop(Callback):
         if trainer.current_epoch >= self.milestones:
             trainer.should_stop = True
             
-        if len(ckpt_files) > 0:
-            self.milestones = int(ckpt_files[0].split('-')[0].split('epoch=')[1]) + 10
+        if len(self.ckpt_files) > 0:
+            self.milestones = int(self.ckpt_files[0].split('-')[0].split('epoch=')[1]) + 10
         print('ShouldStop.__init__:', self.milestones)
         
 
