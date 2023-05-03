@@ -96,10 +96,8 @@ class ModelBase:
                  home_dir = '/hy-tmp',
                  # datasetfile = f'data/ALIM{MOD_BINS}F{FAM_BINS}DATASET_rice.csv',
                  datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_rice.csv',           
-                 # datasetfile = 'corn_china_pandas_onebands.csv',
                  predicted_years = "2004 2010 2017",
                  batch_size = 16, 
-                 # encoder_length = 20,
                  save_checkpoint = False,
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
@@ -127,6 +125,7 @@ class ModelBase:
             
         self.loss_func = RMSE()
         
+        ## LOSS PARSING ############################
         if loss_func_metric == 'RMSE':
             self.loss_func = RMSE()
         elif loss_func_metric == 'MAE':
@@ -162,9 +161,13 @@ class ModelBase:
         # MOD_BINS = 512
         # FAM_BINS = 256
         
-        print('predicted_years:', self.predicted_years, 'max_epochs:', max_epochs, 'batch_size:', batch_size, \
-              'learning_rate', self.learning_rate, \
-              'loss_func_metric:', loss_func_metric, 'seed:', seed, 'lr_milestones_list:', lr_milestones_list)
+        print('predicted_years:', self.predicted_years, 
+              'max_epochs:', max_epochs, 
+              'batch_size:', batch_size, 
+              'learning_rate', self.learning_rate, 
+              'loss_func_metric:', loss_func_metric, 
+              'seed:', seed, 
+              'lr_milestones_list:', lr_milestones_list)
         
         # sys.exit(0)
         # fn
@@ -383,24 +386,24 @@ class ModelBase:
                                            NSAMPLES=len(self.data_val['sample'].unique()))
         
         ###### ADD VALIDATION TILE TO TRAIN DATA FOR CUT IT IN VALIDATION DATALOADER IN PREDICTED MODE #############
-        ###### WITH time_idx recalculation #########################
-#         df_tr = pd.DataFrame()
-#         for smpl in self.data_val['sample'].unique():
-#             for county in self.data_val['county'].unique():
-#                 df_cn = pd.DataFrame()
-#                 dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
-#                 dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
-#                 df_cn = pd.concat([df_cn, dfa], axis=0)
-#                 df_cn = pd.concat([df_cn, dfb], axis=0)
+        ##### WITH time_idx recalculation #########################
+        df_tr = pd.DataFrame()
+        for smpl in self.data_val['sample'].unique():
+            for county in self.data_val['county'].unique():
+                df_cn = pd.DataFrame()
+                dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
+                dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
+                df_cn = pd.concat([df_cn, dfa], axis=0)
+                df_cn = pd.concat([df_cn, dfb], axis=0)
                 
-#                 new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
-#                 df_cn.index = new_index
-#                 df_cn["time_idx"] = df_cn.index.astype(int)
-#                 df_tr = pd.concat([df_tr, df_cn], axis=0)
-#         new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
-#         df_tr.index = new_index
+                new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
+                df_cn.index = new_index
+                df_cn["time_idx"] = df_cn.index.astype(int)
+                df_tr = pd.concat([df_tr, df_cn], axis=0)
+        new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
+        df_tr.index = new_index
         
-#         self.data_train = df_tr
+        self.data_train = df_tr
         
         ########### PLOT SAMPLE WITH ENCODER/DECODER FOR CONTROL ################################################
 
@@ -464,7 +467,7 @@ class ModelBase:
         
         ################ SET max_prediction_length & max_encoder_length value #######
         self.max_prediction_length = dfp.shape[0]
-        self.max_encoder_length = dfe.shape[0]
+        self.max_encoder_length    = dfe.shape[0]
         
         ######## PLOT & CHECK ENCODER/DECODER DATASET ############################################################
         
@@ -603,28 +606,25 @@ class ModelBase:
         # self._time_varying_unknown_reals.extend(modis_list)
         self._time_varying_unknown_reals.extend(famine_names)
 
-        # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
-
-        print(f'training mx_epochs, TimeSeriesDataSet:', max_epochs, time.asctime( time.localtime(time.time()) ) )
-        
-        print('D1: known-unknown go --------------------------')
-        print('D2: --------------------------')
-        
+        # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )    
         
 #####################################################################################################################
 ############################## SET TRAIN/VALIDATION/TEST TS DATASETS ###################################################
+
+        #### ADD TIME LAG TO ENCODER/DECODER #################################################### 
+        self.prediction_lag = 4
         
         self.training = TimeSeriesDataSet(
-            # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length],
-            self.data_train,
+            self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],
+            # self.data_train,
             time_idx="time_idx",
             target=f"{self.scrop}_yield",
             group_ids=["county", "sample"],
             # group_ids=["county", "year"],
             # min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
-            max_encoder_length = self.max_encoder_length - 4,
+            max_encoder_length = self.max_encoder_length - self.prediction_lag,
             # min_prediction_length = 2,                     #max_prediction_length // 2,
-            max_prediction_length = self.max_prediction_length + 4,
+            max_prediction_length = self.max_prediction_length + self.prediction_lag,
             # min_prediction_idx = min_prediction_idx,
             # static_categoricals = ["county", "year"],
             # static_reals = _static_reals,
@@ -645,12 +645,16 @@ class ModelBase:
         
 
 ####### CREATE VALIDATION/TEST TSDS (predict=True) which means to predict the last max_prediction_length points in time
-#         # for each series
-#         # self.validation = TimeSeriesDataSet.from_dataset(self.training, self.data_train, predict=True, stop_randomization=True)
+#       # for each series
         self.validation = TimeSeriesDataSet.from_dataset(self.training, 
-                                                         self.data_val, 
+                                                         self.data_train, 
                                                          predict=True, 
                                                          stop_randomization=True)
+    
+        # self.validation = TimeSeriesDataSet.from_dataset(self.training, 
+        #                                                  self.data_val, 
+        #                                                  predict=True, 
+        #                                                  stop_randomization=True)
         
         self.testing = TimeSeriesDataSet.from_dataset(self.training, 
                                                       self.data_val, 
@@ -879,7 +883,7 @@ class ModelBase:
                 # self.trainer.should_stop = False
 
             else:
-                self.data_train, _ = DataGenerator2(DATA=self.data_train, 
+                self.data_train, _ = DataGenerator2(DATA=self.data, 
                                                     YEARS_MAX_LENGTH=5,
                                                     NSAMPLES=len(self.data_val['sample'].unique()))
 
@@ -891,14 +895,14 @@ class ModelBase:
                                                                          shuffle=True, 
                                                                          num_workers=10)
 
-                self.validation = TimeSeriesDataSet.from_dataset(self.training, 
-                                                                 self.data_val, 
-                                                                 predict=True, 
-                                                                 stop_randomization=True)
+#                 self.validation = TimeSeriesDataSet.from_dataset(self.training, 
+#                                                                  self.data_val, 
+#                                                                  predict=True, 
+#                                                                  stop_randomization=True)
 
-                self.val_dataloader = self.validation.to_dataloader(train=False, 
-                                                                    batch_size=27, 
-                                                                    num_workers=8)
+#                 self.val_dataloader = self.validation.to_dataloader(train=False, 
+#                                                                     batch_size=27, 
+#                                                                     num_workers=8)
 
                 self.trainer.fit(
                     self.tft,

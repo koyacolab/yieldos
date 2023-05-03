@@ -138,7 +138,7 @@ def DataGenerator(DATA, YEARS_MAX_LENGTH, NSAMPLES):
 
 def DataGenerator2(DATA, YEARS_MAX_LENGTH, NSAMPLES):
     years_list = list(DATA['year'].astype(int).unique())
-    print(f'Augmentation for years list: {years_list} by NSAMPLES={NSAMPLES} and YEARS_MAX_LENGTH={YEARS_MAX_LENGTH}')
+    print(f'DataGenerator2: Augmentation for years list: {years_list} by NSAMPLES={NSAMPLES})
 
     data_samples = pd.DataFrame()
     years_samples = []
@@ -156,7 +156,8 @@ def DataGenerator2(DATA, YEARS_MAX_LENGTH, NSAMPLES):
             df_concat_year = pd.DataFrame()
             for iyear in years:
                 df_concat_year = pd.concat([ df_concat_year, DATA.loc[ (DATA['year'].astype(int) == iyear) & \
-                                                         (DATA['county'] == county)] ], axis=0)
+                                                                       (DATA['county'] == county)] ], 
+                                           axis=0)
             # reindex the concatenated dataframe with a new index
             new_index = pd.RangeIndex(start=0, stop=len(df_concat_year)+0, step=1)
             df_concat_year.index = new_index
@@ -185,14 +186,15 @@ def DataGenerator3(DATA, YEARS_MAX_LENGTH, NSAMPLES):
             # get list of training years 
             # years = random.sample(years_list, num_years)
             years = years_list
-            random.shuffle(years)
+            # random.shuffle(years)
             # print('DataGenerator2:', years)
             # fn
             years_samples.append(years)
             df_concat_year = pd.DataFrame()
             for iyear in years:
                 df_concat_year = pd.concat([ df_concat_year, DATA.loc[ (DATA['year'].astype(int) == iyear) & \
-                                                         (DATA['county'] == county)] ], axis=0)
+                                                                       (DATA['county'] == county)] ], 
+                                           axis=0)
             # reindex the concatenated dataframe with a new index
             new_index = pd.RangeIndex(start=0, stop=len(df_concat_year)+0, step=1)
             df_concat_year.index = new_index
