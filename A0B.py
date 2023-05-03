@@ -63,7 +63,7 @@ from lightning.pytorch.callbacks import LearningRateFinder
 from lightning.pytorch.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR, FineTuneLearningRateFinder_CustomLR
-from utils import FineTuneLearningRateFinder_CyclicLR2, ShouldStop
+from utils import FineTuneLearningRateFinder_CyclicLR2, Reseter
 from utils_data import ReloadDataLoader, ReloadDataSet, ReloadDataSet_12
 from utils_data import DataGenerator, DataGenerator2
 from utils import ActualVsPredictedCallback
@@ -559,15 +559,26 @@ class ModelBase:
         #                'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', 'SoilTemp40_100cm_tavg', \
         #                'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
         
+        # famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', \
+        #                'Qair_f_tavg', 'Qg_tavg',\
+        #                'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', \
+        #                'RadT_tavg', 'Rainf_f_tavg', \
+        #                'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
+        #                'SoilMoi00_10cm_tavg', 'SoilMoi10_40cm_tavg', \
+        #                'SoilMoi40_100cm_tavg', \
+        #                'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', \
+        #                'SoilTemp40_100cm_tavg', \
+        #                'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
+        
         famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', \
-                       'Qair_f_tavg', 'Qg_tavg',\
-                       'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', \
+                       # 'Qair_f_tavg', 'Qg_tavg',\
+                       # 'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', \
                        'RadT_tavg', 'Rainf_f_tavg', \
-                       'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
+                       # 'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
                        'SoilMoi00_10cm_tavg', 'SoilMoi10_40cm_tavg', \
-                       'SoilMoi40_100cm_tavg', \
+                       # 'SoilMoi40_100cm_tavg', \
                        'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', \
-                       'SoilTemp40_100cm_tavg', \
+                       # 'SoilTemp40_100cm_tavg', \
                        'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
 
         nbins = ['_' + str(x) for x in range(0, FAM_BINS - 1)]
@@ -594,8 +605,8 @@ class ModelBase:
         print('D2: --------------------------')
         
         
-###########################################################################################
-        ##### SET TRAIN/VALIDATION/TEST DATASETS ###################################################
+#####################################################################################################################
+############################## SET TRAIN/VALIDATION/TEST DATASETS ###################################################
         
         self.training = TimeSeriesDataSet(
             # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length],
@@ -627,57 +638,22 @@ class ModelBase:
 # #         print( time.asctime( time.localtime(time.time()) ) )
         
 
-#         # fn
-
-#         # self.testing = TimeSeriesDataSet(
-#         #     self.data_val,
-#         #     time_idx="time_idx",
-#         #     target=f"{self.scrop}_yield",
-#         #     # group_ids=["county", "sample"],
-#         #     group_ids=["county", "sample"],
-#         #     min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
-#         #     max_encoder_length = self.max_encoder_length,
-#         #     min_prediction_length = 1 , # max_prediction_length // 2,
-#         #     max_prediction_length = self.max_prediction_length,
-#         #     # min_prediction_idx = min_prediction_idx,
-#         #     # static_categoricals = ["county", "year"],
-#         #     # static_reals = _static_reals,
-#         #     time_varying_known_categoricals=["month"],      
-#         #     # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
-#         #     time_varying_known_reals = self._time_varying_known_reals,
-#         #     # time_varying_unknown_categoricals=[],
-#         #     time_varying_unknown_reals = self._time_varying_unknown_reals,
-#         #     target_normalizer=GroupNormalizer(
-#         #         groups=["county"], transformation="relu"
-#         #     ),  # use softplus and normalize by group
-#         #     add_relative_time_idx=True,
-#         #     add_target_scales=True,
-#         #     add_encoder_length=True,
-#         # )
-
-#         ######### create validation set (predict=True) which means to predict the last max_prediction_length points in time
+################ create validation set (predict=True) which means to predict the last max_prediction_length points in time
 #         # for each series
 #         # self.validation = TimeSeriesDataSet.from_dataset(self.training, self.data_train, predict=True, stop_randomization=True)
-        self.validation = TimeSeriesDataSet.from_dataset(self.training, 
-                                                         self.data_val, 
-                                                         predict=True, 
-                                                         stop_randomization=True)
+        self.validation = TimeSeriesDataSet.from_dataset(self.training, self.data_val, predict=True, stop_randomization=True)
         
-#         self.testing = TimeSeriesDataSet.from_dataset(self.training, self.data_val, predict=True, stop_randomization=True)
+        self.testing = TimeSeriesDataSet.from_dataset(self.training, self.data_val, predict=True, stop_randomization=True)
 
 #         print(f'training & validation TimeSeriesDataSet loaded', time.asctime( time.localtime(time.time()) ) )
         
-#         ######### CREATE TRAIN/VALIDATION/TEST DATALOADERS ####################################################
+###################### CREATE TRAIN/VALIDATION/TEST DATALOADERS ####################################################
 #         # batch_size = 16  # set this between 32 to 128
-        self.train_dataloader = self.training.to_dataloader(train=True, 
-                                                            batch_size=self.batch_size, 
-                                                            num_workers=8)
+        self.train_dataloader = self.training.to_dataloader(train=True, batch_size=self.batch_size, num_workers=8)
         
-        self.val_dataloader = self.validation.to_dataloader(train=False, 
-                                                            batch_size=27, 
-                                                            num_workers=8)
+        self.val_dataloader = self.validation.to_dataloader(train=False, batch_size=27, num_workers=8)
         
-#         self.test_dataloader = self.training.to_dataloader(train=False, batch_size=27, num_workers=8)
+        self.test_dataloader = self.training.to_dataloader(train=False, batch_size=27, num_workers=8)
         
 #         ##### CHECK train_dataloader #####################################
 #         # y_true = torch.cat([y[0] for x, y in iter(self.train_dataloader)])
@@ -708,7 +684,7 @@ class ModelBase:
         
 #         print( time.asctime( time.localtime(time.time()) ) )
 
-#         #### CREATE BASELINE ##########################################################
+#         #### TEST BASELINE ##########################################################
 #         # actuals = torch.cat([y for x, (y, weight) in iter(self.val_dataloader)])
 #         # baseline_predictions = Baseline().predict(self.val_dataloader)
 #         # calculate baseline mean absolute error, i.e. predict next value as the last available value from the history
@@ -720,17 +696,16 @@ class ModelBase:
 #         print( 'Baseline:', baseline_predictions.y )
 #         print( 'Baseline:', (actuals[0] - baseline_predictions.output).abs().mean() )
 #         print( 'Baseline:', time.asctime( time.localtime(time.time()) ) )
-    
-        
+            
         # dir = '/hy-tmp/chck/ali'
         # home_dir = '/content/gdrive/My Drive/AChina' 
         # _dir = os.path.join(home_dir, 'data')
         
         #### SET CHECKPOINT ##############################
         self.ModelCheckpointPath = os.path.join(home_dir, self.name_for_files)
-        self._checkpoint_callback = ModelCheckpoint(dirpath = self.ModelCheckpointPath, every_n_epochs = 2)
+        self._checkpoint_callback = ModelCheckpoint(dirpath = self.ModelCheckpointPath, every_n_epochs = 10)
         
-        self._should_stop = ShouldStop(ModelCheckpointPath = self.ModelCheckpointPath, milestones = 2)
+        self._Reseter = Reseter(ModelCheckpointPath = self.ModelCheckpointPath, milestones = 10)
 
         _dir = '/tf_logs'
         # dir = os.path.join(home_dir, 'data')
@@ -786,7 +761,7 @@ class ModelBase:
 #                                            YEARS_MAX_LENGTH=10, 
 #                                            NSAMPLES=len(self.data_val['sample'].unique()))
 
-#         #### SET TRAINER ###########################################################
+########################################### SET TRAINER ###########################################################
         self.trainer = Trainer(accelerator = 'gpu', 
                                logger = self._tb_logger, 
                                log_every_n_steps = 1, 
@@ -806,12 +781,12 @@ class ModelBase:
                                             # # _tb_logger, in logger
                                             # _actvspred_train, 
                                             # _actvspred_valid,
-                                            self._should_stop,
+                                            self._Reseter,
                                             ])
         
 
 
-# #         #### SET TEMPORAL FUSION TRANSFORMER AS MODEL #######################################
+############################################# SET TEMPORAL FUSION TRANSFORMER AS MODEL #######################################
 
         self.tft = TemporalFusionTransformer.from_dataset(
             self.training,
@@ -830,90 +805,12 @@ class ModelBase:
             # reduce_on_plateau_patience=4,
             )
 
-        ####################################################################
+################### SET best_tft  for inferencing ###########################################################################
         
-        # self.best_tft = self.tft
-        self.checkpoint = self.name_for_files
-        
-############## For testing ###########################
-                
-#         self.data_train, _ = DataGenerator2(DATA=self.data_train, 
-#                                        YEARS_MAX_LENGTH=5,
-#                                        NSAMPLES=len(self.data_val['sample'].unique()))
-                
-#         self.training = TimeSeriesDataSet(
-#             # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length],
-#             self.data_train,
-#             time_idx="time_idx",
-#             target=f"{self.scrop}_yield",
-#             group_ids=["county", "sample"],
-#             # group_ids=["county", "year"],
-#             # min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
-#             max_encoder_length = self.max_encoder_length - 4,
-#             # min_prediction_length = 2,                     #max_prediction_length // 2,
-#             max_prediction_length = self.max_prediction_length + 4,
-#             # min_prediction_idx = min_prediction_idx,
-#             # static_categoricals = ["county", "year"],
-#             # static_reals = _static_reals,
-#             time_varying_known_categoricals=["month", "gstage"],
-#             # variable_groups={"years": years},  # group of categorical variables can be treated as one variable
-#             time_varying_known_reals = self._time_varying_known_reals,
-#             # time_varying_unknown_categoricals=[],
-#             time_varying_unknown_reals = self._time_varying_unknown_reals,
-#             target_normalizer=GroupNormalizer(
-#                 groups=["county", "sample"], #transformation="relu"
-#             ),  # use softplus and normalize by group
-#             add_relative_time_idx=True,
-#             add_target_scales=True,
-#             add_encoder_length=True,
-#         )
-                
-# #         # self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
-# #         #                                                     self.data_train)
+        self.best_tft = self.tft
+        self.checkpoint = self.name_for_files 
 
-#         self.train_dataloader = self.training.to_dataloader(train=True, 
-#                                                                  batch_size=self.batch_size, 
-#                                                                  shuffle=True)
-
-#         self.validation = TimeSeriesDataSet.from_dataset(self.training, 
-#                                                          self.data_val, 
-#                                                          predict=True, 
-#                                                          stop_randomization=True)
-
-#         self.val_dataloader = self.validation.to_dataloader(train=False, 
-#                                                             batch_size=27, 
-#                                                             num_workers=8)
-        
-#         self.trainer = Trainer(accelerator = 'gpu', 
-#                logger = self._tb_logger, 
-#                log_every_n_steps = 1, 
-#                max_epochs = self.max_epochs,
-#                # devices = "0",          
-#                # fast_dev_run=True, 
-#                # precision=16,
-#                gradient_clip_val = 0.2,
-#                # reload_dataloaders_every_epoch=True,
-#                # Checkpoint configuration
-#                # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
-#                reload_dataloaders_every_n_epochs = 1,
-#                callbacks = [self._lr_finder, 
-#                             self._checkpoint_callback, 
-#                             self._lr_monitor, 
-#                             # _reload_dataset, 
-#                             # # _tb_logger, in logger
-#                             # _actvspred_train, 
-#                             # _actvspred_valid,
-#                             self._should_stop,
-#                             ])
-
-#         self.tft = TemporalFusionTransformer.from_dataset(
-#         self.training,
-#         dropout=0.3,           
-#         loss=self.loss_func,
-#         # loss=QuantileLoss(),
-#         # optimizer = 'adam',
-#         optimizer = 'sgd',
-#         )
+################## FIN __init__ ##################################################################################################
 
           
     def pltprd(self, dataloader):
@@ -937,6 +834,7 @@ class ModelBase:
         # save the plot as an image
         plt.savefig(f"{self.name_for_files}_actuals_vs_predictions.png")
         
+        
     def train(self,):
         print( time.asctime( time.localtime(time.time()) ) )       
         # initialize a list to hold the .ckpt files
@@ -951,82 +849,7 @@ class ModelBase:
                 print("No checkpoint found, maybe it's first start")
             print(ckpt_files)
         
-            if len(ckpt_files) == 0:
-                
-#                 self.trainer = Trainer(accelerator = 'gpu', 
-#                        logger = self._tb_logger, 
-#                        log_every_n_steps = 1, 
-#                        max_epochs = self.max_epochs,
-#                        # devices = "0",          
-#                        # fast_dev_run=True, 
-#                        # precision=16,
-#                        gradient_clip_val = 0.2,
-#                        # reload_dataloaders_every_epoch=True,
-#                        # Checkpoint configuration
-#                        # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
-#                        reload_dataloaders_every_n_epochs = 1,
-#                        callbacks = [self._lr_finder, 
-#                                     self._checkpoint_callback, 
-#                                     self._lr_monitor, 
-#                                     # _reload_dataset, 
-#                                     # # _tb_logger, in logger
-#                                     # _actvspred_train, 
-#                                     # _actvspred_valid,
-#                                     self._should_stop,
-#                                     ])
-                
-#                 self.data_train, _ = DataGenerator2(DATA=self.data_train, 
-#                                                YEARS_MAX_LENGTH=5,
-#                                                NSAMPLES=len(self.data_val['sample'].unique()))
-                
-#                 self.training = TimeSeriesDataSet(
-#                     # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length],
-#                     self.data_train,
-#                     time_idx="time_idx",
-#                     target=f"{self.scrop}_yield",
-#                     group_ids=["county", "sample"],
-#                     max_encoder_length = self.max_encoder_length - 4,
-#                     # min_prediction_length = 2,                     #max_prediction_length // 2,
-#                     max_prediction_length = self.max_prediction_length + 4,
-#                     # min_prediction_idx = min_prediction_idx,
-#                     # static_categoricals = ["county", "year"],
-#                     # static_reals = _static_reals,
-#                     time_varying_known_categoricals=["month", "gstage"],
-#                     time_varying_known_reals = self._time_varying_known_reals,
-#                     # time_varying_unknown_categoricals=[],
-#                     time_varying_unknown_reals = self._time_varying_unknown_reals,
-#                     target_normalizer=GroupNormalizer(
-#                         groups=["county", "sample"], #transformation="relu"
-#                     ),  # use softplus and normalize by group
-#                     add_relative_time_idx=True,
-#                     add_target_scales=True,
-#                     add_encoder_length=True,
-#                 )
-                
-#                 self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
-#                                                                     self.data_train)
-
-#                 self.train_dataloader = self.dataset_train.to_dataloader(train=True, 
-#                                                                          batch_size=self.batch_size, 
-#                                                                          shuffle=True)
-
-#                 self.validation = TimeSeriesDataSet.from_dataset(self.training, 
-#                                                                  self.data_val, 
-#                                                                  predict=True, 
-#                                                                  stop_randomization=True)
-
-#                 self.val_dataloader = self.validation.to_dataloader(train=False, 
-#                                                                     batch_size=27, 
-#                                                                     num_workers=8)
-
-#                 self.tft = TemporalFusionTransformer.from_dataset(
-#                 self.training,
-#                 dropout=0.3,           
-#                 loss=self.loss_func,
-#                 # loss=QuantileLoss(),
-#                 # optimizer = 'adam',
-#                 optimizer = 'sgd',
-#                 )
+            if len(ckpt_files) == 0:                
 
                 self.trainer.fit(
                     self.tft,
@@ -1038,15 +861,16 @@ class ModelBase:
 
             else:
                 self.data_train, _ = DataGenerator2(DATA=self.data_train, 
-                                               YEARS_MAX_LENGTH=5,
-                                               NSAMPLES=len(self.data_val['sample'].unique()))
+                                                    YEARS_MAX_LENGTH=5,
+                                                    NSAMPLES=len(self.data_val['sample'].unique()))
 
                 self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
                                                                     self.data_train)
 
                 self.train_dataloader = self.dataset_train.to_dataloader(train=True, 
-                                                                batch_size=self.batch_size, 
-                                                                shuffle=True)
+                                                                         batch_size=self.batch_size, 
+                                                                         shuffle=True, 
+                                                                         num_workers=10)
 
                 self.validation = TimeSeriesDataSet.from_dataset(self.training, 
                                                                  self.data_val, 

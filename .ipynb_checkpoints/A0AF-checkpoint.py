@@ -534,9 +534,9 @@ class ModelBase:
         
         # avg_med = ["avg_rice_yield", "rice_sownarea"]
         
-        avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
+        # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
-        # avg_med = [f"avg_{self.scrop}_yield"]
+        avg_med = [f"avg_{self.scrop}_yield"]
 
         _static_reals = avg_med
         
@@ -747,9 +747,9 @@ class ModelBase:
         self.learning_rate = 0.0001
         
         _lr_finder  = FineTuneLearningRateFinder_CyclicLR(base_lr=self.learning_rate, 
-                                                          max_lr=0.01, 
-                                                          step_size_up=350, 
-                                                          step_size_down=2600) 
+                                                          max_lr=0.006, 
+                                                          step_size_up=200, 
+                                                          step_size_down=200) 
         
         # _lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=20, 
         #                                                   base_lr=self.learning_rate, 

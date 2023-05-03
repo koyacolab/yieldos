@@ -57,7 +57,7 @@ import random
 import sys
 import os 
 
-class ShouldStop(Callback):
+class Reseter(Callback):
     def __init__(self, ModelCheckpointPath, milestones):
         super().__init__
         # self.milestones = milestones
@@ -81,7 +81,7 @@ class ShouldStop(Callback):
             
         if len(self.ckpt_files) > 0:
             self.milestones = int(self.ckpt_files[0].split('-')[0].split('epoch=')[1]) + 10
-        print('ShouldStop.__init__:', self.milestones)
+        print('Reseter:', self.milestones)
         
 
         
