@@ -62,6 +62,7 @@ class Reseter(Callback):
         super().__init__
         # self.milestones = milestones
         self.ckpt_files = []
+        self.init_milestones = milestones
         self.milestones = milestones
         self.ModelCheckpointPath = ModelCheckpointPath
         # sys.exit(0)
@@ -80,7 +81,7 @@ class Reseter(Callback):
             trainer.should_stop = True
             
         if len(self.ckpt_files) > 0:
-            self.milestones = int(self.ckpt_files[0].split('-')[0].split('epoch=')[1]) + 10
+            self.milestones = int(self.ckpt_files[0].split('-')[0].split('epoch=')[1]) + self.init_milestones
         print('Reseter:', self.milestones)
         
 
