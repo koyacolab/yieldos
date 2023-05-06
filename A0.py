@@ -380,30 +380,30 @@ class ModelBase:
         
         print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
         
-        ############### INIT data_train appears and add data_val as last year to each samples##########################
+####################### INIT DATA_TRAIN appears and add data_val as last year to each samples##########################
         self.data_train, _ = DataGenerator2(DATA=self.data, 
                                             YEARS_MAX_LENGTH=5,
                                             NSAMPLES=len(self.data_val['sample'].unique()))
         
         ###### ADD VALIDATION TILE TO TRAIN DATA FOR CUT IT IN VALIDATION DATALOADER IN PREDICTED MODE #############
         ##### WITH time_idx recalculation #########################
-#         df_tr = pd.DataFrame()
-#         for smpl in self.data_val['sample'].unique():
-#             for county in self.data_val['county'].unique():
-#                 df_cn = pd.DataFrame()
-#                 dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
-#                 dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
-#                 df_cn = pd.concat([df_cn, dfa], axis=0)
-#                 df_cn = pd.concat([df_cn, dfb], axis=0)
+        df_tr = pd.DataFrame()
+        for smpl in self.data_val['sample'].unique():
+            for county in self.data_val['county'].unique():
+                df_cn = pd.DataFrame()
+                dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
+                dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
+                df_cn = pd.concat([df_cn, dfa], axis=0)
+                df_cn = pd.concat([df_cn, dfb], axis=0)
                 
-#                 new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
-#                 df_cn.index = new_index
-#                 df_cn["time_idx"] = df_cn.index.astype(int)
-#                 df_tr = pd.concat([df_tr, df_cn], axis=0)
-#         new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
-#         df_tr.index = new_index
+                new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
+                df_cn.index = new_index
+                df_cn["time_idx"] = df_cn.index.astype(int)
+                df_tr = pd.concat([df_tr, df_cn], axis=0)
+        new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
+        df_tr.index = new_index
         
-#         self.data_train = df_tr
+        self.data_train = df_tr
         
         ########### PLOT SAMPLE WITH ENCODER/DECODER FOR CONTROL ################################################
 
@@ -615,8 +615,8 @@ class ModelBase:
         self.prediction_lag = 4
         
         self.training = TimeSeriesDataSet(
-            # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],
-            self.data_train,
+            self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],
+            # self.data_train,
             # self.data_val,
             time_idx="time_idx",
             target=f"{self.scrop}_yield",
@@ -648,8 +648,8 @@ class ModelBase:
 ####### CREATE VALIDATION/TEST TSDS (predict=True) which means to predict the last max_prediction_length points in time
 #       # for each series
         self.validation = TimeSeriesDataSet.from_dataset(self.training, 
-                                                         # self.data_train, 
-                                                         self.data_val,
+                                                         self.data_train, 
+                                                         # self.data_val,
                                                          predict=True, 
                                                          stop_randomization=True)
         
@@ -754,18 +754,19 @@ class ModelBase:
         self._lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         #### LEARNING RATE TUNER #########################################
-        self.learning_rate = 0.0001
+        self.learning_rate = 0.0005
         
-        self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
-                                                          max_lr=0.006, 
-                                                          step_size_up=200, 
-                                                          step_size_down=200) 
+        # self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
+        #                                                         max_lr=0.01, 
+        #                                                         step_size_up=250, 
+        #                                                         step_size_down=250,
+        #                                                         mode='triangular2') 
         
-        # _lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=20, 
-        #                                                   base_lr=self.learning_rate, 
-        #                                                   max_lr=0.01, 
-        #                                                   step_size_up=40, 
-        #                                                   step_size_down=20) 
+        self._lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
+                                                          base_lr=self.learning_rate, 
+                                                          max_lr=0.01, 
+                                                          step_size_up=350, 
+                                                          step_size_down=600) 
         
         #### GRADIENT ACCUMULATION SHEDULER ####################################
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -899,9 +900,28 @@ class ModelBase:
                 self.data_train, _ = DataGenerator2(DATA=self.data, 
                                                     YEARS_MAX_LENGTH=5,
                                                     NSAMPLES=len(self.data_val['sample'].unique()))
+                
+                df_tr = pd.DataFrame()
+                for smpl in self.data_val['sample'].unique():
+                    for county in self.data_val['county'].unique():
+                        df_cn = pd.DataFrame()
+                        dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
+                        dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
+                        df_cn = pd.concat([df_cn, dfa], axis=0)
+                        df_cn = pd.concat([df_cn, dfb], axis=0)
+
+                        new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
+                        df_cn.index = new_index
+                        df_cn["time_idx"] = df_cn.index.astype(int)
+                        df_tr = pd.concat([df_tr, df_cn], axis=0)
+                new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
+                df_tr.index = new_index
+
+                self.data_train = df_tr
 
                 self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
-                                                                    self.data_train)
+                                                                    self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],)
+                                                                    # self.data_train)
 
                 self.train_dataloader = self.dataset_train.to_dataloader(train=True, 
                                                                          batch_size=self.batch_size, 

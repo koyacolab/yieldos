@@ -96,10 +96,8 @@ class ModelBase:
                  home_dir = '/hy-tmp',
                  # datasetfile = f'data/ALIM{MOD_BINS}F{FAM_BINS}DATASET_rice.csv',
                  datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_rice.csv',           
-                 # datasetfile = 'corn_china_pandas_onebands.csv',
                  predicted_years = "2004 2010 2017",
                  batch_size = 16, 
-                 # encoder_length = 20,
                  save_checkpoint = False,
                  save_checkpoint_model = 'best-model',
                  learning_rate = 0.01,
@@ -127,6 +125,7 @@ class ModelBase:
             
         self.loss_func = RMSE()
         
+        ## LOSS PARSING ############################
         if loss_func_metric == 'RMSE':
             self.loss_func = RMSE()
         elif loss_func_metric == 'MAE':
@@ -142,6 +141,8 @@ class ModelBase:
         self.crop_name = crop_name
         self.scrop = crop_name
         self.batch_size = batch_size
+        
+        ####### PARSE PREDICTED_YEARS INT/STR TO LIST OF STR ##############################
         print(predicted_years)
         if type(predicted_years) is str:
             self.predicted_years = predicted_years.split(' ')
@@ -160,9 +161,13 @@ class ModelBase:
         # MOD_BINS = 512
         # FAM_BINS = 256
         
-        print('predicted_years:', self.predicted_years, 'max_epochs:', max_epochs, 'batch_size:', batch_size, \
-              'learning_rate', self.learning_rate, \
-              'loss_func_metric:', loss_func_metric, 'seed:', seed, 'lr_milestones_list:', lr_milestones_list)
+        print('predicted_years:', self.predicted_years, 
+              'max_epochs:', max_epochs, 
+              'batch_size:', batch_size, 
+              'learning_rate', self.learning_rate, 
+              'loss_func_metric:', loss_func_metric, 
+              'seed:', seed, 
+              'lr_milestones_list:', lr_milestones_list)
         
         # sys.exit(0)
         # fn
@@ -174,7 +179,7 @@ class ModelBase:
         ######### CLEAR UNNAMED COLUMNS FROM DATASETS #######################################
         alidata = alidata.loc[:, ~alidata.columns.str.contains('^Unnamed')]
 
-        #### SET 'county' and 'year' to categorical 'time_idx' to integer time step #################
+        #### SET 'county' and 'year' to categoricals, 'time_idx' to integer time step #################
         alidata['county']   = alidata['county'].astype(str)
         alidata['year']     = alidata['year'].astype(str)
         alidata['time_idx'] = alidata['time_idx'].astype(int)
@@ -191,7 +196,7 @@ class ModelBase:
         cols_to_move = yield_list
         alidata = alidata[ [ col for col in alidata.columns if col not in cols_to_move ] + cols_to_move ]
 
-        ########## DON'T DELETE, cut dataset by month for encoder/decoder length reduce ##################################
+        ########## DON'T DELETE, cut dataset by month for encoder/decoder length reduce ###################
         alidata = alidata[ alidata['month'] < 10 ]
         # alidata['month'] = alidata['month'].astype(str)
         
@@ -272,8 +277,9 @@ class ModelBase:
         self.data_inference = pd.concat([self.data_val, data_infer], axis=0)
 
         MAYDAY = 9
+        HARDAY = 8
         #### CREATE TRAIN/VALIDATION/TEST DATASETS WITH AVERAGE IN ENCODER AND GROWTH/YIELD IN DECODER ######## 
-        #### SET 'gstage'='no' for encoder and growth/yield in decoder ############################
+        #### SET 'gstage'='no' for encoder and growth/yield for decoder ############################
         for county in self.data['county'].unique():
             for year in self.data['year'].unique():
                 avg_yield = self.data[f'avg_{self.scrop}_yield'].loc[(self.data['county'] == county) \
@@ -374,11 +380,13 @@ class ModelBase:
         
         print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
         
-        ############### INIT data_train appears and add data_val as last year to each sample ######################################
+        ############### INIT data_train appears and add data_val as last year to each samples##########################
         self.data_train, _ = DataGenerator2(DATA=self.data, 
-                                           YEARS_MAX_LENGTH=5,
-                                           NSAMPLES=len(self.data_val['sample'].unique()))
+                                            YEARS_MAX_LENGTH=5,
+                                            NSAMPLES=len(self.data_val['sample'].unique()))
         
+        ###### ADD VALIDATION TILE TO TRAIN DATA FOR CUT IT IN VALIDATION DATALOADER IN PREDICTED MODE #############
+        ##### WITH time_idx recalculation #########################
 #         df_tr = pd.DataFrame()
 #         for smpl in self.data_val['sample'].unique():
 #             for county in self.data_val['county'].unique():
@@ -457,8 +465,9 @@ class ModelBase:
         
 #         dfp = self.data_train[ ( (self.data_train['gstage'] == 'growth') | (self.data_train['gstage'] == 'yield') ) & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ]
         
+        ################ SET max_prediction_length & max_encoder_length value #######
         self.max_prediction_length = dfp.shape[0]
-        self.max_encoder_length = dfe.shape[0]
+        self.max_encoder_length    = dfe.shape[0]
         
         ######## PLOT & CHECK ENCODER/DECODER DATASET ############################################################
         
@@ -528,7 +537,7 @@ class ModelBase:
         # fn
         
             
-        ##### SET ENCODER/DECODER COVARIATES #######################################################
+########## SET ENCODER/DECODER COVARIATES #######################################################
         # avg_med = ["avg_rice_yield", "med_rice_yield", "avg_rice_sownarea", "med_rice_sownarea",\
         #                  "avg_rice_yieldval", "med_rice_yieldval"]
         
@@ -549,7 +558,7 @@ class ModelBase:
         # fn
 
         ################ MODIS cloumns name ################################
-        mod_names = [f'b{iband}b{bins}' for iband in range(9) for bins in range(MOD_BINS)]
+        modis_list = [f'b{iband}b{bins}' for iband in range(9) for bins in range(MOD_BINS)]
 
         ################ FAMINA cloumns name ################################
         # famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', 'Qair_f_tavg', 'Qg_tavg',\
@@ -586,39 +595,37 @@ class ModelBase:
         famine_names = [famine + bb for famine in famine_list for bb in nbins]
         
         
-        #### SET TimeSeriesDataSet variables #################################
+############# PREPARE variables for the TimeSeriesDataSet  ###################################
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        # self._time_varying_known_reals.extend(mod_names) 
-        self._time_varying_known_reals.extend(famine_names)
+        self._time_varying_known_reals.extend(modis_list) 
+        # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
-        # self._time_varying_unknown_reals.extend(mod_names)
-        self._time_varying_unknown_reals.extend(famine_names)
+        # self._time_varying_unknown_reals.extend(modis_list)
+        # self._time_varying_unknown_reals.extend(famine_names)
 
-        # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )
-
-        print(f'training mx_epochs, TimeSeriesDataSet:', max_epochs, time.asctime( time.localtime(time.time()) ) )
-        
-        print('D1: known-unknown go --------------------------')
-        print('D2: --------------------------')
-        
+        # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )    
         
 #####################################################################################################################
-############################## SET TRAIN/VALIDATION/TEST DATASETS ###################################################
+############################## SET TRAIN/VALIDATION/TEST TS DATASETS ###################################################
+
+        #### ADD TIME LAG TO ENCODER/DECODER #################################################### 
+        self.prediction_lag = 4
         
         self.training = TimeSeriesDataSet(
-            # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length],
+            # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],
             self.data_train,
+            # self.data_val,
             time_idx="time_idx",
             target=f"{self.scrop}_yield",
             group_ids=["county", "sample"],
             # group_ids=["county", "year"],
             # min_encoder_length=self.max_encoder_length // 2,  # keep encoder length long (as it is in the validation set)
-            max_encoder_length = self.max_encoder_length - 4,
+            max_encoder_length = self.max_encoder_length - self.prediction_lag,
             # min_prediction_length = 2,                     #max_prediction_length // 2,
-            max_prediction_length = self.max_prediction_length + 4,
+            max_prediction_length = self.max_prediction_length + self.prediction_lag,
             # min_prediction_idx = min_prediction_idx,
             # static_categoricals = ["county", "year"],
             # static_reals = _static_reals,
@@ -638,22 +645,38 @@ class ModelBase:
 # #         print( time.asctime( time.localtime(time.time()) ) )
         
 
-################ create validation set (predict=True) which means to predict the last max_prediction_length points in time
-#         # for each series
-#         # self.validation = TimeSeriesDataSet.from_dataset(self.training, self.data_train, predict=True, stop_randomization=True)
-        self.validation = TimeSeriesDataSet.from_dataset(self.training, self.data_val, predict=True, stop_randomization=True)
+####### CREATE VALIDATION/TEST TSDS (predict=True) which means to predict the last max_prediction_length points in time
+#       # for each series
+        self.validation = TimeSeriesDataSet.from_dataset(self.training, 
+                                                         # self.data_train, 
+                                                         self.data_val,
+                                                         predict=True, 
+                                                         stop_randomization=True)
         
-        self.testing = TimeSeriesDataSet.from_dataset(self.training, self.data_val, predict=True, stop_randomization=True)
+        self.testing = TimeSeriesDataSet.from_dataset(self.training, 
+                                                      self.data_train, 
+                                                      # predict=True, 
+                                                      stop_randomization=True)
 
 #         print(f'training & validation TimeSeriesDataSet loaded', time.asctime( time.localtime(time.time()) ) )
         
-###################### CREATE TRAIN/VALIDATION/TEST DATALOADERS ####################################################
+###################### CREATE TRAIN/VALIDATION/TEST DATALOADERS FROM TimeSeriesDataSet################################
 #         # batch_size = 16  # set this between 32 to 128
-        self.train_dataloader = self.training.to_dataloader(train=True, batch_size=self.batch_size, num_workers=8)
+        self.train_dataloader = self.training.to_dataloader(train=True, 
+                                                            batch_size=self.batch_size, 
+                                                            num_workers=8)
         
-        self.val_dataloader = self.validation.to_dataloader(train=False, batch_size=27, num_workers=8)
+        self.val_dataloader = self.validation.to_dataloader(train=False, 
+                                                            batch_size=27, 
+                                                            num_workers=8)
         
-        self.test_dataloader = self.training.to_dataloader(train=False, batch_size=27, num_workers=8)
+        self.test_dataloader = self.testing.to_dataloader(train=False, 
+                                                          batch_size=27, 
+                                                          num_workers=8)
+        
+        print('Dataloaders len:', len(self.train_dataloader), len(self.val_dataloader), len(self.test_dataloader))
+        
+        # sys.exit(0)
         
 #         ##### CHECK train_dataloader #####################################
 #         # y_true = torch.cat([y[0] for x, y in iter(self.train_dataloader)])
@@ -701,11 +724,13 @@ class ModelBase:
         # home_dir = '/content/gdrive/My Drive/AChina' 
         # _dir = os.path.join(home_dir, 'data')
         
+########## SET EXPERIMENT SETTINGS FOR TRAINER #############################################################        
         #### SET CHECKPOINT ##############################
+        reseter_step = 25
         self.ModelCheckpointPath = os.path.join(home_dir, self.name_for_files)
-        self._checkpoint_callback = ModelCheckpoint(dirpath = self.ModelCheckpointPath, every_n_epochs = 10)
+        self._checkpoint_callback = ModelCheckpoint(dirpath = self.ModelCheckpointPath, every_n_epochs = reseter_step)
         
-        self._Reseter = Reseter(ModelCheckpointPath = self.ModelCheckpointPath, milestones = 10)
+        self._Reseter = Reseter(ModelCheckpointPath = self.ModelCheckpointPath, milestones = reseter_step)
 
         _dir = '/tf_logs'
         # dir = os.path.join(home_dir, 'data')
@@ -732,9 +757,9 @@ class ModelBase:
         self.learning_rate = 0.0001
         
         self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
-                                                          max_lr=0.01, 
-                                                          step_size_up=350, 
-                                                          step_size_down=2600) 
+                                                          max_lr=0.006, 
+                                                          step_size_up=200, 
+                                                          step_size_down=200) 
         
         # _lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=20, 
         #                                                   base_lr=self.learning_rate, 
@@ -761,7 +786,7 @@ class ModelBase:
 #                                            YEARS_MAX_LENGTH=10, 
 #                                            NSAMPLES=len(self.data_val['sample'].unique()))
 
-########################################### SET TRAINER ###########################################################
+################## SET TRAINER ###########################################################
         self.trainer = Trainer(accelerator = 'gpu', 
                                logger = self._tb_logger, 
                                log_every_n_steps = 1, 
@@ -786,7 +811,7 @@ class ModelBase:
         
 
 
-############################################# SET TEMPORAL FUSION TRANSFORMER AS MODEL #######################################
+############## SET TEMPORAL FUSION TRANSFORMER AS MODEL #######################################
 
         self.tft = TemporalFusionTransformer.from_dataset(
             self.training,
@@ -805,19 +830,28 @@ class ModelBase:
             # reduce_on_plateau_patience=4,
             )
 
-################### SET best_tft  for inferencing ###########################################################################
+######## SET best_tft and checkpont for inferencing at the end of the train(self,) ####################################
         
         self.best_tft = self.tft
         self.checkpoint = self.name_for_files 
 
-################## FIN __init__ ##################################################################################################
-
-          
-    def pltprd(self, dataloader):
+################## THE FIN __init__ #######################################################################
+################## THE MODELS FUNCTIONS ############################################
+    ####### PREDICT AND PLOT @DATALOADER #####################      
+    def pltprd(self, dataloader, prfx=''):
         baseline_predictions = self.tft.predict(dataloader, return_y=True)
         actuals = baseline_predictions.y
         # MAE()(baseline_predictions.output, baseline_predictions.y)
-        print(actuals[0])
+        print('pltprd:', len(dataloader), len(actuals[0]), len(baseline_predictions.output), baseline_predictions.keys()) #, actuals[0])
+        # raw predictions are a dictionary from which all kind of information including quantiles can be extracted
+        raw_predictions = self.tft.predict(dataloader, mode="raw", return_x=True, return_y=True)
+        # print(type(raw_predictions.y), raw_predictions.y)
+        print(type(raw_predictions.output), type(raw_predictions.output[0]))
+        print('MAE:', MAE()(baseline_predictions.output, baseline_predictions.y) )
+        print('raw_predictions:', raw_predictions.keys(), len(raw_predictions.output), len(raw_predictions.y[0]))
+        # print(baseline_predictions.y)
+        # print(baseline_predictions.output)
+        # fn
         y_true = actuals[0]
         y_pred = baseline_predictions.output
         # Create plot
@@ -832,11 +866,13 @@ class ModelBase:
         # print('ActPred3', y_true.device, y_pred.device)
 
         # save the plot as an image
-        plt.savefig(f"{self.name_for_files}_actuals_vs_predictions.png")
+        plt.savefig(f"{prfx}_{self.name_for_files}_actuals_vs_predictions.png")
         
+        # sys.exit(0)
         
+    ### TRAIN TFT MODEL ##################################################    
     def train(self,):
-        print( time.asctime( time.localtime(time.time()) ) )       
+        print( time.asctime( time.localtime(time.time()) ) )    
         # initialize a list to hold the .ckpt files
         for iepoch in range(self.max_epochs):
             
@@ -860,7 +896,7 @@ class ModelBase:
                 # self.trainer.should_stop = False
 
             else:
-                self.data_train, _ = DataGenerator2(DATA=self.data_train, 
+                self.data_train, _ = DataGenerator2(DATA=self.data, 
                                                     YEARS_MAX_LENGTH=5,
                                                     NSAMPLES=len(self.data_val['sample'].unique()))
 
@@ -871,15 +907,15 @@ class ModelBase:
                                                                          batch_size=self.batch_size, 
                                                                          shuffle=True, 
                                                                          num_workers=10)
+                
+#                 self.testing = TimeSeriesDataSet.from_dataset(self.training, 
+#                                                               self.data_train, 
+#                                                               # predict=True, 
+#                                                               stop_randomization=True)
 
-                self.validation = TimeSeriesDataSet.from_dataset(self.training, 
-                                                                 self.data_val, 
-                                                                 predict=True, 
-                                                                 stop_randomization=True)
-
-                self.val_dataloader = self.validation.to_dataloader(train=False, 
-                                                                    batch_size=27, 
-                                                                    num_workers=8)
+#                 self.test_dataloader = self.testing.to_dataloader(train=False, 
+#                                                                   batch_size=27, 
+#                                                                   num_workers=8)
 
                 self.trainer.fit(
                     self.tft,
@@ -888,9 +924,13 @@ class ModelBase:
                     ckpt_path=f"{self.ModelCheckpointPath}/{ckpt_files[0]}",
                 )
                 
+            ########## for set trainer to the fit mode #########
             self.trainer.should_stop = False
             
-            self.pltprd(self.val_dataloader)
+            # self.pltprd(self.test_dataloader, prfx='test')
+            self.pltprd(self.val_dataloader, prfx='valid')
+            
+            # sys.exit(0)
                 
             iepoch = self.trainer.current_epoch
             print('train epoch:', iepoch)         
@@ -927,7 +967,8 @@ class ModelBase:
         #     self.trainer.save_checkpoint(self.checkpoint)
         #     self.best_tft = TemporalFusionTransformer.load_from_checkpoint(self.checkpoint)
         #     print(f"{self.crop_name} {self.save_checkpoint} last-model loaded...")
-        
+    
+    ### PREDICT ##################################################################
     def predict(self,):
         print('predict')
         # calcualte mean absolute error on validation set

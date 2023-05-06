@@ -333,7 +333,7 @@ class FineTuneLearningRateFinder_CustomLR(LearningRateFinder):
         #                                                      verbose=False))
         
         self.scheduler.append(torch.optim.lr_scheduler.StepLR(self.optimizer, 
-                                                              step_size=10, 
+                                                              step_size=100, 
                                                               gamma=0.1, 
                                                               last_epoch=- 1, 
                                                               verbose=False))

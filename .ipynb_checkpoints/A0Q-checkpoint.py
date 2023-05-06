@@ -95,7 +95,8 @@ class ModelBase:
     def __init__(self, 
                  home_dir = '/hy-tmp',
                  # datasetfile = f'data/ALIM{MOD_BINS}F{FAM_BINS}DATASET_rice.csv',
-                 datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_rice.csv',           
+                 # datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_rice.csv',     
+                 datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_corn.csv',
                  predicted_years = "2004 2010 2017",
                  batch_size = 16, 
                  save_checkpoint = False,
@@ -380,13 +381,13 @@ class ModelBase:
         
         print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
         
-        ############### INIT data_train appears and add data_val as last year to each samples##########################
+####################### INIT DATA_TRAIN appears and add data_val as last year to each samples##########################
         self.data_train, _ = DataGenerator2(DATA=self.data, 
                                             YEARS_MAX_LENGTH=5,
                                             NSAMPLES=len(self.data_val['sample'].unique()))
         
-        ###### ADD VALIDATION TILE TO TRAIN DATA FOR CUT IT IN VALIDATION DATALOADER IN PREDICTED MODE #############
-        ##### WITH time_idx recalculation #########################
+#         ###### ADD VALIDATION TILE TO TRAIN DATA FOR CUT IT IN VALIDATION DATALOADER IN PREDICTED MODE #############
+#         ##### WITH time_idx recalculation #########################
 #         df_tr = pd.DataFrame()
 #         for smpl in self.data_val['sample'].unique():
 #             for county in self.data_val['county'].unique():
@@ -599,12 +600,12 @@ class ModelBase:
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
         # self._time_varying_known_reals.extend(modis_list) 
-        self._time_varying_known_reals.extend(famine_names)
+        # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
         # self._time_varying_unknown_reals.extend(modis_list)
-        self._time_varying_unknown_reals.extend(famine_names)
+        # self._time_varying_unknown_reals.extend(famine_names)
 
         # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )    
         
@@ -667,7 +668,7 @@ class ModelBase:
                                                             num_workers=8)
         
         self.val_dataloader = self.validation.to_dataloader(train=False, 
-                                                            batch_size=27, 
+                                                            batch_size=30, 
                                                             num_workers=8)
         
         self.test_dataloader = self.testing.to_dataloader(train=False, 
@@ -711,14 +712,19 @@ class ModelBase:
 #         # actuals = torch.cat([y for x, (y, weight) in iter(self.val_dataloader)])
 #         # baseline_predictions = Baseline().predict(self.val_dataloader)
 #         # calculate baseline mean absolute error, i.e. predict next value as the last available value from the history
-#         baseline_predictions = Baseline().predict(self.val_dataloader, return_y=True)
-#         actuals = baseline_predictions.y
-#         MAE()(baseline_predictions.output, baseline_predictions.y)
-#         print( 'Baseline:', MAE()(baseline_predictions.output, baseline_predictions.y) )
-#         print( 'Baseline:', type(actuals), type(baseline_predictions.output), type(baseline_predictions.y) )
-#         print( 'Baseline:', baseline_predictions.y )
-#         print( 'Baseline:', (actuals[0] - baseline_predictions.output).abs().mean() )
-#         print( 'Baseline:', time.asctime( time.localtime(time.time()) ) )
+        # baseline_predictions = Baseline().predict(self.val_dataloader, return_y=True)
+        # actuals = baseline_predictions.y
+        # print(type(baseline_predictions.y), len(baseline_predictions.y))
+        # print(baseline_predictions.y[0])
+        # # sys.exit(0)
+        # MAE()(baseline_predictions.output, baseline_predictions.y)
+        # print( 'Baseline:', MAE()(baseline_predictions.output, baseline_predictions.y) )
+        # print( 'Baseline:', type(actuals), type(baseline_predictions.output), type(baseline_predictions.y) )
+        # print( 'Baseline:', baseline_predictions.y )
+        # print( 'Baseline:', (actuals[0] - baseline_predictions.output).abs().mean() )
+        # print( 'Baseline:', time.asctime( time.localtime(time.time()) ) )
+        # sys.exit(0)
+        # fn
             
         # dir = '/hy-tmp/chck/ali'
         # home_dir = '/content/gdrive/My Drive/AChina' 
@@ -754,18 +760,19 @@ class ModelBase:
         self._lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         #### LEARNING RATE TUNER #########################################
-        self.learning_rate = 0.0001
+        self.learning_rate = 0.0005
         
-        self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
-                                                          max_lr=0.006, 
-                                                          step_size_up=200, 
-                                                          step_size_down=200) 
+        # self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
+        #                                                         max_lr=0.01, 
+        #                                                         step_size_up=350, 
+        #                                                         step_size_down=500,
+        #                                                         mode='triangular2') 
         
-        # _lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=20, 
-        #                                                   base_lr=self.learning_rate, 
-        #                                                   max_lr=0.01, 
-        #                                                   step_size_up=40, 
-        #                                                   step_size_down=20) 
+        self._lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
+                                                          base_lr=self.learning_rate, 
+                                                          max_lr=0.01, 
+                                                          step_size_up=350, 
+                                                          step_size_down=500) 
         
         #### GRADIENT ACCUMULATION SHEDULER ####################################
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -899,8 +906,27 @@ class ModelBase:
                 self.data_train, _ = DataGenerator2(DATA=self.data, 
                                                     YEARS_MAX_LENGTH=5,
                                                     NSAMPLES=len(self.data_val['sample'].unique()))
+                
+#                 df_tr = pd.DataFrame()
+#                 for smpl in self.data_val['sample'].unique():
+#                     for county in self.data_val['county'].unique():
+#                         df_cn = pd.DataFrame()
+#                         dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
+#                         dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
+#                         df_cn = pd.concat([df_cn, dfa], axis=0)
+#                         df_cn = pd.concat([df_cn, dfb], axis=0)
+
+#                         new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
+#                         df_cn.index = new_index
+#                         df_cn["time_idx"] = df_cn.index.astype(int)
+#                         df_tr = pd.concat([df_tr, df_cn], axis=0)
+#                 new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
+#                 df_tr.index = new_index
+
+#                 self.data_train = df_tr
 
                 self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
+                                                                    # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],)
                                                                     self.data_train)
 
                 self.train_dataloader = self.dataset_train.to_dataloader(train=True, 
@@ -1227,7 +1253,8 @@ class RunTask:
                           max_epochs=max_epochs, 
                           batch_size=batch_size, 
                           learning_rate=learning_rate,
-                          loss_func_metric=loss_func_metric)
+                          loss_func_metric=loss_func_metric,
+                          crop_name=crop_name)
         
         # model.init_lr_finder()
         # model.custom_finder()
