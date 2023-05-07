@@ -760,7 +760,7 @@ class ModelBase:
         self._lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         #### LEARNING RATE TUNER #########################################
-        self.learning_rate = 0.0005
+        self.learning_rate = 0.001
         
         # self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
         #                                                         max_lr=0.01, 
@@ -769,10 +769,11 @@ class ModelBase:
         #                                                         mode='triangular2') 
         
         self._lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
-                                                          base_lr=self.learning_rate, 
-                                                          max_lr=0.01, 
-                                                          step_size_up=350, 
-                                                          step_size_down=500) 
+                                                               base_lr=self.learning_rate, 
+                                                               max_lr=0.01, 
+                                                               step_size_up=350, 
+                                                               step_size_down=500,
+                                                               cycle_iters=2,) 
         
         #### GRADIENT ACCUMULATION SHEDULER ####################################
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})

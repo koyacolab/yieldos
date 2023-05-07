@@ -63,7 +63,7 @@ from lightning.pytorch.callbacks import LearningRateFinder
 from lightning.pytorch.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR, FineTuneLearningRateFinder_CustomLR
-from utils import FineTuneLearningRateFinder_CyclicLR2, Reseter
+from utils import FineTuneLearningRateFinder_CyclicLR2, Reseter, FineTuneLearningRateFinder_CustomLR2
 from utils_data import ReloadDataLoader, ReloadDataSet, ReloadDataSet_12
 from utils_data import DataGenerator, DataGenerator2
 from utils import ActualVsPredictedCallback
@@ -754,7 +754,7 @@ class ModelBase:
         self._lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         #### LEARNING RATE TUNER #########################################
-        self.learning_rate = 0.0005
+        self.learning_rate = 0.01
         
         # self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
         #                                                         max_lr=0.01, 
@@ -762,11 +762,17 @@ class ModelBase:
         #                                                         step_size_down=250,
         #                                                         mode='triangular2') 
         
-        self._lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
-                                                          base_lr=self.learning_rate, 
-                                                          max_lr=0.01, 
-                                                          step_size_up=350, 
-                                                          step_size_down=600) 
+        # self._lr_finder = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
+        #                                                        base_lr=self.learning_rate, 
+        #                                                        max_lr=0.01, 
+        #                                                        step_size_up=350, 
+        #                                                        step_size_down=500, 
+        #                                                        cycle_iters=2,) 
+        
+        self._lr_finder = FineTuneLearningRateFinder_CustomLR2(constant_iters=20, 
+                                                               linear_iters=350, 
+                                                               linear_pleutau_iters=700,
+                                                               step_size=200,)
         
         #### GRADIENT ACCUMULATION SHEDULER ####################################
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -816,7 +822,7 @@ class ModelBase:
 
         self.tft = TemporalFusionTransformer.from_dataset(
             self.training,
-            # learning_rate=self.learning_rate,
+            learning_rate=self.learning_rate,
             # lstm_layers=2,
             # hidden_size=31,             # most important hyperparameter apart from learning rate
             # hidden_continuous_size=30,  # set to <= hidden_size
