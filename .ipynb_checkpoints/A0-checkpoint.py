@@ -87,15 +87,18 @@ class Myloss(MultiHorizonMetric):
 # MOD_BINS = 512
 # FAM_BINS = 256
 
-MOD_BINS = 64
-FAM_BINS = 32
+# MOD_BINS = 64
+# FAM_BINS = 32
+
+MOD_BINS = 32
+FAM_BINS = 16
 
 class ModelBase:
     
     def __init__(self, 
                  home_dir = '/hy-tmp',
                  # datasetfile = f'data/ALIM{MOD_BINS}F{FAM_BINS}DATASET_rice.csv',
-                 datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_rice.csv',           
+                 datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_rice.csv',    
                  predicted_years = "2004 2010 2017",
                  batch_size = 16, 
                  save_checkpoint = False,
@@ -754,7 +757,7 @@ class ModelBase:
         self._lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         #### LEARNING RATE TUNER #########################################
-        self.learning_rate = 0.01
+        self.learning_rate = 0.001
         
         # self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
         #                                                         max_lr=0.01, 
@@ -762,17 +765,17 @@ class ModelBase:
         #                                                         step_size_down=250,
         #                                                         mode='triangular2') 
         
-        # self._lr_finder = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
-        #                                                        base_lr=self.learning_rate, 
-        #                                                        max_lr=0.01, 
-        #                                                        step_size_up=350, 
-        #                                                        step_size_down=500, 
-        #                                                        cycle_iters=2,) 
+        self._lr_finder = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
+                                                               base_lr=self.learning_rate, 
+                                                               max_lr=0.01, 
+                                                               step_size_up=350, 
+                                                               step_size_down=500, 
+                                                               cycle_iters=2,) 
         
-        self._lr_finder = FineTuneLearningRateFinder_CustomLR2(constant_iters=20, 
-                                                               linear_iters=350, 
-                                                               linear_pleutau_iters=700,
-                                                               step_size=200,)
+        # self._lr_finder = FineTuneLearningRateFinder_CustomLR2(constant_iters=10, 
+        #                                                        linear_iters=15, 
+        #                                                        linear_pleutau_iters=15,
+        #                                                        step_size=10,)
         
         #### GRADIENT ACCUMULATION SHEDULER ####################################
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -822,7 +825,7 @@ class ModelBase:
 
         self.tft = TemporalFusionTransformer.from_dataset(
             self.training,
-            learning_rate=self.learning_rate,
+            # learning_rate=self.learning_rate,
             # lstm_layers=2,
             # hidden_size=31,             # most important hyperparameter apart from learning rate
             # hidden_continuous_size=30,  # set to <= hidden_size

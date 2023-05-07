@@ -381,6 +381,8 @@ class FineTuneLearningRateFinder_CustomLR2(LearningRateFinder):
                  linear_iters=350, 
                  linear_pleutau_iters=700,
                  step_size=200,
+                 base_lr=0.001, 
+                 max_lr=0.085, 
                  mode='triangular2', 
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -388,6 +390,9 @@ class FineTuneLearningRateFinder_CustomLR2(LearningRateFinder):
         self.linear_iters = linear_iters
         self.linear_pleutau_iters = linear_pleutau_iters
         self.step_size = step_size
+        
+        self.base_lr = base_lr
+        self.max_lr = max_lr
         
         self.mode = mode
         # self.cycle_iters = cycle_iters
@@ -397,8 +402,9 @@ class FineTuneLearningRateFinder_CustomLR2(LearningRateFinder):
     def on_fit_start(self, trainer, pl_module):
         print("CustomLR2:", )
         self.optimizer = trainer.optimizers[0]
+        self.optimizer.param_groups['lr'] = self.base_lr
         self.scheduler.append(torch.optim.lr_scheduler.ConstantLR(self.optimizer, 
-                                                             factor=0.1, 
+                                                             factor=1.0, 
                                                              total_iters=self.constant_iters, 
                                                              last_epoch=-1, 
                                                              verbose=False))
@@ -435,7 +441,7 @@ class FineTuneLearningRateFinder_CustomLR2(LearningRateFinder):
                 param_group['lr'] = self.scheduler[0].get_last_lr()[0]
             self.scheduler[0].step()
             print('on_train_epoch_start:', self.scheduler[0].get_last_lr()[0])
-        elif (trainer.current_epoch > self.constant_iters) & \
+        elif (trainer.current_epoch >= self.constant_iters) & \
              (trainer.current_epoch < self.constant_iters + self.linear_iters + self.linear_pleutau_iters):
             for param_group in self.optimizer.param_groups:
                 param_group['lr'] = self.scheduler[1].get_last_lr()[0]

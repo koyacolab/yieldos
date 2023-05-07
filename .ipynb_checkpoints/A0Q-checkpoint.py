@@ -87,8 +87,11 @@ class Myloss(MultiHorizonMetric):
 # MOD_BINS = 512
 # FAM_BINS = 256
 
-MOD_BINS = 64
-FAM_BINS = 32
+# MOD_BINS = 64
+# FAM_BINS = 32
+
+MOD_BINS = 32
+FAM_BINS = 16
 
 class ModelBase:
     
