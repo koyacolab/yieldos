@@ -398,7 +398,7 @@ class FineTuneLearningRateFinder_CustomLR2(LearningRateFinder):
         print("CustomLR2:", )
         self.optimizer = trainer.optimizers[0]
         self.scheduler.append(torch.optim.lr_scheduler.ConstantLR(self.optimizer, 
-                                                             factor=1.0, 
+                                                             factor=0.1, 
                                                              total_iters=self.constant_iters, 
                                                              last_epoch=-1, 
                                                              verbose=False))
