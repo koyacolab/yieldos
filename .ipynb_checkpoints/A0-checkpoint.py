@@ -92,13 +92,15 @@ class Myloss(MultiHorizonMetric):
 
 MOD_BINS = 32
 FAM_BINS = 16
+CROP = 'corn'
 
 class ModelBase:
     
     def __init__(self, 
                  home_dir = '/hy-tmp',
                  # datasetfile = f'data/ALIM{MOD_BINS}F{FAM_BINS}DATASET_rice.csv',
-                 datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_rice.csv',    
+                 # datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_rice.csv',    
+                 datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_{CROP}.csv', 
                  predicted_years = "2004 2010 2017",
                  batch_size = 16, 
                  save_checkpoint = False,
@@ -108,7 +110,7 @@ class ModelBase:
                  lr_milestones_list = [20, 50, 600, 800,],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
-                 crop_name = 'rice',
+                 crop_name = CROP,
                  exp_name = '',            
                 ):
     
@@ -546,7 +548,9 @@ class ModelBase:
         
         # avg_med = ["avg_rice_yield", "rice_sownarea"]
         
-        avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
+        # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
+        
+        avg_med = [f"avg_{self.scrop}_yield", f"avg_{self.scrop}_sownarea", f"{self.scrop}_sownarea", f"actuals"]
         
         # avg_med = [f"avg_{self.scrop}_yield"]
 
@@ -602,12 +606,12 @@ class ModelBase:
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
         # self._time_varying_known_reals.extend(modis_list) 
-        self._time_varying_known_reals.extend(famine_names)
+        # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
         # self._time_varying_unknown_reals.extend(modis_list)
-        self._time_varying_unknown_reals.extend(famine_names)
+        # self._time_varying_unknown_reals.extend(famine_names)
 
         # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )    
         
@@ -670,11 +674,13 @@ class ModelBase:
                                                             num_workers=8)
         
         self.val_dataloader = self.validation.to_dataloader(train=False, 
-                                                            batch_size=27, 
+                                                            # batch_size=27, 
+                                                            batch_size=30,
                                                             num_workers=8)
         
         self.test_dataloader = self.testing.to_dataloader(train=False, 
-                                                          batch_size=27, 
+                                                          # batch_size=27, 
+                                                          batch_size=30,
                                                           num_workers=8)
         
         print('Dataloaders len:', len(self.train_dataloader), len(self.val_dataloader), len(self.test_dataloader))

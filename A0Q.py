@@ -547,9 +547,9 @@ class ModelBase:
         
         # avg_med = ["avg_rice_yield", "rice_sownarea"]
         
-        avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
+        # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
-        # avg_med = [f"avg_{self.scrop}_yield"]
+        avg_med = [f"avg_{self.scrop}_yield", f"avg_{self.scrop}_sownarea", f"{self.scrop}_sownarea"]
 
         _static_reals = avg_med
         
@@ -603,12 +603,12 @@ class ModelBase:
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
         # self._time_varying_known_reals.extend(modis_list) 
-        self._time_varying_known_reals.extend(famine_names)
+        # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
         # self._time_varying_unknown_reals.extend(modis_list)
-        self._time_varying_unknown_reals.extend(famine_names)
+        # self._time_varying_unknown_reals.extend(famine_names)
 
         # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )    
         
@@ -775,7 +775,7 @@ class ModelBase:
                                                                base_lr=self.learning_rate, 
                                                                max_lr=0.01, 
                                                                step_size_up=350, 
-                                                               step_size_down=500,
+                                                               step_size_down=2500,
                                                                cycle_iters=2,) 
         
         #### GRADIENT ACCUMULATION SHEDULER ####################################
