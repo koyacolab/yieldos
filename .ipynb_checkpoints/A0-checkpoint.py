@@ -64,8 +64,9 @@ from lightning.pytorch.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR, FineTuneLearningRateFinder_CustomLR
 from utils import FineTuneLearningRateFinder_CyclicLR2, Reseter, FineTuneLearningRateFinder_CustomLR2
+from utils import FineTuneLearningRateFinder_MultiStepLR
 from utils_data import ReloadDataLoader, ReloadDataSet, ReloadDataSet_12
-from utils_data import DataGenerator, DataGenerator2
+from utils_data import DataGenerator, DataGenerator2, DataGenerator3
 from utils import ActualVsPredictedCallback
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
@@ -386,7 +387,7 @@ class ModelBase:
         print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
         
 ####################### INIT DATA_TRAIN appears and add data_val as last year to each samples##########################
-        self.data_train, _ = DataGenerator2(DATA=self.data, 
+        self.data_train, _ = DataGenerator3(DATA=self.data, 
                                             YEARS_MAX_LENGTH=5,
                                             NSAMPLES=len(self.data_val['sample'].unique()))
         
@@ -550,7 +551,12 @@ class ModelBase:
         
         # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
-        avg_med = [f"avg_{self.scrop}_yield", f"avg_{self.scrop}_sownarea", f"{self.scrop}_sownarea", f"actuals"]
+        avg_med = [f"avg_{self.scrop}_yield", 
+                   f"avg_{self.scrop}_sownarea", 
+                   f"avg_{self.scrop}_yieldval", 
+                   f"{self.scrop}_sownarea", 
+                   # f"actuals",
+                  ]
         
         # avg_med = [f"avg_{self.scrop}_yield"]
 
@@ -586,7 +592,8 @@ class ModelBase:
         #                'SoilTemp40_100cm_tavg', \
         #                'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
         
-        famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', \
+        famine_list = ['Evap_tavg', 
+                       # 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', \
                        # 'Qair_f_tavg', 'Qg_tavg',\
                        # 'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', \
                        'RadT_tavg', 'Rainf_f_tavg', \
@@ -595,7 +602,8 @@ class ModelBase:
                        # 'SoilMoi40_100cm_tavg', \
                        'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', \
                        # 'SoilTemp40_100cm_tavg', \
-                       'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
+                       # 'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg',
+                      ]
 
         nbins = ['_' + str(x) for x in range(0, FAM_BINS - 1)]
 
@@ -606,7 +614,7 @@ class ModelBase:
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
         # self._time_varying_known_reals.extend(modis_list) 
-        # self._time_varying_known_reals.extend(famine_names)
+        self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
@@ -763,7 +771,7 @@ class ModelBase:
         self._lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         #### LEARNING RATE TUNER #########################################
-        self.learning_rate = 0.001
+        self.learning_rate = 0.1
         
         # self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
         #                                                         max_lr=0.01, 
@@ -771,17 +779,20 @@ class ModelBase:
         #                                                         step_size_down=250,
         #                                                         mode='triangular2') 
         
-        self._lr_finder = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
-                                                               base_lr=self.learning_rate, 
-                                                               max_lr=0.01, 
-                                                               step_size_up=350, 
-                                                               step_size_down=1500, 
-                                                               cycle_iters=2,) 
+        # self._lr_finder = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
+        #                                                       base_lr=self.learning_rate, 
+        #                                                       max_lr=0.05, 
+        #                                                       step_size_up=250, 
+        #                                                       step_size_down=20050, 
+        #                                                       cycle_iters=2,
+        #                                                       mode='triangular',) 
+        
+        self._lr_finder = FineTuneLearningRateFinder_MultiStepLR()
         
         # self._lr_finder = FineTuneLearningRateFinder_CustomLR2(constant_iters=10, 
         #                                                        linear_iters=15, 
         #                                                        linear_pleutau_iters=15,
-        #                                                        step_size=10,)
+        #                                                        step_size=10,)    
         
         #### GRADIENT ACCUMULATION SHEDULER ####################################
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -831,7 +842,7 @@ class ModelBase:
 
         self.tft = TemporalFusionTransformer.from_dataset(
             self.training,
-            # learning_rate=self.learning_rate,
+            learning_rate=self.learning_rate,
             # lstm_layers=2,
             # hidden_size=31,             # most important hyperparameter apart from learning rate
             # hidden_continuous_size=30,  # set to <= hidden_size
@@ -912,36 +923,36 @@ class ModelBase:
                 # self.trainer.should_stop = False
 
             else:
-                self.data_train, _ = DataGenerator2(DATA=self.data, 
-                                                    YEARS_MAX_LENGTH=5,
-                                                    NSAMPLES=len(self.data_val['sample'].unique()))
+#                 self.data_train, _ = DataGenerator2(DATA=self.data, 
+#                                                     YEARS_MAX_LENGTH=5,
+#                                                     NSAMPLES=len(self.data_val['sample'].unique()))
                 
-                df_tr = pd.DataFrame()
-                for smpl in self.data_val['sample'].unique():
-                    for county in self.data_val['county'].unique():
-                        df_cn = pd.DataFrame()
-                        dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
-                        dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
-                        df_cn = pd.concat([df_cn, dfa], axis=0)
-                        df_cn = pd.concat([df_cn, dfb], axis=0)
+#                 df_tr = pd.DataFrame()
+#                 for smpl in self.data_val['sample'].unique():
+#                     for county in self.data_val['county'].unique():
+#                         df_cn = pd.DataFrame()
+#                         dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
+#                         dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
+#                         df_cn = pd.concat([df_cn, dfa], axis=0)
+#                         df_cn = pd.concat([df_cn, dfb], axis=0)
 
-                        new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
-                        df_cn.index = new_index
-                        df_cn["time_idx"] = df_cn.index.astype(int)
-                        df_tr = pd.concat([df_tr, df_cn], axis=0)
-                new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
-                df_tr.index = new_index
+#                         new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
+#                         df_cn.index = new_index
+#                         df_cn["time_idx"] = df_cn.index.astype(int)
+#                         df_tr = pd.concat([df_tr, df_cn], axis=0)
+#                 new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
+#                 df_tr.index = new_index
 
-                self.data_train = df_tr
+#                 self.data_train = df_tr
 
-                self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
-                                                                    self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],)
-                                                                    # self.data_train)
+#                 self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
+#                                                                     self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],)
+#                                                                     # self.data_train)
 
-                self.train_dataloader = self.dataset_train.to_dataloader(train=True, 
-                                                                         batch_size=self.batch_size, 
-                                                                         shuffle=True, 
-                                                                         num_workers=10)
+#                 self.train_dataloader = self.dataset_train.to_dataloader(train=True, 
+#                                                                          batch_size=self.batch_size, 
+#                                                                          shuffle=True, 
+#                                                                          num_workers=10)
                 
 #                 self.testing = TimeSeriesDataSet.from_dataset(self.training, 
 #                                                               self.data_train, 

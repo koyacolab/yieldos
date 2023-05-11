@@ -193,6 +193,37 @@ class FineTuneLearningRateFinder_LinearLR(LearningRateFinder):
 # ---------------------------------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------------------------------                  
 
+class FineTuneLearningRateFinder_MultiStepLR(LearningRateFinder):
+    def __init__(self, milestones=[500, 800, 1200, 1700, 2300], *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.milestones = milestones
+        self.optimizer = []
+        self.scheduler = []
+
+    def on_fit_start(self, trainer, pl_module):
+        print("MultiStepLR:", self.milestones)
+        self.optimizer = trainer.optimizers[0]
+        self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, 
+                                                              self.milestones, 
+                                                              gamma=0.1, 
+                                                              last_epoch=- 1, 
+                                                              verbose=False)
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.scheduler.get_last_lr()[0]
+        # self.scheduler.step()
+        print('on_fit_start:', self.scheduler.get_last_lr()[0])
+        return
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        self.optimizer = trainer.optimizers[0]
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.scheduler.get_last_lr()[0]
+        self.scheduler.step()
+        print('on_train_epoch_start:', self.scheduler.get_last_lr()[0])
+        
+# ---------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------                  
+
 class FineTuneLearningRateFinder_CyclicLR(LearningRateFinder):
     def __init__(self, base_lr=0.001, max_lr=0.085, step_size_up=30, step_size_down=70, mode='triangular2', *args, **kwargs):
         super().__init__(*args, **kwargs)

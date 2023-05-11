@@ -63,9 +63,9 @@ from lightning.pytorch.callbacks import LearningRateFinder
 from lightning.pytorch.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR, FineTuneLearningRateFinder_CustomLR
-from utils import FineTuneLearningRateFinder_CyclicLR2, Reseter
+from utils import FineTuneLearningRateFinder_CyclicLR2, Reseter, FineTuneLearningRateFinder_CustomLR2
 from utils_data import ReloadDataLoader, ReloadDataSet, ReloadDataSet_12
-from utils_data import DataGenerator, DataGenerator2
+from utils_data import DataGenerator, DataGenerator2, DataGenerator3
 from utils import ActualVsPredictedCallback
     
 from pytorch_forecasting.metrics import MultiHorizonMetric
@@ -92,14 +92,15 @@ class Myloss(MultiHorizonMetric):
 
 MOD_BINS = 32
 FAM_BINS = 16
+CROP = 'corn'
 
 class ModelBase:
     
     def __init__(self, 
                  home_dir = '/hy-tmp',
                  # datasetfile = f'data/ALIM{MOD_BINS}F{FAM_BINS}DATASET_rice.csv',
-                 # datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_rice.csv',     
-                 datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_corn.csv',
+                 # datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_rice.csv',    
+                 datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_{CROP}.csv', 
                  predicted_years = "2004 2010 2017",
                  batch_size = 16, 
                  save_checkpoint = False,
@@ -109,7 +110,7 @@ class ModelBase:
                  lr_milestones_list = [20, 50, 600, 800,],
                  loss_func_metric = 'RMSE',
                  seed = 123456,
-                 crop_name = 'rice',
+                 crop_name = CROP,
                  exp_name = '',            
                 ):
     
@@ -385,29 +386,29 @@ class ModelBase:
         print('DATA_VAL:', self.data_val['sample'].unique(), df.shape)
         
 ####################### INIT DATA_TRAIN appears and add data_val as last year to each samples##########################
-        self.data_train, _ = DataGenerator2(DATA=self.data, 
+        self.data_train, _ = DataGenerator3(DATA=self.data, 
                                             YEARS_MAX_LENGTH=5,
                                             NSAMPLES=len(self.data_val['sample'].unique()))
         
-#         ###### ADD VALIDATION TILE TO TRAIN DATA FOR CUT IT IN VALIDATION DATALOADER IN PREDICTED MODE #############
-#         ##### WITH time_idx recalculation #########################
-#         df_tr = pd.DataFrame()
-#         for smpl in self.data_val['sample'].unique():
-#             for county in self.data_val['county'].unique():
-#                 df_cn = pd.DataFrame()
-#                 dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
-#                 dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
-#                 df_cn = pd.concat([df_cn, dfa], axis=0)
-#                 df_cn = pd.concat([df_cn, dfb], axis=0)
+        ###### ADD VALIDATION TILE TO TRAIN DATA FOR CUT IT IN VALIDATION DATALOADER IN PREDICTED MODE #############
+        ##### WITH time_idx recalculation #########################
+        df_tr = pd.DataFrame()
+        for smpl in self.data_val['sample'].unique():
+            for county in self.data_val['county'].unique():
+                df_cn = pd.DataFrame()
+                dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
+                dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
+                df_cn = pd.concat([df_cn, dfa], axis=0)
+                df_cn = pd.concat([df_cn, dfb], axis=0)
                 
-#                 new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
-#                 df_cn.index = new_index
-#                 df_cn["time_idx"] = df_cn.index.astype(int)
-#                 df_tr = pd.concat([df_tr, df_cn], axis=0)
-#         new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
-#         df_tr.index = new_index
+                new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
+                df_cn.index = new_index
+                df_cn["time_idx"] = df_cn.index.astype(int)
+                df_tr = pd.concat([df_tr, df_cn], axis=0)
+        new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
+        df_tr.index = new_index
         
-#         self.data_train = df_tr
+        self.data_train = df_tr
         
         ########### PLOT SAMPLE WITH ENCODER/DECODER FOR CONTROL ################################################
 
@@ -549,7 +550,14 @@ class ModelBase:
         
         # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
-        avg_med = [f"avg_{self.scrop}_yield", f"avg_{self.scrop}_sownarea", f"{self.scrop}_sownarea"]
+        avg_med = [f"avg_{self.scrop}_yield", 
+                   f"avg_{self.scrop}_sownarea", 
+                   f"avg_{self.scrop}_yieldval", 
+                   f"{self.scrop}_sownarea", 
+                   # f"actuals",
+                  ]
+        
+        # avg_med = [f"avg_{self.scrop}_yield"]
 
         _static_reals = avg_med
         
@@ -583,7 +591,8 @@ class ModelBase:
         #                'SoilTemp40_100cm_tavg', \
         #                'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
         
-        famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', \
+        famine_list = ['Evap_tavg', 
+                       # 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', \
                        # 'Qair_f_tavg', 'Qg_tavg',\
                        # 'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', \
                        'RadT_tavg', 'Rainf_f_tavg', \
@@ -592,7 +601,8 @@ class ModelBase:
                        # 'SoilMoi40_100cm_tavg', \
                        'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', \
                        # 'SoilTemp40_100cm_tavg', \
-                       'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
+                       # 'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg',
+                      ]
 
         nbins = ['_' + str(x) for x in range(0, FAM_BINS - 1)]
 
@@ -602,8 +612,8 @@ class ModelBase:
 ############# PREPARE variables for the TimeSeriesDataSet  ###################################
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        # self._time_varying_known_reals.extend(modis_list) 
-        # self._time_varying_known_reals.extend(famine_names)
+        self._time_varying_known_reals.extend(modis_list) 
+        self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
@@ -619,8 +629,8 @@ class ModelBase:
         self.prediction_lag = 4
         
         self.training = TimeSeriesDataSet(
-            # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],
-            self.data_train,
+            self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],
+            # self.data_train,
             # self.data_val,
             time_idx="time_idx",
             target=f"{self.scrop}_yield",
@@ -652,8 +662,8 @@ class ModelBase:
 ####### CREATE VALIDATION/TEST TSDS (predict=True) which means to predict the last max_prediction_length points in time
 #       # for each series
         self.validation = TimeSeriesDataSet.from_dataset(self.training, 
-                                                         # self.data_train, 
-                                                         self.data_val,
+                                                         self.data_train, 
+                                                         # self.data_val,
                                                          predict=True, 
                                                          stop_randomization=True)
         
@@ -671,11 +681,13 @@ class ModelBase:
                                                             num_workers=8)
         
         self.val_dataloader = self.validation.to_dataloader(train=False, 
-                                                            batch_size=30, 
+                                                            # batch_size=27, 
+                                                            batch_size=30,
                                                             num_workers=8)
         
         self.test_dataloader = self.testing.to_dataloader(train=False, 
-                                                          batch_size=27, 
+                                                          # batch_size=27, 
+                                                          batch_size=30,
                                                           num_workers=8)
         
         print('Dataloaders len:', len(self.train_dataloader), len(self.val_dataloader), len(self.test_dataloader))
@@ -715,19 +727,14 @@ class ModelBase:
 #         # actuals = torch.cat([y for x, (y, weight) in iter(self.val_dataloader)])
 #         # baseline_predictions = Baseline().predict(self.val_dataloader)
 #         # calculate baseline mean absolute error, i.e. predict next value as the last available value from the history
-        # baseline_predictions = Baseline().predict(self.val_dataloader, return_y=True)
-        # actuals = baseline_predictions.y
-        # print(type(baseline_predictions.y), len(baseline_predictions.y))
-        # print(baseline_predictions.y[0])
-        # # sys.exit(0)
-        # MAE()(baseline_predictions.output, baseline_predictions.y)
-        # print( 'Baseline:', MAE()(baseline_predictions.output, baseline_predictions.y) )
-        # print( 'Baseline:', type(actuals), type(baseline_predictions.output), type(baseline_predictions.y) )
-        # print( 'Baseline:', baseline_predictions.y )
-        # print( 'Baseline:', (actuals[0] - baseline_predictions.output).abs().mean() )
-        # print( 'Baseline:', time.asctime( time.localtime(time.time()) ) )
-        # sys.exit(0)
-        # fn
+#         baseline_predictions = Baseline().predict(self.val_dataloader, return_y=True)
+#         actuals = baseline_predictions.y
+#         MAE()(baseline_predictions.output, baseline_predictions.y)
+#         print( 'Baseline:', MAE()(baseline_predictions.output, baseline_predictions.y) )
+#         print( 'Baseline:', type(actuals), type(baseline_predictions.output), type(baseline_predictions.y) )
+#         print( 'Baseline:', baseline_predictions.y )
+#         print( 'Baseline:', (actuals[0] - baseline_predictions.output).abs().mean() )
+#         print( 'Baseline:', time.asctime( time.localtime(time.time()) ) )
             
         # dir = '/hy-tmp/chck/ali'
         # home_dir = '/content/gdrive/My Drive/AChina' 
@@ -763,20 +770,26 @@ class ModelBase:
         self._lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         #### LEARNING RATE TUNER #########################################
-        self.learning_rate = 0.001
+        self.learning_rate = 0.005
         
         # self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
         #                                                         max_lr=0.01, 
-        #                                                         step_size_up=350, 
-        #                                                         step_size_down=500,
+        #                                                         step_size_up=250, 
+        #                                                         step_size_down=250,
         #                                                         mode='triangular2') 
         
-        self._lr_finder  = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
-                                                               base_lr=self.learning_rate, 
-                                                               max_lr=0.01, 
-                                                               step_size_up=350, 
-                                                               step_size_down=2500,
-                                                               cycle_iters=2,) 
+        self._lr_finder = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
+                                                              base_lr=self.learning_rate, 
+                                                              max_lr=0.1, 
+                                                              step_size_up=250, 
+                                                              step_size_down=250, 
+                                                              cycle_iters=4,
+                                                              mode='triangular',) 
+        
+        # self._lr_finder = FineTuneLearningRateFinder_CustomLR2(constant_iters=10, 
+        #                                                        linear_iters=15, 
+        #                                                        linear_pleutau_iters=15,
+        #                                                        step_size=10,)    
         
         #### GRADIENT ACCUMULATION SHEDULER ####################################
         _GradAccumulator = GradientAccumulationScheduler(scheduling={0: 4, 60: 4, 150: 4})
@@ -907,9 +920,9 @@ class ModelBase:
                 # self.trainer.should_stop = False
 
             else:
-                self.data_train, _ = DataGenerator2(DATA=self.data, 
-                                                    YEARS_MAX_LENGTH=5,
-                                                    NSAMPLES=len(self.data_val['sample'].unique()))
+#                 self.data_train, _ = DataGenerator2(DATA=self.data, 
+#                                                     YEARS_MAX_LENGTH=5,
+#                                                     NSAMPLES=len(self.data_val['sample'].unique()))
                 
 #                 df_tr = pd.DataFrame()
 #                 for smpl in self.data_val['sample'].unique():
@@ -929,14 +942,14 @@ class ModelBase:
 
 #                 self.data_train = df_tr
 
-                self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
-                                                                    # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],)
-                                                                    self.data_train)
+#                 self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
+#                                                                     self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],)
+#                                                                     # self.data_train)
 
-                self.train_dataloader = self.dataset_train.to_dataloader(train=True, 
-                                                                         batch_size=self.batch_size, 
-                                                                         shuffle=True, 
-                                                                         num_workers=10)
+#                 self.train_dataloader = self.dataset_train.to_dataloader(train=True, 
+#                                                                          batch_size=self.batch_size, 
+#                                                                          shuffle=True, 
+#                                                                          num_workers=10)
                 
 #                 self.testing = TimeSeriesDataSet.from_dataset(self.training, 
 #                                                               self.data_train, 
@@ -1257,8 +1270,7 @@ class RunTask:
                           max_epochs=max_epochs, 
                           batch_size=batch_size, 
                           learning_rate=learning_rate,
-                          loss_func_metric=loss_func_metric,
-                          crop_name=crop_name)
+                          loss_func_metric=loss_func_metric)
         
         # model.init_lr_finder()
         # model.custom_finder()

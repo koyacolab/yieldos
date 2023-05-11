@@ -175,7 +175,7 @@ def DataGenerator2(DATA, YEARS_MAX_LENGTH, NSAMPLES):
 
 def DataGenerator3(DATA, YEARS_MAX_LENGTH, NSAMPLES):
     years_list = list(DATA['year'].astype(int).unique())
-    print(f'Augmentation for years list: {years_list} by NSAMPLES={NSAMPLES} and YEARS_MAX_LENGTH={YEARS_MAX_LENGTH}')
+    print(f'DataGenerator2: Augmentation for years list: {years_list} by NSAMPLES={NSAMPLES}')
 
     data_samples = pd.DataFrame()
     years_samples = []
@@ -207,4 +207,5 @@ def DataGenerator3(DATA, YEARS_MAX_LENGTH, NSAMPLES):
     data_samples.index = new_index
 
     return data_samples, years_samples
+
 
