@@ -295,7 +295,7 @@ class ModelBase:
                                                               & (self.data['year'] == year)].mean()
                 
                 self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                            (self.data['month'] < MAYDAY) ] = avg_yield
+                                            (self.data['month'] < MAYDAY) ] = 0.0    # avg_yield
                 self.data['gstage'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
                                         (self.data['month'] < MAYDAY) ] = "no"       
                 
@@ -318,7 +318,7 @@ class ModelBase:
                                                                   & (self.data_val['year'] == year)].mean()
                 
                 self.data_val[f'{self.scrop}_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
-                                            (self.data_val['month'] < MAYDAY) ] = avg_yield
+                                            (self.data_val['month'] < MAYDAY) ] = 0.0     # avg_yield
                 self.data_val['gstage'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
                                         (self.data_val['month'] < MAYDAY) ] = "no"       
                 

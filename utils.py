@@ -162,28 +162,37 @@ class FineTuneLearningRateFinder_0(LearningRateFinder):
 # ---------------------------------------------------------------------------------------------------------------           
 
 class FineTuneLearningRateFinder_LinearLR(LearningRateFinder):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, total_iters=20, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.optimizer = []
         self.scheduler = []
+        self.total_iters = total_iters
         # self.optimizer = []
         # self.scheduler = []
 
     def on_fit_start(self, trainer, pl_module):
-        self.optimizer = trainer.optimizers[0]
-        # self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, self.milestones, self.gamma)
-        self.scheduler = torch.optim.lr_scheduler.LinearLR(self.optimizer, start_factor=1.0, end_factor=0.35, total_iters=70)
-        # StepLR(optimizer, self.step_size, self.gamma)
-        for param_group in self.optimizer.param_groups:
-            param_group['lr'] = self.scheduler.get_last_lr()[0]
-        self.scheduler.step()
-        print('on_fit_start:', self.scheduler.get_last_lr()[0])
+        lr = trainer.optimizers[0].param_groups[0]['lr']
+        print('LinearLR lr:', lr, trainer.current_epoch)
+        if trainer.current_epoch == 0:
+            self.optimizer = trainer.optimizers[0]
+            # self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, self.milestones, self.gamma)
+            self.scheduler = torch.optim.lr_scheduler.LinearLR(self.optimizer, 
+                                                               start_factor=0.1, 
+                                                               end_factor=1.0, 
+                                                               total_iters=self.total_iters)
+            # StepLR(optimizer, self.step_size, self.gamma)
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] = self.scheduler.get_last_lr()[0]
+            # self.scheduler.step()
+            print('on_fit_start:', self.scheduler.get_last_lr()[0])
         return
 
     def on_train_epoch_start(self, trainer, pl_module):
         self.optimizer = trainer.optimizers[0]
+        lr = trainer.optimizers[0].param_groups[0]['lr']
+        print('LinearLR lr:', lr, trainer.current_epoch)
         # self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, self.milestones, self.gamma)
-        self.scheduler = torch.optim.lr_scheduler.LinearLR(self.optimizer, start_factor=1.0, end_factor=0.35, total_iters=70)
+        # self.scheduler = torch.optim.lr_scheduler.LinearLR(self.optimizer, start_factor=0.1, end_factor=1.0, total_iters=20)
         # StepLR(optimizer, self.step_size, self.gamma)
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = self.scheduler.get_last_lr()[0]

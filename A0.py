@@ -101,7 +101,8 @@ class ModelBase:
                  home_dir = '/hy-tmp',
                  # datasetfile = f'data/ALIM{MOD_BINS}F{FAM_BINS}DATASET_rice.csv',
                  # datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_rice.csv',    
-                 datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_{CROP}.csv', 
+                 # datasetfile = f'data/ANdB_M{MOD_BINS}_F{FAM_BINS}DATASET_{CROP}.csv', 
+                 datasetfile = f'data/ANM{MOD_BINS}F{FAM_BINS}DATASET_{CROP}.csv', 
                  predicted_years = "2004 2010 2017",
                  batch_size = 16, 
                  save_checkpoint = False,
@@ -296,7 +297,7 @@ class ModelBase:
                                                               & (self.data['year'] == year)].mean()
                 
                 self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                            (self.data['month'] < MAYDAY) ] = avg_yield
+                                            (self.data['month'] < MAYDAY) ] = 0.0     # avg_yield
                 self.data['gstage'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
                                         (self.data['month'] < MAYDAY) ] = "no"       
                 
@@ -319,7 +320,7 @@ class ModelBase:
                                                                   & (self.data_val['year'] == year)].mean()
                 
                 self.data_val[f'{self.scrop}_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
-                                            (self.data_val['month'] < MAYDAY) ] = avg_yield
+                                            (self.data_val['month'] < MAYDAY) ] = 0.0       # avg_yield
                 self.data_val['gstage'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
                                         (self.data_val['month'] < MAYDAY) ] = "no"       
                 
@@ -554,7 +555,7 @@ class ModelBase:
         avg_med = [f"avg_{self.scrop}_yield", 
                    f"avg_{self.scrop}_sownarea", 
                    f"avg_{self.scrop}_yieldval", 
-                   f"{self.scrop}_sownarea", 
+                   # f"{self.scrop}_sownarea", 
                    # f"actuals",
                   ]
         
@@ -593,16 +594,16 @@ class ModelBase:
         #                'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
         
         famine_list = ['Evap_tavg', 
-                       # 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', \
-                       # 'Qair_f_tavg', 'Qg_tavg',\
-                       # 'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', \
+                       'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', \
+                       'Qair_f_tavg', 'Qg_tavg',\
+                       'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', \
                        'RadT_tavg', 'Rainf_f_tavg', \
-                       # 'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
+                       'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
                        'SoilMoi00_10cm_tavg', 'SoilMoi10_40cm_tavg', \
-                       # 'SoilMoi40_100cm_tavg', \
+                       'SoilMoi40_100cm_tavg', \
                        'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', \
-                       # 'SoilTemp40_100cm_tavg', \
-                       # 'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg',
+                       'SoilTemp40_100cm_tavg', \
+                       'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg',
                       ]
 
         nbins = ['_' + str(x) for x in range(0, FAM_BINS - 1)]
@@ -613,7 +614,7 @@ class ModelBase:
 ############# PREPARE variables for the TimeSeriesDataSet  ###################################
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        # self._time_varying_known_reals.extend(modis_list) 
+        self._time_varying_known_reals.extend(modis_list) 
         self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
@@ -627,7 +628,7 @@ class ModelBase:
 ############################## SET TRAIN/VALIDATION/TEST TS DATASETS ###################################################
 
         #### ADD TIME LAG TO ENCODER/DECODER #################################################### 
-        self.prediction_lag = 4
+        self.prediction_lag = 0
         
         self.training = TimeSeriesDataSet(
             self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],
@@ -686,10 +687,15 @@ class ModelBase:
                                                             batch_size=30,
                                                             num_workers=8)
         
-        self.test_dataloader = self.testing.to_dataloader(train=False, 
-                                                          # batch_size=27, 
-                                                          batch_size=30,
-                                                          num_workers=8)
+        self.test_dataloader = self.training.to_dataloader(train=False, 
+                                                           batch_size=30, 
+                                                            # batch_size=self.batch_size, 
+                                                           num_workers=8)
+        
+        # self.test_dataloader = self.testing.to_dataloader(train=False, 
+        #                                                   # batch_size=27, 
+        #                                                   batch_size=30,
+        #                                                   num_workers=8)
         
         print('Dataloaders len:', len(self.train_dataloader), len(self.val_dataloader), len(self.test_dataloader))
         
@@ -787,7 +793,9 @@ class ModelBase:
         #                                                       cycle_iters=2,
         #                                                       mode='triangular',) 
         
-        self._lr_finder = FineTuneLearningRateFinder_MultiStepLR()
+        # self._lr_finder = FineTuneLearningRateFinder_MultiStepLR()
+        
+        self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=350)
         
         # self._lr_finder = FineTuneLearningRateFinder_CustomLR2(constant_iters=10, 
         #                                                        linear_iters=15, 
