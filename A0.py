@@ -283,7 +283,7 @@ class ModelBase:
         #### CREATE INFERENCE DATAS 2019-2023 with added validation dataset for control K-FOLD accuracy #############
         self.data_inference = pd.concat([self.data_val, data_infer], axis=0)
 
-        MAYDAY = 9
+        MAYDAY = 5
         HARDAY = 8
         #### CREATE TRAIN/VALIDATION/TEST DATASETS WITH AVERAGE IN ENCODER AND GROWTH/YIELD IN DECODER ######## 
         #### SET 'gstage'='no' for encoder and growth/yield for decoder ############################
@@ -553,10 +553,10 @@ class ModelBase:
         # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
         avg_med = [f"avg_{self.scrop}_yield", 
-                   f"avg_{self.scrop}_sownarea", 
-                   f"avg_{self.scrop}_yieldval", 
+                   # f"avg_{self.scrop}_sownarea", 
+                   # f"avg_{self.scrop}_yieldval", 
                    # f"{self.scrop}_sownarea", 
-                   # f"actuals",
+                   f"actuals",
                   ]
         
         # avg_med = [f"avg_{self.scrop}_yield"]
@@ -614,8 +614,8 @@ class ModelBase:
 ############# PREPARE variables for the TimeSeriesDataSet  ###################################
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        self._time_varying_known_reals.extend(modis_list) 
-        self._time_varying_known_reals.extend(famine_names)
+        # self._time_varying_known_reals.extend(modis_list) 
+        # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
@@ -747,7 +747,7 @@ class ModelBase:
         # home_dir = '/content/gdrive/My Drive/AChina' 
         # _dir = os.path.join(home_dir, 'data')
         
-########## SET EXPERIMENT SETTINGS FOR TRAINER #############################################################        
+############ SET EXPERIMENT SETTINGS FOR TRAINER #############################################################        
         #### SET CHECKPOINT ##############################
         reseter_step = 25
         self.ModelCheckpointPath = os.path.join(home_dir, self.name_for_files)
@@ -795,7 +795,7 @@ class ModelBase:
         
         # self._lr_finder = FineTuneLearningRateFinder_MultiStepLR()
         
-        self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=350)
+        # self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=350)
         
         # self._lr_finder = FineTuneLearningRateFinder_CustomLR2(constant_iters=10, 
         #                                                        linear_iters=15, 
@@ -834,9 +834,9 @@ class ModelBase:
                                # Checkpoint configuration
                                # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
                                reload_dataloaders_every_n_epochs = 1,
-                               callbacks = [self._lr_finder, 
-                                            self._checkpoint_callback, 
-                                            self._lr_monitor, 
+                               callbacks = [self._lr_monitor,
+                                            # self._lr_finder, 
+                                            self._checkpoint_callback,                                      
                                             # _reload_dataset, 
                                             # # _tb_logger, in logger
                                             # _actvspred_train, 

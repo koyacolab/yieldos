@@ -64,6 +64,7 @@ from lightning.pytorch.callbacks import GradientAccumulationScheduler
 
 from utils import FineTuneLearningRateFinder_CyclicLR, FineTuneLearningRateFinder_LinearLR, FineTuneLearningRateFinder_CustomLR
 from utils import FineTuneLearningRateFinder_CyclicLR2, Reseter, FineTuneLearningRateFinder_CustomLR2
+from utils import FineTuneLearningRateFinder_MultiStepLR
 from utils_data import ReloadDataLoader, ReloadDataSet, ReloadDataSet_12
 from utils_data import DataGenerator, DataGenerator2, DataGenerator3
 from utils import ActualVsPredictedCallback
@@ -100,7 +101,8 @@ class ModelBase:
                  home_dir = '/hy-tmp',
                  # datasetfile = f'data/ALIM{MOD_BINS}F{FAM_BINS}DATASET_rice.csv',
                  # datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_rice.csv',    
-                 datasetfile = f'data/AdB_M{MOD_BINS}_F{FAM_BINS}DATASET_{CROP}.csv', 
+                 # datasetfile = f'data/ANdB_M{MOD_BINS}_F{FAM_BINS}DATASET_{CROP}.csv', 
+                 datasetfile = f'data/ANM{MOD_BINS}F{FAM_BINS}DATASET_{CROP}.csv', 
                  predicted_years = "2004 2010 2017",
                  batch_size = 16, 
                  save_checkpoint = False,
@@ -212,6 +214,38 @@ class ModelBase:
         
         alidata_list = [f'county', f'year', f'month', f'gstage', f'time_idx', f'actuals']
         
+        #### ADD previous year info columns ############################
+        alidata['year_i'] = alidata['year'].astype(int)
+        alidata['year_i_ly'] = alidata['year'].astype(int)
+        alidata[f'{self.scrop}_yield_ly'] = alidata[f'{self.scrop}_yield']
+        alidata[f'{self.scrop}_sownarea_ly'] = alidata[f'{self.scrop}_sownarea']
+        alidata[f'{self.scrop}_yieldval_ly'] = alidata[f'{self.scrop}_yieldval']
+        
+        alidata = alidata[ alidata['county'] != '20' ]
+        
+        for county in alidata['county'].unique():
+            print(county)
+            print(alidata['year_i'].loc[(alidata['county'] == county)].unique())
+            for year in alidata['year_i'].loc[(alidata['county'] == county)].unique():
+                print(year)
+                if year > 2004:
+                    alidata['year_i_ly'].loc[ (alidata['year_i'] == year) & (alidata['county'] == county) ] = \
+                    alidata['year_i'].loc[ (alidata['year_i'] == year - 1) & (alidata['county'] == county) ]               
+
+                    alidata[f'{self.scrop}_yield_ly'].loc[ (alidata['year_i'] == year) & (alidata['county'] == county) ] = \
+                    alidata[f'{self.scrop}_yield'].loc[ (alidata['year_i'] == year - 1) & (alidata['county'] == county) ].values
+
+                    alidata[f'{self.scrop}_sownarea_ly'].loc[ (alidata['year_i'] == year) & (alidata['county'] == county) ] = \
+                    alidata[f'{self.scrop}_sownarea'].loc[ (alidata['year_i'] == year - 1) & (alidata['county'] == county) ].values
+
+                    alidata[f'{self.scrop}_yieldval_ly'].loc[ (alidata['year_i'] == year) & (alidata['county'] == county) ] = \
+                    alidata[f'{self.scrop}_yieldval'].loc[ (alidata['year_i'] == year - 1) & (alidata['county'] == county) ].values
+                    print(alidata[f'{self.scrop}_yield_ly'].loc[ (alidata['year_i'] == year - 1) & (alidata['county'] == county) ])
+                    
+        # print('eixn')
+        # fn
+                
+        
         #### GET MODIS column names #####################
         ################ MODIS cloumns name ################################
         mod_names = [f'b{iband}b{bins}' for iband in range(9) for bins in range(MOD_BINS)]      
@@ -281,7 +315,7 @@ class ModelBase:
         #### CREATE INFERENCE DATAS 2019-2023 with added validation dataset for control K-FOLD accuracy #############
         self.data_inference = pd.concat([self.data_val, data_infer], axis=0)
 
-        MAYDAY = 9
+        MAYDAY = 5
         HARDAY = 8
         #### CREATE TRAIN/VALIDATION/TEST DATASETS WITH AVERAGE IN ENCODER AND GROWTH/YIELD IN DECODER ######## 
         #### SET 'gstage'='no' for encoder and growth/yield for decoder ############################
@@ -295,9 +329,20 @@ class ModelBase:
                                                               & (self.data['year'] == year)].mean()
                 
                 self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                            (self.data['month'] < MAYDAY) ] = 0.0    # avg_yield
+                                            (self.data['month'] < MAYDAY) ] = \
+                self.data[f'{self.scrop}_yield_ly'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
+                                            (self.data['month'] < MAYDAY) ]
+                
                 self.data['gstage'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                        (self.data['month'] < MAYDAY) ] = "no"       
+                                        (self.data['month'] < MAYDAY) ] = "no"     
+                
+                # print(self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
+                #                             (self.data['month'] < MAYDAY) ])
+                
+                # print(self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
+                #                             (self.data['month'] < MAYDAY) ])
+                
+            # fn
                 
                 # self.data[f'{self.scrop}_yield'].loc[( (self.data['county'] == county) & (self.data['year'] == year) ) & \
                 #                             ( (self.data['month'] == 6) | (self.data['month'] == 7) ) ] = \
@@ -318,7 +363,10 @@ class ModelBase:
                                                                   & (self.data_val['year'] == year)].mean()
                 
                 self.data_val[f'{self.scrop}_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
-                                            (self.data_val['month'] < MAYDAY) ] = 0.0     # avg_yield
+                                            (self.data_val['month'] < MAYDAY) ] = \
+                self.data_val[f'{self.scrop}_yield_ly'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
+                                            (self.data_val['month'] < MAYDAY) ]    # 0.0       # avg_yield
+                
                 self.data_val['gstage'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
                                         (self.data_val['month'] < MAYDAY) ] = "no"       
                 
@@ -339,7 +387,11 @@ class ModelBase:
                 self.data_inference[f'{self.scrop}_yield'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
                                                  (self.data_inference['month'] < MAYDAY) ] \
-                                                 = avg_yield# (avg_yield + med_yield) / 2.0
+                                                 = \
+                self.data_inference[f'{self.scrop}_yield_ly'].loc[(self.data_inference['county'] == county) \
+                                                 & (self.data_inference['year'] == year) & \
+                                                 (self.data_inference['month'] < MAYDAY) ]    # avg_yield# (avg_yield + med_yield) / 2.0
+                
                 self.data_inference['gstage'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
                                                  (self.data_inference['month'] < MAYDAY) ] \
@@ -430,8 +482,8 @@ class ModelBase:
         
         ax.plot(df['time_idx'].to_numpy(), df[f'{self.scrop}_yield'].to_numpy(), 'o')
         # Create the second y-axis
-        ax2 = ax.twiny().twinx()
-        ax2.plot(df['time_idx'].to_numpy(), df['gstage'], 'x', color='green')
+        # ax2 = ax.twiny().twinx()
+        # ax2.plot(df['time_idx'].to_numpy(), df['gstage'], 'x', color='green')
 
         ######### SET ENCODER-DECODER LENGTH AS 'gstage' phase: no/growth/yied ####################################################
         
@@ -491,7 +543,7 @@ class ModelBase:
         ax.plot(dfali['time_idx'].to_numpy(), dfali[f'{self.scrop}_yield'].to_numpy(), '-.')
         
         plt.show()
-        plt.savefig('A0F', bbox_inches='tight')           
+        plt.savefig('A0QF', bbox_inches='tight')           
         
         # fn
         
@@ -534,7 +586,7 @@ class ModelBase:
         ax.legend()
         
         # save the plot as an image
-        plt.savefig(f"A00001.png")
+        plt.savefig(f"A0Q1.png")
         
         # fn
         ####################################################################
@@ -551,10 +603,11 @@ class ModelBase:
         # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
         avg_med = [f"avg_{self.scrop}_yield", 
-                   f"avg_{self.scrop}_sownarea", 
-                   f"avg_{self.scrop}_yieldval", 
-                   f"{self.scrop}_sownarea", 
-                   # f"actuals",
+                   f"{self.scrop}_yield_ly", 
+                   # f"avg_{self.scrop}_sownarea", 
+                   # f"avg_{self.scrop}_yieldval", 
+                   # f"{self.scrop}_sownarea", 
+                   f"actuals",
                   ]
         
         # avg_med = [f"avg_{self.scrop}_yield"]
@@ -592,16 +645,16 @@ class ModelBase:
         #                'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
         
         famine_list = ['Evap_tavg', 
-                       # 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', \
-                       # 'Qair_f_tavg', 'Qg_tavg',\
-                       # 'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', \
+                       'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', \
+                       'Qair_f_tavg', 'Qg_tavg',\
+                       'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', \
                        'RadT_tavg', 'Rainf_f_tavg', \
-                       # 'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
+                       'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
                        'SoilMoi00_10cm_tavg', 'SoilMoi10_40cm_tavg', \
-                       # 'SoilMoi40_100cm_tavg', \
+                       'SoilMoi40_100cm_tavg', \
                        'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', \
-                       # 'SoilTemp40_100cm_tavg', \
-                       # 'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg',
+                       'SoilTemp40_100cm_tavg', \
+                       'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg',
                       ]
 
         nbins = ['_' + str(x) for x in range(0, FAM_BINS - 1)]
@@ -612,8 +665,8 @@ class ModelBase:
 ############# PREPARE variables for the TimeSeriesDataSet  ###################################
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        self._time_varying_known_reals.extend(modis_list) 
-        self._time_varying_known_reals.extend(famine_names)
+        # self._time_varying_known_reals.extend(modis_list) 
+        # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
@@ -626,7 +679,7 @@ class ModelBase:
 ############################## SET TRAIN/VALIDATION/TEST TS DATASETS ###################################################
 
         #### ADD TIME LAG TO ENCODER/DECODER #################################################### 
-        self.prediction_lag = 4
+        self.prediction_lag = 0
         
         self.training = TimeSeriesDataSet(
             self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],
@@ -685,10 +738,15 @@ class ModelBase:
                                                             batch_size=30,
                                                             num_workers=8)
         
-        self.test_dataloader = self.testing.to_dataloader(train=False, 
-                                                          # batch_size=27, 
-                                                          batch_size=30,
-                                                          num_workers=8)
+        self.test_dataloader = self.training.to_dataloader(train=False, 
+                                                           batch_size=30, 
+                                                            # batch_size=self.batch_size, 
+                                                           num_workers=8)
+        
+        # self.test_dataloader = self.testing.to_dataloader(train=False, 
+        #                                                   # batch_size=27, 
+        #                                                   batch_size=30,
+        #                                                   num_workers=8)
         
         print('Dataloaders len:', len(self.train_dataloader), len(self.val_dataloader), len(self.test_dataloader))
         
@@ -770,7 +828,7 @@ class ModelBase:
         self._lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         #### LEARNING RATE TUNER #########################################
-        self.learning_rate = 0.005
+        self.learning_rate = 0.1
         
         # self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
         #                                                         max_lr=0.01, 
@@ -778,13 +836,17 @@ class ModelBase:
         #                                                         step_size_down=250,
         #                                                         mode='triangular2') 
         
-        self._lr_finder = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
-                                                              base_lr=self.learning_rate, 
-                                                              max_lr=0.1, 
-                                                              step_size_up=250, 
-                                                              step_size_down=250, 
-                                                              cycle_iters=4,
-                                                              mode='triangular',) 
+        # self._lr_finder = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
+        #                                                       base_lr=self.learning_rate, 
+        #                                                       max_lr=0.05, 
+        #                                                       step_size_up=250, 
+        #                                                       step_size_down=20050, 
+        #                                                       cycle_iters=2,
+        #                                                       mode='triangular',) 
+        
+        # self._lr_finder = FineTuneLearningRateFinder_MultiStepLR()
+        
+        # self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=350)
         
         # self._lr_finder = FineTuneLearningRateFinder_CustomLR2(constant_iters=10, 
         #                                                        linear_iters=15, 
@@ -823,9 +885,9 @@ class ModelBase:
                                # Checkpoint configuration
                                # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
                                reload_dataloaders_every_n_epochs = 1,
-                               callbacks = [self._lr_finder, 
-                                            self._checkpoint_callback, 
-                                            self._lr_monitor, 
+                               callbacks = [self._lr_monitor,
+                                            # self._lr_finder, 
+                                            self._checkpoint_callback,                                      
                                             # _reload_dataset, 
                                             # # _tb_logger, in logger
                                             # _actvspred_train, 
@@ -839,7 +901,7 @@ class ModelBase:
 
         self.tft = TemporalFusionTransformer.from_dataset(
             self.training,
-            # learning_rate=self.learning_rate,
+            learning_rate=self.learning_rate,
             # lstm_layers=2,
             # hidden_size=31,             # most important hyperparameter apart from learning rate
             # hidden_continuous_size=30,  # set to <= hidden_size
