@@ -283,7 +283,8 @@ class ModelBase:
         #### CREATE INFERENCE DATAS 2019-2023 with added validation dataset for control K-FOLD accuracy #############
         self.data_inference = pd.concat([self.data_val, data_infer], axis=0)
 
-        MAYDAY = 5
+        #### CROP GROWTH CALENDAR #########################################################
+        MAYDAY = 8
         HARDAY = 8
         #### CREATE TRAIN/VALIDATION/TEST DATASETS WITH AVERAGE IN ENCODER AND GROWTH/YIELD IN DECODER ######## 
         #### SET 'gstage'='no' for encoder and growth/yield for decoder ############################
@@ -297,7 +298,7 @@ class ModelBase:
                                                               & (self.data['year'] == year)].mean()
                 
                 self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                            (self.data['month'] < MAYDAY) ] = 0.0     # avg_yield
+                                            (self.data['month'] < MAYDAY) ] = 0.0   # avg_yield
                 self.data['gstage'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
                                         (self.data['month'] < MAYDAY) ] = "no"       
                 
@@ -320,7 +321,7 @@ class ModelBase:
                                                                   & (self.data_val['year'] == year)].mean()
                 
                 self.data_val[f'{self.scrop}_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
-                                            (self.data_val['month'] < MAYDAY) ] = 0.0       # avg_yield
+                                            (self.data_val['month'] < MAYDAY) ] = 0.0     # avg_yield
                 self.data_val['gstage'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
                                         (self.data_val['month'] < MAYDAY) ] = "no"       
                 
@@ -510,7 +511,7 @@ class ModelBase:
         print('DataGenerator done...')
         
         ###### SET BASIC FILENAME #######################################
-        self.name_for_files = f'EXP_[{self.exp_name}]-Cr[{self.scrop}]-KF[{"_".join(self.val_years)}]-BS[{self.batch_size}]]'
+        self.name_for_files = f'EXP_[{self.exp_name}]-Cr[{self.scrop}]-KF[{"_".join(self.val_years)}]-BS[{self.batch_size}]'
         if os.path.exists(self.name_for_files) == True:
             print(f'Experiment exist: {self.name_for_files}')
             print(f'Set another exp_name...')
@@ -552,12 +553,14 @@ class ModelBase:
         
         # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
-        avg_med = [f"avg_{self.scrop}_yield", 
-                   # f"avg_{self.scrop}_sownarea", 
-                   # f"avg_{self.scrop}_yieldval", 
-                   # f"{self.scrop}_sownarea", 
-                   f"actuals",
-                  ]
+        # avg_med = [f"avg_{self.scrop}_yield", 
+        #            f"avg_{self.scrop}_sownarea", 
+        #            # f"avg_{self.scrop}_yieldval", 
+        #            f"{self.scrop}_sownarea", 
+        #            # f"actuals",
+        #           ]
+        
+        avg_med = []
         
         # avg_med = [f"avg_{self.scrop}_yield"]
 
@@ -614,13 +617,13 @@ class ModelBase:
 ############# PREPARE variables for the TimeSeriesDataSet  ###################################
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        # self._time_varying_known_reals.extend(modis_list) 
-        # self._time_varying_known_reals.extend(famine_names)
+        self._time_varying_known_reals.extend(modis_list) 
+        self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
-        # self._time_varying_unknown_reals.extend(modis_list)
-        # self._time_varying_unknown_reals.extend(famine_names)
+        self._time_varying_unknown_reals.extend(modis_list)
+        self._time_varying_unknown_reals.extend(famine_names)
 
         # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )    
         
@@ -795,7 +798,7 @@ class ModelBase:
         
         # self._lr_finder = FineTuneLearningRateFinder_MultiStepLR()
         
-        # self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=350)
+        self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=50)
         
         # self._lr_finder = FineTuneLearningRateFinder_CustomLR2(constant_iters=10, 
         #                                                        linear_iters=15, 
@@ -835,7 +838,7 @@ class ModelBase:
                                # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
                                reload_dataloaders_every_n_epochs = 1,
                                callbacks = [self._lr_monitor,
-                                            # self._lr_finder, 
+                                            self._lr_finder, 
                                             self._checkpoint_callback,                                      
                                             # _reload_dataset, 
                                             # # _tb_logger, in logger

@@ -214,6 +214,38 @@ class ModelBase:
         
         alidata_list = [f'county', f'year', f'month', f'gstage', f'time_idx', f'actuals']
         
+        #### ADD previous year info columns ############################
+        alidata['year_i'] = alidata['year'].astype(int)
+        alidata['year_i_ly'] = alidata['year'].astype(int)
+        alidata[f'{self.scrop}_yield_ly'] = alidata[f'{self.scrop}_yield']
+        alidata[f'{self.scrop}_sownarea_ly'] = alidata[f'{self.scrop}_sownarea']
+        alidata[f'{self.scrop}_yieldval_ly'] = alidata[f'{self.scrop}_yieldval']
+        
+        alidata = alidata[ alidata['county'] != '20' ]
+        
+        for county in alidata['county'].unique():
+            print(county)
+            print(alidata['year_i'].loc[(alidata['county'] == county)].unique())
+            for year in alidata['year_i'].loc[(alidata['county'] == county)].unique():
+                print(year)
+                if year > 2004:
+                    alidata['year_i_ly'].loc[ (alidata['year_i'] == year) & (alidata['county'] == county) ] = \
+                    alidata['year_i'].loc[ (alidata['year_i'] == year - 1) & (alidata['county'] == county) ]               
+
+                    alidata[f'{self.scrop}_yield_ly'].loc[ (alidata['year_i'] == year) & (alidata['county'] == county) ] = \
+                    alidata[f'{self.scrop}_yield'].loc[ (alidata['year_i'] == year - 1) & (alidata['county'] == county) ].values
+
+                    alidata[f'{self.scrop}_sownarea_ly'].loc[ (alidata['year_i'] == year) & (alidata['county'] == county) ] = \
+                    alidata[f'{self.scrop}_sownarea'].loc[ (alidata['year_i'] == year - 1) & (alidata['county'] == county) ].values
+
+                    alidata[f'{self.scrop}_yieldval_ly'].loc[ (alidata['year_i'] == year) & (alidata['county'] == county) ] = \
+                    alidata[f'{self.scrop}_yieldval'].loc[ (alidata['year_i'] == year - 1) & (alidata['county'] == county) ].values
+                    print(alidata[f'{self.scrop}_yield_ly'].loc[ (alidata['year_i'] == year - 1) & (alidata['county'] == county) ])
+                    
+        # print('eixn')
+        # fn
+                
+        
         #### GET MODIS column names #####################
         ################ MODIS cloumns name ################################
         mod_names = [f'b{iband}b{bins}' for iband in range(9) for bins in range(MOD_BINS)]      
@@ -283,8 +315,7 @@ class ModelBase:
         #### CREATE INFERENCE DATAS 2019-2023 with added validation dataset for control K-FOLD accuracy #############
         self.data_inference = pd.concat([self.data_val, data_infer], axis=0)
 
-        #### CROP GROWTH CALENDAR #########################################################
-        MAYDAY = 8
+        MAYDAY = 5
         HARDAY = 8
         #### CREATE TRAIN/VALIDATION/TEST DATASETS WITH AVERAGE IN ENCODER AND GROWTH/YIELD IN DECODER ######## 
         #### SET 'gstage'='no' for encoder and growth/yield for decoder ############################
@@ -298,9 +329,20 @@ class ModelBase:
                                                               & (self.data['year'] == year)].mean()
                 
                 self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                            (self.data['month'] < MAYDAY) ] = 0.0   # avg_yield
+                                            (self.data['month'] < MAYDAY) ] = \
+                self.data[f'{self.scrop}_yield_ly'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
+                                            (self.data['month'] < MAYDAY) ]
+                
                 self.data['gstage'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                        (self.data['month'] < MAYDAY) ] = "no"       
+                                        (self.data['month'] < MAYDAY) ] = "no"     
+                
+                # print(self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
+                #                             (self.data['month'] < MAYDAY) ])
+                
+                # print(self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
+                #                             (self.data['month'] < MAYDAY) ])
+                
+            # fn
                 
                 # self.data[f'{self.scrop}_yield'].loc[( (self.data['county'] == county) & (self.data['year'] == year) ) & \
                 #                             ( (self.data['month'] == 6) | (self.data['month'] == 7) ) ] = \
@@ -321,7 +363,10 @@ class ModelBase:
                                                                   & (self.data_val['year'] == year)].mean()
                 
                 self.data_val[f'{self.scrop}_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
-                                            (self.data_val['month'] < MAYDAY) ] = 0.0     # avg_yield
+                                            (self.data_val['month'] < MAYDAY) ] = \
+                self.data_val[f'{self.scrop}_yield_ly'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
+                                            (self.data_val['month'] < MAYDAY) ]    # 0.0       # avg_yield
+                
                 self.data_val['gstage'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
                                         (self.data_val['month'] < MAYDAY) ] = "no"       
                 
@@ -342,7 +387,11 @@ class ModelBase:
                 self.data_inference[f'{self.scrop}_yield'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
                                                  (self.data_inference['month'] < MAYDAY) ] \
-                                                 = avg_yield# (avg_yield + med_yield) / 2.0
+                                                 = \
+                self.data_inference[f'{self.scrop}_yield_ly'].loc[(self.data_inference['county'] == county) \
+                                                 & (self.data_inference['year'] == year) & \
+                                                 (self.data_inference['month'] < MAYDAY) ]    # avg_yield# (avg_yield + med_yield) / 2.0
+                
                 self.data_inference['gstage'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
                                                  (self.data_inference['month'] < MAYDAY) ] \
@@ -433,8 +482,8 @@ class ModelBase:
         
         ax.plot(df['time_idx'].to_numpy(), df[f'{self.scrop}_yield'].to_numpy(), 'o')
         # Create the second y-axis
-        ax2 = ax.twiny().twinx()
-        ax2.plot(df['time_idx'].to_numpy(), df['gstage'], 'x', color='green')
+        # ax2 = ax.twiny().twinx()
+        # ax2.plot(df['time_idx'].to_numpy(), df['gstage'], 'x', color='green')
 
         ######### SET ENCODER-DECODER LENGTH AS 'gstage' phase: no/growth/yied ####################################################
         
@@ -494,7 +543,7 @@ class ModelBase:
         ax.plot(dfali['time_idx'].to_numpy(), dfali[f'{self.scrop}_yield'].to_numpy(), '-.')
         
         plt.show()
-        plt.savefig('A0F', bbox_inches='tight')           
+        plt.savefig('A0QF', bbox_inches='tight')           
         
         # fn
         
@@ -511,7 +560,7 @@ class ModelBase:
         print('DataGenerator done...')
         
         ###### SET BASIC FILENAME #######################################
-        self.name_for_files = f'EXP_[{self.exp_name}]-Cr[{self.scrop}]-KF[{"_".join(self.val_years)}]-BS[{self.batch_size}]'
+        self.name_for_files = f'EXP_[{self.exp_name}]-Cr[{self.scrop}]-KF[{"_".join(self.val_years)}]-BS[{self.batch_size}]]'
         if os.path.exists(self.name_for_files) == True:
             print(f'Experiment exist: {self.name_for_files}')
             print(f'Set another exp_name...')
@@ -537,7 +586,7 @@ class ModelBase:
         ax.legend()
         
         # save the plot as an image
-        plt.savefig(f"A00001.png")
+        plt.savefig(f"A0Q1.png")
         
         # fn
         ####################################################################
@@ -553,14 +602,13 @@ class ModelBase:
         
         # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
-        # avg_med = [f"avg_{self.scrop}_yield", 
-        #            f"avg_{self.scrop}_sownarea", 
-        #            # f"avg_{self.scrop}_yieldval", 
-        #            f"{self.scrop}_sownarea", 
-        #            # f"actuals",
-        #           ]
-        
-        avg_med = []
+        avg_med = [f"avg_{self.scrop}_yield", 
+                   f"{self.scrop}_yield_ly", 
+                   # f"avg_{self.scrop}_sownarea", 
+                   # f"avg_{self.scrop}_yieldval", 
+                   # f"{self.scrop}_sownarea", 
+                   f"actuals",
+                  ]
         
         # avg_med = [f"avg_{self.scrop}_yield"]
 
@@ -617,13 +665,13 @@ class ModelBase:
 ############# PREPARE variables for the TimeSeriesDataSet  ###################################
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        self._time_varying_known_reals.extend(modis_list) 
-        self._time_varying_known_reals.extend(famine_names)
+        # self._time_varying_known_reals.extend(modis_list) 
+        # self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
-        self._time_varying_unknown_reals.extend(modis_list)
-        self._time_varying_unknown_reals.extend(famine_names)
+        # self._time_varying_unknown_reals.extend(modis_list)
+        # self._time_varying_unknown_reals.extend(famine_names)
 
         # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )    
         
@@ -750,7 +798,7 @@ class ModelBase:
         # home_dir = '/content/gdrive/My Drive/AChina' 
         # _dir = os.path.join(home_dir, 'data')
         
-############ SET EXPERIMENT SETTINGS FOR TRAINER #############################################################        
+########## SET EXPERIMENT SETTINGS FOR TRAINER #############################################################        
         #### SET CHECKPOINT ##############################
         reseter_step = 25
         self.ModelCheckpointPath = os.path.join(home_dir, self.name_for_files)
@@ -798,7 +846,7 @@ class ModelBase:
         
         # self._lr_finder = FineTuneLearningRateFinder_MultiStepLR()
         
-        self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=50)
+        # self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=350)
         
         # self._lr_finder = FineTuneLearningRateFinder_CustomLR2(constant_iters=10, 
         #                                                        linear_iters=15, 
@@ -838,7 +886,7 @@ class ModelBase:
                                # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
                                reload_dataloaders_every_n_epochs = 1,
                                callbacks = [self._lr_monitor,
-                                            self._lr_finder, 
+                                            # self._lr_finder, 
                                             self._checkpoint_callback,                                      
                                             # _reload_dataset, 
                                             # # _tb_logger, in logger

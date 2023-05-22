@@ -214,38 +214,6 @@ class ModelBase:
         
         alidata_list = [f'county', f'year', f'month', f'gstage', f'time_idx', f'actuals']
         
-        #### ADD previous year info columns ############################
-        alidata['year_i'] = alidata['year'].astype(int)
-        alidata['year_i_ly'] = alidata['year'].astype(int)
-        alidata[f'{self.scrop}_yield_ly'] = alidata[f'{self.scrop}_yield']
-        alidata[f'{self.scrop}_sownarea_ly'] = alidata[f'{self.scrop}_sownarea']
-        alidata[f'{self.scrop}_yieldval_ly'] = alidata[f'{self.scrop}_yieldval']
-        
-        alidata = alidata[ alidata['county'] != '20' ]
-        
-        for county in alidata['county'].unique():
-            print(county)
-            print(alidata['year_i'].loc[(alidata['county'] == county)].unique())
-            for year in alidata['year_i'].loc[(alidata['county'] == county)].unique():
-                print(year)
-                if year > 2004:
-                    alidata['year_i_ly'].loc[ (alidata['year_i'] == year) & (alidata['county'] == county) ] = \
-                    alidata['year_i'].loc[ (alidata['year_i'] == year - 1) & (alidata['county'] == county) ]               
-
-                    alidata[f'{self.scrop}_yield_ly'].loc[ (alidata['year_i'] == year) & (alidata['county'] == county) ] = \
-                    alidata[f'{self.scrop}_yield'].loc[ (alidata['year_i'] == year - 1) & (alidata['county'] == county) ].values
-
-                    alidata[f'{self.scrop}_sownarea_ly'].loc[ (alidata['year_i'] == year) & (alidata['county'] == county) ] = \
-                    alidata[f'{self.scrop}_sownarea'].loc[ (alidata['year_i'] == year - 1) & (alidata['county'] == county) ].values
-
-                    alidata[f'{self.scrop}_yieldval_ly'].loc[ (alidata['year_i'] == year) & (alidata['county'] == county) ] = \
-                    alidata[f'{self.scrop}_yieldval'].loc[ (alidata['year_i'] == year - 1) & (alidata['county'] == county) ].values
-                    print(alidata[f'{self.scrop}_yield_ly'].loc[ (alidata['year_i'] == year - 1) & (alidata['county'] == county) ])
-                    
-        # print('eixn')
-        # fn
-                
-        
         #### GET MODIS column names #####################
         ################ MODIS cloumns name ################################
         mod_names = [f'b{iband}b{bins}' for iband in range(9) for bins in range(MOD_BINS)]      
@@ -329,20 +297,9 @@ class ModelBase:
                                                               & (self.data['year'] == year)].mean()
                 
                 self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                            (self.data['month'] < MAYDAY) ] = \
-                self.data[f'{self.scrop}_yield_ly'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                            (self.data['month'] < MAYDAY) ]
-                
+                                            (self.data['month'] < MAYDAY) ] = 0.0   # avg_yield
                 self.data['gstage'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                                        (self.data['month'] < MAYDAY) ] = "no"     
-                
-                # print(self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                #                             (self.data['month'] < MAYDAY) ])
-                
-                # print(self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
-                #                             (self.data['month'] < MAYDAY) ])
-                
-            # fn
+                                        (self.data['month'] < MAYDAY) ] = "no"       
                 
                 # self.data[f'{self.scrop}_yield'].loc[( (self.data['county'] == county) & (self.data['year'] == year) ) & \
                 #                             ( (self.data['month'] == 6) | (self.data['month'] == 7) ) ] = \
@@ -363,10 +320,7 @@ class ModelBase:
                                                                   & (self.data_val['year'] == year)].mean()
                 
                 self.data_val[f'{self.scrop}_yield'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
-                                            (self.data_val['month'] < MAYDAY) ] = \
-                self.data_val[f'{self.scrop}_yield_ly'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
-                                            (self.data_val['month'] < MAYDAY) ]    # 0.0       # avg_yield
-                
+                                            (self.data_val['month'] < MAYDAY) ] = 0.0     # avg_yield
                 self.data_val['gstage'].loc[(self.data_val['county'] == county) & (self.data_val['year'] == year) & \
                                         (self.data_val['month'] < MAYDAY) ] = "no"       
                 
@@ -387,11 +341,7 @@ class ModelBase:
                 self.data_inference[f'{self.scrop}_yield'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
                                                  (self.data_inference['month'] < MAYDAY) ] \
-                                                 = \
-                self.data_inference[f'{self.scrop}_yield_ly'].loc[(self.data_inference['county'] == county) \
-                                                 & (self.data_inference['year'] == year) & \
-                                                 (self.data_inference['month'] < MAYDAY) ]    # avg_yield# (avg_yield + med_yield) / 2.0
-                
+                                                 = avg_yield# (avg_yield + med_yield) / 2.0
                 self.data_inference['gstage'].loc[(self.data_inference['county'] == county) \
                                                  & (self.data_inference['year'] == year) & \
                                                  (self.data_inference['month'] < MAYDAY) ] \
@@ -482,8 +432,8 @@ class ModelBase:
         
         ax.plot(df['time_idx'].to_numpy(), df[f'{self.scrop}_yield'].to_numpy(), 'o')
         # Create the second y-axis
-        # ax2 = ax.twiny().twinx()
-        # ax2.plot(df['time_idx'].to_numpy(), df['gstage'], 'x', color='green')
+        ax2 = ax.twiny().twinx()
+        ax2.plot(df['time_idx'].to_numpy(), df['gstage'], 'x', color='green')
 
         ######### SET ENCODER-DECODER LENGTH AS 'gstage' phase: no/growth/yied ####################################################
         
@@ -531,6 +481,8 @@ class ModelBase:
         ax.plot(dfe['time_idx'].to_numpy(), dfe[f'{self.scrop}_yield'].to_numpy(), '.', color='yellow')
         ax.plot(dfp['time_idx'].to_numpy(), dfp[f'{self.scrop}_yield'].to_numpy(), '.', color='red')
         
+        
+        
         print(self.max_encoder_length, self.max_prediction_length)   
         
         last_year = dfe['year'].unique()
@@ -543,7 +495,7 @@ class ModelBase:
         ax.plot(dfali['time_idx'].to_numpy(), dfali[f'{self.scrop}_yield'].to_numpy(), '-.')
         
         plt.show()
-        plt.savefig('A0QF', bbox_inches='tight')           
+        plt.savefig('A0Q', bbox_inches='tight')           
         
         # fn
         
@@ -603,7 +555,6 @@ class ModelBase:
         # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
         avg_med = [f"avg_{self.scrop}_yield", 
-                   f"{self.scrop}_yield_ly", 
                    # f"avg_{self.scrop}_sownarea", 
                    # f"avg_{self.scrop}_yieldval", 
                    # f"{self.scrop}_sownarea", 
@@ -798,7 +749,7 @@ class ModelBase:
         # home_dir = '/content/gdrive/My Drive/AChina' 
         # _dir = os.path.join(home_dir, 'data')
         
-########## SET EXPERIMENT SETTINGS FOR TRAINER #############################################################        
+############ SET EXPERIMENT SETTINGS FOR TRAINER #############################################################        
         #### SET CHECKPOINT ##############################
         reseter_step = 25
         self.ModelCheckpointPath = os.path.join(home_dir, self.name_for_files)
