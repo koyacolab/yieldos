@@ -283,6 +283,7 @@ class ModelBase:
         #### CREATE INFERENCE DATAS 2019-2023 with added validation dataset for control K-FOLD accuracy #############
         self.data_inference = pd.concat([self.data_val, data_infer], axis=0)
 
+        #### CROP GROWTH CALENDAR #########################################################
         MAYDAY = 5
         HARDAY = 8
         #### CREATE TRAIN/VALIDATION/TEST DATASETS WITH AVERAGE IN ENCODER AND GROWTH/YIELD IN DECODER ######## 
@@ -481,8 +482,6 @@ class ModelBase:
         ax.plot(dfe['time_idx'].to_numpy(), dfe[f'{self.scrop}_yield'].to_numpy(), '.', color='yellow')
         ax.plot(dfp['time_idx'].to_numpy(), dfp[f'{self.scrop}_yield'].to_numpy(), '.', color='red')
         
-        
-        
         print(self.max_encoder_length, self.max_prediction_length)   
         
         last_year = dfe['year'].unique()
@@ -495,7 +494,7 @@ class ModelBase:
         ax.plot(dfali['time_idx'].to_numpy(), dfali[f'{self.scrop}_yield'].to_numpy(), '-.')
         
         plt.show()
-        plt.savefig('A0Q', bbox_inches='tight')           
+        plt.savefig(f'A0F_{self.exp_name}', bbox_inches='tight')           
         
         # fn
         
@@ -512,7 +511,7 @@ class ModelBase:
         print('DataGenerator done...')
         
         ###### SET BASIC FILENAME #######################################
-        self.name_for_files = f'EXP_[{self.exp_name}]-Cr[{self.scrop}]-KF[{"_".join(self.val_years)}]-BS[{self.batch_size}]]'
+        self.name_for_files = f'EXP_[{self.exp_name}]-Cr[{self.scrop}]-KF[{"_".join(self.val_years)}]-BS[{self.batch_size}]'
         if os.path.exists(self.name_for_files) == True:
             print(f'Experiment exist: {self.name_for_files}')
             print(f'Set another exp_name...')
@@ -538,7 +537,7 @@ class ModelBase:
         ax.legend()
         
         # save the plot as an image
-        plt.savefig(f"A0Q1.png")
+        plt.savefig(f"A00001Q.png")
         
         # fn
         ####################################################################
@@ -555,11 +554,13 @@ class ModelBase:
         # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
         avg_med = [f"avg_{self.scrop}_yield", 
-                   # f"avg_{self.scrop}_sownarea", 
+                   f"avg_{self.scrop}_sownarea", 
                    # f"avg_{self.scrop}_yieldval", 
-                   # f"{self.scrop}_sownarea", 
+                   f"{self.scrop}_sownarea", 
                    f"actuals",
                   ]
+        
+        # avg_med = []
         
         # avg_med = [f"avg_{self.scrop}_yield"]
 
@@ -577,23 +578,6 @@ class ModelBase:
         modis_list = [f'b{iband}b{bins}' for iband in range(9) for bins in range(MOD_BINS)]
 
         ################ FAMINA cloumns name ################################
-        # famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', 'Qair_f_tavg', 'Qg_tavg',\
-        #                'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', 'RadT_tavg', 'Rainf_f_tavg', \
-        #                'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
-        #                'SoilMoi00_10cm_tavg', 'SoilMoi10_40cm_tavg', 'SoilMoi40_100cm_tavg', \
-        #                'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', 'SoilTemp40_100cm_tavg', \
-        #                'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
-        
-        # famine_list = ['Evap_tavg', 'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', \
-        #                'Qair_f_tavg', 'Qg_tavg',\
-        #                'Qh_tavg', 'Qle_tavg', 'Qs_tavg', 'Qsb_tavg', \
-        #                'RadT_tavg', 'Rainf_f_tavg', \
-        #                'SnowCover_inst', 'SnowDepth_inst', 'Snowf_tavg', \
-        #                'SoilMoi00_10cm_tavg', 'SoilMoi10_40cm_tavg', \
-        #                'SoilMoi40_100cm_tavg', \
-        #                'SoilTemp00_10cm_tavg', 'SoilTemp10_40cm_tavg', \
-        #                'SoilTemp40_100cm_tavg', \
-        #                'SWdown_f_tavg', 'SWE_inst', 'Swnet_tavg', 'Tair_f_tavg', 'Wind_f_tavg']
         
         famine_list = ['Evap_tavg', 
                        'LWdown_f_tavg', 'Lwnet_tavg', 'Psurf_f_tavg', \
@@ -797,7 +781,7 @@ class ModelBase:
         
         # self._lr_finder = FineTuneLearningRateFinder_MultiStepLR()
         
-        # self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=350)
+        self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=50)
         
         # self._lr_finder = FineTuneLearningRateFinder_CustomLR2(constant_iters=10, 
         #                                                        linear_iters=15, 
@@ -837,7 +821,7 @@ class ModelBase:
                                # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
                                reload_dataloaders_every_n_epochs = 1,
                                callbacks = [self._lr_monitor,
-                                            # self._lr_finder, 
+                                            self._lr_finder, 
                                             self._checkpoint_callback,                                      
                                             # _reload_dataset, 
                                             # # _tb_logger, in logger
@@ -871,6 +855,8 @@ class ModelBase:
         
         self.best_tft = self.tft
         self.checkpoint = self.name_for_files 
+        
+        self.gif = 0
 
 ################## THE FIN __init__ #######################################################################
 ################## THE MODELS FUNCTIONS ############################################
@@ -893,17 +879,35 @@ class ModelBase:
         y_pred = baseline_predictions.output
         # Create plot
         fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(y_true.cpu().numpy(), 'o', color='green', label='actuals')
-        ax.plot(y_pred.cpu().numpy(), '.', color='red', label='predictions')
+        ax.plot(y_true.cpu().numpy(), 
+                'o', 
+                color='green', )
+                # label='actuals')
+        ax.plot(y_pred.cpu().numpy(), 
+                '.', 
+                color='red', )
+                # label='predictions')
         ax.set_xlabel('Time')
         ax.set_ylabel('Value')
-        # ax.set_title(f'Validation SMAPE: {smape_val:.2%}')
+        ax.set_title(f'frame={self.gif}')
         ax.legend()
 
         # print('ActPred3', y_true.device, y_pred.device)
 
         # save the plot as an image
-        plt.savefig(f"{prfx}_{self.name_for_files}_actuals_vs_predictions.png")
+        plt.savefig(f"{prfx}_{self.name_for_files}_actuals_vs_predictions.png",
+                   transparent = False,
+                   facecolor = 'white'
+                   )
+            
+        plt.savefig(f"./imgQ/{prfx}_{self.name_for_files}_actuals_vs_predictions_{self.gif}.png",
+                   transparent = False,
+                   facecolor = 'white'
+                   )
+        
+        self.gif = self.gif + 1
+        
+        plt.close()
         
         # sys.exit(0)
         
@@ -1239,6 +1243,7 @@ class ModelBase:
         plt.savefig(files, bbox_inches='tight')
         
 import sys
+import imageio
  
 class Logger:
     def __init__(self, filename):
@@ -1287,7 +1292,26 @@ class RunTask:
         
         # model.init_lr_finder()
         # model.custom_finder()
-        model.train()
+        # model.train()
+        
+        #### CREATE GIF WITH VALIDATION PREDICT MOOVEMENTS THROUGHT TRAINING CONVERGING PROCESS ######################## 
+        time = [x for x in range(18)]
+        print('CREATE GIFF')
+        prfx = 'valid'
+        frames = []
+        for t in time:
+            print(f"./imgQ/{prfx}_{model.name_for_files}_actuals_vs_predictions_{t}.png")
+            image = imageio.v2.imread(f"./imgQ/{prfx}_{model.name_for_files}_actuals_vs_predictions_{t}.png")
+            frames.append(image)
+        
+        
+        imageio.mimsave(f'./{prfx}_{model.name_for_files}.gif', # output gif
+                frames,          # array of input frames
+                duration=1000)         # optional: frames per second
+        
+        print('GIFF')
+        
+        #### PREDICT #################################################################
         model.predict()
         # model.test()
         # model.inference()
