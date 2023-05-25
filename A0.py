@@ -765,11 +765,11 @@ class ModelBase:
         #### LEARNING RATE TUNER #########################################
         self.learning_rate = 0.01
         
-        self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
-                                                                max_lr=0.1, 
-                                                                step_size_up=50, 
-                                                                step_size_down=50,
-                                                                mode='triangular') 
+        # self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
+        #                                                         max_lr=0.1, 
+        #                                                         step_size_up=50, 
+        #                                                         step_size_down=50,
+        #                                                         mode='triangular') 
         
         # self._lr_finder = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
         #                                                       base_lr=self.learning_rate, 
@@ -781,7 +781,7 @@ class ModelBase:
         
         # self._lr_finder = FineTuneLearningRateFinder_MultiStepLR()
         
-        # self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=50)
+        self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=75)
         
         # self._lr_finder = FineTuneLearningRateFinder_CustomLR2(constant_iters=10, 
         #                                                        linear_iters=15, 
@@ -874,6 +874,10 @@ class ModelBase:
         # fn
         y_true = actuals[0]
         y_pred = baseline_predictions.output
+        
+        # avg_yield = self.data_val[f'avg_{self.scrop}_yield'].loc[(self.data_val['county'] == county) \
+        #                           & (self.data_val['year'] == year)].mean()
+        # y_avg = f'avg_{self.scrop}_yield'
         # Create plot
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.plot(y_true.cpu().numpy(), 
@@ -934,36 +938,36 @@ class ModelBase:
                 # self.trainer.should_stop = False
 
             else:
-                self.data_train, _ = DataGenerator2(DATA=self.data, 
-                                                    YEARS_MAX_LENGTH=5,
-                                                    NSAMPLES=len(self.data_val['sample'].unique()))
+#                 self.data_train, _ = DataGenerator2(DATA=self.data, 
+#                                                     YEARS_MAX_LENGTH=5,
+#                                                     NSAMPLES=len(self.data_val['sample'].unique()))
                 
-                df_tr = pd.DataFrame()
-                for smpl in self.data_val['sample'].unique():
-                    for county in self.data_val['county'].unique():
-                        df_cn = pd.DataFrame()
-                        dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
-                        dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
-                        df_cn = pd.concat([df_cn, dfa], axis=0)
-                        df_cn = pd.concat([df_cn, dfb], axis=0)
+#                 df_tr = pd.DataFrame()
+#                 for smpl in self.data_val['sample'].unique():
+#                     for county in self.data_val['county'].unique():
+#                         df_cn = pd.DataFrame()
+#                         dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
+#                         dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
+#                         df_cn = pd.concat([df_cn, dfa], axis=0)
+#                         df_cn = pd.concat([df_cn, dfb], axis=0)
 
-                        new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
-                        df_cn.index = new_index
-                        df_cn["time_idx"] = df_cn.index.astype(int)
-                        df_tr = pd.concat([df_tr, df_cn], axis=0)
-                new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
-                df_tr.index = new_index
+#                         new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
+#                         df_cn.index = new_index
+#                         df_cn["time_idx"] = df_cn.index.astype(int)
+#                         df_tr = pd.concat([df_tr, df_cn], axis=0)
+#                 new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
+#                 df_tr.index = new_index
 
-                self.data_train = df_tr
+#                 self.data_train = df_tr
 
-                self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
-                                                                    self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],)
-                                                                    # self.data_train)
+#                 self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
+#                                                                     self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],)
+#                                                                     # self.data_train)
 
-                self.train_dataloader = self.dataset_train.to_dataloader(train=True, 
-                                                                         batch_size=self.batch_size, 
-                                                                         shuffle=True, 
-                                                                         num_workers=10)
+#                 self.train_dataloader = self.dataset_train.to_dataloader(train=True, 
+#                                                                          batch_size=self.batch_size, 
+#                                                                          shuffle=True, 
+#                                                                          num_workers=10)
                 
 #                 self.testing = TimeSeriesDataSet.from_dataset(self.training, 
 #                                                               self.data_train, 
