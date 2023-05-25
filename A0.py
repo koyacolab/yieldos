@@ -283,10 +283,10 @@ class ModelBase:
         #### CREATE INFERENCE DATAS 2019-2023 with added validation dataset for control K-FOLD accuracy #############
         self.data_inference = pd.concat([self.data_val, data_infer], axis=0)
 
-        #### CROP GROWTH CALENDAR #########################################################
+        #### CROP GROWTH CALENDAR CONSTRUCTOR #########################################################
         MAYDAY = 5
         HARDAY = 8
-        #### CREATE TRAIN/VALIDATION/TEST DATASETS WITH AVERAGE IN ENCODER AND GROWTH/YIELD IN DECODER ######## 
+        #### CREATE TRAIN/VALIDATION/TEST DATASETS WITH ZERO/AVERAGE IN ENCODER AND GROWTH/YIELD IN DECODER ######## 
         #### SET 'gstage'='no' for encoder and growth/yield for decoder ############################
         for county in self.data['county'].unique():
             for year in self.data['year'].unique():
@@ -473,7 +473,7 @@ class ModelBase:
         
 #         dfp = self.data_train[ ( (self.data_train['gstage'] == 'growth') | (self.data_train['gstage'] == 'yield') ) & (self.data_train['sample'] == smpl) & (self.data_train['county'] == '0') ]
         
-        ################ SET max_prediction_length & max_encoder_length value #######
+        ################!!!!!! SET max_prediction_length & max_encoder_length value !!!!!!!#######
         self.max_prediction_length = dfp.shape[0]
         self.max_encoder_length    = dfe.shape[0]
         
@@ -553,14 +553,14 @@ class ModelBase:
         
         # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
-        avg_med = [f"avg_{self.scrop}_yield", 
-                   # f"avg_{self.scrop}_sownarea", 
-                   # f"avg_{self.scrop}_yieldval", 
-                   # f"{self.scrop}_sownarea", 
-                   f"actuals",
-                  ]
+        # avg_med = [f"avg_{self.scrop}_yield", 
+        #            # f"avg_{self.scrop}_sownarea", 
+        #            # f"avg_{self.scrop}_yieldval", 
+        #            # f"{self.scrop}_sownarea", 
+        #            f"actuals",
+        #           ]
         
-        # avg_med = []
+        avg_med = []
         
         # avg_med = [f"avg_{self.scrop}_yield"]
 
@@ -600,13 +600,13 @@ class ModelBase:
 ############# PREPARE variables for the TimeSeriesDataSet  ###################################
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        # self._time_varying_known_reals.extend(modis_list) 
-        # self._time_varying_known_reals.extend(famine_names)
+        self._time_varying_known_reals.extend(modis_list) 
+        self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
-        # self._time_varying_unknown_reals.extend(modis_list)
-        # self._time_varying_unknown_reals.extend(famine_names)
+        self._time_varying_unknown_reals.extend(modis_list)
+        self._time_varying_unknown_reals.extend(famine_names)
 
         # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )    
         
@@ -671,7 +671,7 @@ class ModelBase:
         self.val_dataloader = self.validation.to_dataloader(train=False, 
                                                             # batch_size=27, 
                                                             batch_size=30,
-                                                            num_workers=8)
+                                                            num_workers=8)\
         
         self.test_dataloader = self.training.to_dataloader(train=False, 
                                                            batch_size=30, 
@@ -763,13 +763,13 @@ class ModelBase:
         self._lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         #### LEARNING RATE TUNER #########################################
-        self.learning_rate = 0.1
+        self.learning_rate = 0.01
         
-        # self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
-        #                                                         max_lr=0.01, 
-        #                                                         step_size_up=250, 
-        #                                                         step_size_down=250,
-        #                                                         mode='triangular2') 
+        self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
+                                                                max_lr=0.1, 
+                                                                step_size_up=50, 
+                                                                step_size_down=50,
+                                                                mode='triangular') 
         
         # self._lr_finder = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
         #                                                       base_lr=self.learning_rate, 
@@ -781,7 +781,7 @@ class ModelBase:
         
         # self._lr_finder = FineTuneLearningRateFinder_MultiStepLR()
         
-        self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=50)
+        # self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=50)
         
         # self._lr_finder = FineTuneLearningRateFinder_CustomLR2(constant_iters=10, 
         #                                                        linear_iters=15, 
@@ -815,10 +815,7 @@ class ModelBase:
                                # devices = "0",          
                                # fast_dev_run=True, 
                                # precision=16,
-                               gradient_clip_val = 0.2,
-                               # reload_dataloaders_every_epoch=True,
-                               # Checkpoint configuration
-                               # resume_from_checkpoint = os.path.join(home_dir, self.name_for_files),
+                               # gradient_clip_val = 0.2,
                                reload_dataloaders_every_n_epochs = 1,
                                callbacks = [self._lr_monitor,
                                             self._lr_finder, 
@@ -841,7 +838,7 @@ class ModelBase:
             # hidden_size=31,             # most important hyperparameter apart from learning rate
             # hidden_continuous_size=30,  # set to <= hidden_size
             # attention_head_size=4,      # number of attention heads. Set to up to 4 for large datasets
-            dropout=0.3,           
+            # dropout=0.3,           
             # output_size=7,  # 7 quantiles by default      
             loss=self.loss_func,
             # loss=QuantileLoss(),
@@ -937,36 +934,36 @@ class ModelBase:
                 # self.trainer.should_stop = False
 
             else:
-#                 self.data_train, _ = DataGenerator2(DATA=self.data, 
-#                                                     YEARS_MAX_LENGTH=5,
-#                                                     NSAMPLES=len(self.data_val['sample'].unique()))
+                self.data_train, _ = DataGenerator2(DATA=self.data, 
+                                                    YEARS_MAX_LENGTH=5,
+                                                    NSAMPLES=len(self.data_val['sample'].unique()))
                 
-#                 df_tr = pd.DataFrame()
-#                 for smpl in self.data_val['sample'].unique():
-#                     for county in self.data_val['county'].unique():
-#                         df_cn = pd.DataFrame()
-#                         dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
-#                         dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
-#                         df_cn = pd.concat([df_cn, dfa], axis=0)
-#                         df_cn = pd.concat([df_cn, dfb], axis=0)
+                df_tr = pd.DataFrame()
+                for smpl in self.data_val['sample'].unique():
+                    for county in self.data_val['county'].unique():
+                        df_cn = pd.DataFrame()
+                        dfa = self.data_train[ (self.data_train['sample'] == smpl) & (self.data_train['county'] == county) ]
+                        dfb = self.data_val[ (self.data_val['sample'] == smpl) & (self.data_val['county'] == county) ]
+                        df_cn = pd.concat([df_cn, dfa], axis=0)
+                        df_cn = pd.concat([df_cn, dfb], axis=0)
 
-#                         new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
-#                         df_cn.index = new_index
-#                         df_cn["time_idx"] = df_cn.index.astype(int)
-#                         df_tr = pd.concat([df_tr, df_cn], axis=0)
-#                 new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
-#                 df_tr.index = new_index
+                        new_index = pd.RangeIndex(start=0, stop=len(df_cn)+0, step=1)
+                        df_cn.index = new_index
+                        df_cn["time_idx"] = df_cn.index.astype(int)
+                        df_tr = pd.concat([df_tr, df_cn], axis=0)
+                new_index = pd.RangeIndex(start=0, stop=len(df_tr)+0, step=1)
+                df_tr.index = new_index
 
-#                 self.data_train = df_tr
+                self.data_train = df_tr
 
-#                 self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
-#                                                                     self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],)
-#                                                                     # self.data_train)
+                self.dataset_train = TimeSeriesDataSet.from_dataset(self.training, 
+                                                                    self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],)
+                                                                    # self.data_train)
 
-#                 self.train_dataloader = self.dataset_train.to_dataloader(train=True, 
-#                                                                          batch_size=self.batch_size, 
-#                                                                          shuffle=True, 
-#                                                                          num_workers=10)
+                self.train_dataloader = self.dataset_train.to_dataloader(train=True, 
+                                                                         batch_size=self.batch_size, 
+                                                                         shuffle=True, 
+                                                                         num_workers=10)
                 
 #                 self.testing = TimeSeriesDataSet.from_dataset(self.training, 
 #                                                               self.data_train, 
@@ -1295,7 +1292,7 @@ class RunTask:
         model.train()
         
         #### CREATE GIF WITH VALIDATION PREDICT MOOVEMENTS THROUGHT TRAINING CONVERGING PROCESS ######################## 
-        time = [x for x in range(18)]
+        time = [x for x in range(49)]
         print('CREATE GIFF')
         prfx = 'valid'
         frames = []
