@@ -284,7 +284,7 @@ class ModelBase:
         self.data_inference = pd.concat([self.data_val, data_infer], axis=0)
 
         #### CROP GROWTH CALENDAR CONSTRUCTOR #########################################################
-        MAYDAY = 5
+        MAYDAY = 7
         HARDAY = 8
         #### CREATE TRAIN/VALIDATION/TEST DATASETS WITH ZERO/AVERAGE IN ENCODER AND GROWTH/YIELD IN DECODER ######## 
         #### SET 'gstage'='no' for encoder and growth/yield for decoder ############################
@@ -763,10 +763,10 @@ class ModelBase:
         self._lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         #### LEARNING RATE TUNER #########################################
-        self.learning_rate = 0.005
+        self.learning_rate = 0.001
         
         self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
-                                                                max_lr=0.05, 
+                                                                max_lr=0.01, 
                                                                 step_size_up=100, 
                                                                 step_size_down=100,
                                                                 mode='triangular2') 
