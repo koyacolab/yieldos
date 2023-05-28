@@ -735,7 +735,7 @@ class ModelBase:
         
 ############ SET EXPERIMENT SETTINGS FOR TRAINER #############################################################        
         #### SET CHECKPOINT ##############################
-        reseter_step = 10
+        reseter_step = 5
         self.ModelCheckpointPath = os.path.join(home_dir, self.name_for_files)
         self._checkpoint_callback = ModelCheckpoint(dirpath = self.ModelCheckpointPath, every_n_epochs = reseter_step)
         
@@ -763,13 +763,13 @@ class ModelBase:
         self._lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         #### LEARNING RATE TUNER #########################################
-        self.learning_rate = 0.01
+        self.learning_rate = 0.005
         
-        # self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
-        #                                                         max_lr=0.1, 
-        #                                                         step_size_up=50, 
-        #                                                         step_size_down=50,
-        #                                                         mode='triangular') 
+        self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
+                                                                max_lr=0.05, 
+                                                                step_size_up=100, 
+                                                                step_size_down=100,
+                                                                mode='triangular2') 
         
         # self._lr_finder = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
         #                                                       base_lr=self.learning_rate, 
@@ -781,7 +781,7 @@ class ModelBase:
         
         # self._lr_finder = FineTuneLearningRateFinder_MultiStepLR()
         
-        self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=75)
+        # self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=75)
         
         # self._lr_finder = FineTuneLearningRateFinder_CustomLR2(constant_iters=10, 
         #                                                        linear_iters=15, 
@@ -892,6 +892,8 @@ class ModelBase:
         ax.set_ylabel('Value')
         ax.set_title(f'frame={self.gif}')
         ax.legend()
+        
+        ax.set_ylim([0, 1])
 
         # print('ActPred3', y_true.device, y_pred.device)
 
