@@ -42,7 +42,7 @@ from lightning.pytorch.loggers import TensorBoardLogger
 import torch
 
 from pytorch_forecasting import Baseline, TemporalFusionTransformer, TimeSeriesDataSet
-from pytorch_forecasting.data import GroupNormalizer
+from pytorch_forecasting.data import GroupNormalizer, TorchNormalizer
 from pytorch_forecasting.metrics import MAPE, SMAPE, PoissonLoss, QuantileLoss, RMSE, MAE, MASE
 from matplotlib import pyplot as plt
 from lightning.pytorch.utilities.model_summary import summarize
@@ -296,7 +296,7 @@ class ModelBase:
                                                                      & (self.data['year'] == year)].mean()
                 _yield = self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) \
                                                               & (self.data['year'] == year)].mean()
-                
+                 
                 self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
                                             (self.data['month'] < MAYDAY) ] = 0.0   # avg_yield
                 self.data['gstage'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
@@ -553,14 +553,14 @@ class ModelBase:
         
         # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
-        # avg_med = [f"avg_{self.scrop}_yield", 
-        #            # f"avg_{self.scrop}_sownarea", 
-        #            # f"avg_{self.scrop}_yieldval", 
-        #            # f"{self.scrop}_sownarea", 
-        #            f"actuals",
-        #           ]
+        avg_med = [f"avg_{self.scrop}_yield", 
+                   # f"avg_{self.scrop}_sownarea", 
+                   # f"avg_{self.scrop}_yieldval", 
+                   # f"{self.scrop}_sownarea", 
+                   f"actuals",
+                  ]
         
-        avg_med = []
+        # avg_med = []
         
         # avg_med = [f"avg_{self.scrop}_yield"]
 
@@ -617,8 +617,8 @@ class ModelBase:
         self.prediction_lag = 0
         
         self.training = TimeSeriesDataSet(
-            self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],
-            # self.data_train,
+            # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],
+            self.data_train,
             # self.data_val,
             time_idx="time_idx",
             target=f"{self.scrop}_yield",
@@ -636,8 +636,12 @@ class ModelBase:
             time_varying_known_reals = self._time_varying_known_reals,
             # time_varying_unknown_categoricals=[],
             time_varying_unknown_reals = self._time_varying_unknown_reals,
-            target_normalizer=GroupNormalizer(
-                groups=["county", "sample"], #transformation="relu"
+            # target_normalizer=GroupNormalizer(
+            #     groups=["county", "sample"], #transformation="relu"
+            # ),  # use softplus and normalize by group
+            target_normalizer=TorchNormalizer(
+                method = "standard",  
+                # method = "identity",
             ),  # use softplus and normalize by group
             add_relative_time_idx=True,
             add_target_scales=True,
@@ -671,7 +675,7 @@ class ModelBase:
         self.val_dataloader = self.validation.to_dataloader(train=False, 
                                                             # batch_size=27, 
                                                             batch_size=30,
-                                                            num_workers=8)\
+                                                            num_workers=8)
         
         self.test_dataloader = self.training.to_dataloader(train=False, 
                                                            batch_size=30, 
@@ -763,13 +767,13 @@ class ModelBase:
         self._lr_monitor = LearningRateMonitor(logging_interval = 'epoch')
 
         #### LEARNING RATE TUNER #########################################
-        self.learning_rate = 0.001
+        self.learning_rate = 0.05
         
-        self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
-                                                                max_lr=0.01, 
-                                                                step_size_up=100, 
-                                                                step_size_down=100,
-                                                                mode='triangular2') 
+        # self._lr_finder  = FineTuneLearningRateFinder_CyclicLR2(base_lr=self.learning_rate, 
+        #                                                         max_lr=0.05, 
+        #                                                         step_size_up=100, 
+        #                                                         step_size_down=100,
+        #                                                         mode='triangular2')     
         
         # self._lr_finder = FineTuneLearningRateFinder_CustomLR(total_const_iters=5, 
         #                                                       base_lr=self.learning_rate, 
@@ -818,7 +822,7 @@ class ModelBase:
                                # gradient_clip_val = 0.2,
                                reload_dataloaders_every_n_epochs = 1,
                                callbacks = [self._lr_monitor,
-                                            self._lr_finder, 
+                                            # self._lr_finder, 
                                             self._checkpoint_callback,                                      
                                             # _reload_dataset, 
                                             # # _tb_logger, in logger
@@ -835,7 +839,7 @@ class ModelBase:
             self.training,
             learning_rate=self.learning_rate,
             # lstm_layers=2,
-            # hidden_size=31,             # most important hyperparameter apart from learning rate
+            # hidden_size=42,             # most important hyperparameter apart from learning rate
             # hidden_continuous_size=30,  # set to <= hidden_size
             # attention_head_size=4,      # number of attention heads. Set to up to 4 for large datasets
             # dropout=0.3,           
@@ -1298,7 +1302,7 @@ class RunTask:
         model.train()
         
         #### CREATE GIF WITH VALIDATION PREDICT MOOVEMENTS THROUGHT TRAINING CONVERGING PROCESS ######################## 
-        time = [x for x in range(49)]
+        time = [x for x in range(106)]
         print('CREATE GIFF')
         prfx = 'valid'
         frames = []
@@ -1310,7 +1314,7 @@ class RunTask:
         
         imageio.mimsave(f'./{prfx}_{model.name_for_files}.gif', # output gif
                 frames,          # array of input frames
-                duration=1000)         # optional: frames per second
+                duration=500)         # optional: frames per second
         
         print('GIFF')
         
