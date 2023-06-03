@@ -296,7 +296,7 @@ class ModelBase:
                                                                      & (self.data['year'] == year)].mean()
                 _yield = self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) \
                                                               & (self.data['year'] == year)].mean()
-                
+                 
                 self.data[f'{self.scrop}_yield'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
                                             (self.data['month'] < MAYDAY) ] = 0.0   # avg_yield
                 self.data['gstage'].loc[(self.data['county'] == county) & (self.data['year'] == year) & \
@@ -600,12 +600,12 @@ class ModelBase:
 ############# PREPARE variables for the TimeSeriesDataSet  ###################################
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        self._time_varying_known_reals.extend(modis_list) 
+        # self._time_varying_known_reals.extend(modis_list) 
         self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
-        self._time_varying_unknown_reals.extend(modis_list)
+        # self._time_varying_unknown_reals.extend(modis_list)
         self._time_varying_unknown_reals.extend(famine_names)
 
         # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )    
@@ -640,8 +640,8 @@ class ModelBase:
             #     groups=["county", "sample"], #transformation="relu"
             # ),  # use softplus and normalize by group
             target_normalizer=TorchNormalizer(
-                method = "standard",  
-                # method = "identity",
+                # method = "standard",  
+                method = "identity",
             ),  # use softplus and normalize by group
             add_relative_time_idx=True,
             add_target_scales=True,
@@ -1302,7 +1302,7 @@ class RunTask:
         model.train()
         
         #### CREATE GIF WITH VALIDATION PREDICT MOOVEMENTS THROUGHT TRAINING CONVERGING PROCESS ######################## 
-        time = [x for x in range(106)]
+        time = [x for x in range(375)]
         print('CREATE GIFF')
         prfx = 'valid'
         frames = []
@@ -1314,7 +1314,7 @@ class RunTask:
         
         imageio.mimsave(f'./{prfx}_{model.name_for_files}.gif', # output gif
                 frames,          # array of input frames
-                duration=500)         # optional: frames per second
+                duration=100)         # optional: frames per second
         
         print('GIFF')
         
