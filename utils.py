@@ -203,7 +203,7 @@ class FineTuneLearningRateFinder_LinearLR(LearningRateFinder):
 # ---------------------------------------------------------------------------------------------------------------                  
 
 class FineTuneLearningRateFinder_MultiStepLR(LearningRateFinder):
-    def __init__(self, milestones=[500, 800, 1200, 1700, 2300], *args, **kwargs):
+    def __init__(self, milestones=[800, 1800, 1200, 1700, 2300], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.milestones = milestones
         self.optimizer = []
@@ -214,7 +214,7 @@ class FineTuneLearningRateFinder_MultiStepLR(LearningRateFinder):
         self.optimizer = trainer.optimizers[0]
         self.scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, 
                                                               self.milestones, 
-                                                              gamma=0.1, 
+                                                              gamma=0.5, 
                                                               last_epoch=- 1, 
                                                               verbose=False)
         for param_group in self.optimizer.param_groups:

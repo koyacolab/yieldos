@@ -553,14 +553,14 @@ class ModelBase:
         
         # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
-        avg_med = [f"avg_{self.scrop}_yield", 
-                   # f"avg_{self.scrop}_sownarea", 
-                   # f"avg_{self.scrop}_yieldval", 
-                   # f"{self.scrop}_sownarea", 
-                   f"actuals",
-                  ]
+        # avg_med = [f"avg_{self.scrop}_yield", 
+        #            # f"avg_{self.scrop}_sownarea", 
+        #            # f"avg_{self.scrop}_yieldval", 
+        #            # f"{self.scrop}_sownarea", 
+        #            f"actuals",
+        #           ]
         
-        # avg_med = []
+        avg_med = []
         
         # avg_med = [f"avg_{self.scrop}_yield"]
 
@@ -600,12 +600,12 @@ class ModelBase:
 ############# PREPARE variables for the TimeSeriesDataSet  ###################################
         self._time_varying_known_reals = []
         self._time_varying_known_reals.extend(avg_med)
-        # self._time_varying_known_reals.extend(modis_list) 
+        self._time_varying_known_reals.extend(modis_list) 
         self._time_varying_known_reals.extend(famine_names)
 
         self._time_varying_unknown_reals = []
         self._time_varying_unknown_reals.extend(avg_med)
-        # self._time_varying_unknown_reals.extend(modis_list)
+        self._time_varying_unknown_reals.extend(modis_list)
         self._time_varying_unknown_reals.extend(famine_names)
 
         # print( self.data.sort_values("time_idx").groupby(["county", "year"]).time_idx.diff().dropna() == 1 )    
@@ -783,7 +783,7 @@ class ModelBase:
         #                                                       cycle_iters=2,
         #                                                       mode='triangular',) 
         
-        # self._lr_finder = FineTuneLearningRateFinder_MultiStepLR()
+        self._lr_finder = FineTuneLearningRateFinder_MultiStepLR(milestones=[900, 1000])
         
         # self._lr_finder = FineTuneLearningRateFinder_LinearLR(total_iters=75)
         
@@ -1302,7 +1302,7 @@ class RunTask:
         model.train()
         
         #### CREATE GIF WITH VALIDATION PREDICT MOOVEMENTS THROUGHT TRAINING CONVERGING PROCESS ######################## 
-        time = [x for x in range(375)]
+        time = [x for x in range(447)]
         print('CREATE GIFF')
         prfx = 'valid'
         frames = []
