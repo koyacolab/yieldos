@@ -1299,10 +1299,10 @@ class RunTask:
         
         # model.init_lr_finder()
         # model.custom_finder()
-        model.train()
+        # model.train()
         
         #### CREATE GIF WITH VALIDATION PREDICT MOOVEMENTS THROUGHT TRAINING CONVERGING PROCESS ######################## 
-        time = [x for x in range(495)]
+        time = [x for x in range(329)]
         print('CREATE GIFF')
         prfx = 'valid'
         frames = []
