@@ -553,12 +553,12 @@ class ModelBase:
         
         # avg_med = [f"avg_{self.scrop}_yield", f"actuals"]
         
-        # avg_med = [f"avg_{self.scrop}_yield", 
-        #            # f"avg_{self.scrop}_sownarea", 
-        #            # f"avg_{self.scrop}_yieldval", 
-        #            # f"{self.scrop}_sownarea", 
-        #            f"actuals",
-        #           ]
+        avg_med = [f"avg_{self.scrop}_yield", 
+                   f"avg_{self.scrop}_sownarea", 
+                   # f"avg_{self.scrop}_yieldval", 
+                   f"{self.scrop}_sownarea", 
+                   # f"actuals",
+                  ]
         
         avg_med = []
         
@@ -617,8 +617,8 @@ class ModelBase:
         self.prediction_lag = 0
         
         self.training = TimeSeriesDataSet(
-            # self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],
-            self.data_train,
+            self.data_train[lambda x: x.time_idx <= x.time_idx.max() - self.max_prediction_length - self.prediction_lag],
+            # self.data_train,
             # self.data_val,
             time_idx="time_idx",
             target=f"{self.scrop}_yield",
@@ -1302,7 +1302,7 @@ class RunTask:
         model.train()
         
         #### CREATE GIF WITH VALIDATION PREDICT MOOVEMENTS THROUGHT TRAINING CONVERGING PROCESS ######################## 
-        time = [x for x in range(447)]
+        time = [x for x in range(495)]
         print('CREATE GIFF')
         prfx = 'valid'
         frames = []
