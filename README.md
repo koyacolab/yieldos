@@ -22,9 +22,9 @@ To predict crop yield, the Temporal Fusion Transformer utilizes these time serie
 
 
 ![image (1)](https://github.com/koyacolab/yieldos/assets/115004547/c879907e-9697-499b-b09d-1cbe9cf2c64c)
-(Wheat (T/Ha) example for 2017 year)
+(Wheat (T/Ha) example Fusion Transformer for 2017 year)
 
-![Corn_Ch](https://github.com/koyacolab/yieldos/assets/115004547/a80bb5d1-a10b-43f3-805a-f596482ab265)(Corn (T/Ha) example for 2018 year for China counties (Target/Predicted))
+![Corn_Ch](https://github.com/koyacolab/yieldos/assets/115004547/a80bb5d1-a10b-43f3-805a-f596482ab265)(Corn (T/Ha) example Fusion Transformer for 2018 year for China counties (Target/Predicted))
 
 ***************************************************************************************************
 
