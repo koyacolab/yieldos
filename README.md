@@ -9,25 +9,25 @@ This project used:
 
 I. Weather data - FLDAS: Famine Early Warning Systems Network (FEWS NET) Land Data Assimilation System from Google Datasets
 
-                                (https://developers.google.com/earth-engine/datasets/catalog/NASA_FLDAS_NOAH01_C_GL_M_V001)
+(https://developers.google.com/earth-engine/datasets/catalog/NASA_FLDAS_NOAH01_C_GL_M_V001)
 
 II. Sattelite MODIS data:
 
-       1. MOD09A1.061 Terra Surface Reflectance 8-Day Global 500m
+1. MOD09A1.061 Terra Surface Reflectance 8-Day Global 500m
        
-                (https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD09A1)
+(https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD09A1)
                 
-       2. MOD11A2.061 Terra Land Surface Temperature and Emissivity 8-Day Global 1km
+2. MOD11A2.061 Terra Land Surface Temperature and Emissivity 8-Day Global 1km
        
-                (https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD11A2)
+(https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD11A2)
                 
-       3. MOD17A2H.061: Terra Gross Primary Productivity 8-Day Global 500m 
+3. MOD17A2H.061: Terra Gross Primary Productivity 8-Day Global 500m 
        
-                (https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD17A2H)
+(https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD17A2H)
                 
-       4. MOD16A2.061: Terra Net Evapotranspiration 8-Day Global 500m
+4. MOD16A2.061: Terra Net Evapotranspiration 8-Day Global 500m
        
-                (https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD16A2)
+(https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD16A2)
 
 
 Weather and MODIS data downloaded and interpolated to 500 meters grid. 
