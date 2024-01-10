@@ -1,2 +1,4 @@
-project: # yieldos
-framework for yield prediction
+# yieldos
+project for crop yield prediction for China region level
+
+
