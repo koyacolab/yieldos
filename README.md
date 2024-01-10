@@ -1,40 +1,22 @@
 # yieldos
 project for crop yield prediction for China region level
 
-This project is for crop yield prediction at the region level use the Temporal Fusion Transformer neural network from the pytorch-forecasting framework 
+This project is dedicated to predicting crop yields at the regional level using the Temporal Fusion Transformer neural network from the pytorch-forecasting framework [documentation](https://pytorch-forecasting.readthedocs.io/en/stable/api/pytorch_forecasting.models.temporal_fusion_transformer.TemporalFusionTransformer.html#).
 
-(https://pytorch-forecasting.readthedocs.io/en/stable/api/pytorch_forecasting.models.temporal_fusion_transformer.TemporalFusionTransformer.html#)
+The project utilizes the following data sources:
 
-This project used:
+I. Weather data - FLDAS: Famine Early Warning Systems Network (FEWS NET) Land Data Assimilation System from Google Datasets [FLDAS dataset](https://developers.google.com/earth-engine/datasets/catalog/NASA_FLDAS_NOAH01_C_GL_M_V001).
 
-I. Weather data - FLDAS: Famine Early Warning Systems Network (FEWS NET) Land Data Assimilation System from Google Datasets
+II. Satellite MODIS data:
 
-(https://developers.google.com/earth-engine/datasets/catalog/NASA_FLDAS_NOAH01_C_GL_M_V001)
+   - MOD09A1.061 Terra Surface Reflectance 8-Day Global 500m [MOD09A1 dataset](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD09A1).
+   - MOD11A2.061 Terra Land Surface Temperature and Emissivity 8-Day Global 1km [MOD11A2 dataset](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD11A2).
+   - MOD17A2H.061: Terra Gross Primary Productivity 8-Day Global 500m [MOD17A2H dataset](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD17A2H).
+   - MOD16A2.061: Terra Net Evapotranspiration 8-Day Global 500m [MOD16A2 dataset](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD16A2).
 
-II. Sattelite MODIS data:
+Both weather and MODIS data have been downloaded and interpolated to a 500-meter grid.
 
-1. MOD09A1.061 Terra Surface Reflectance 8-Day Global 500m
-       
-(https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD09A1)
-                
-2. MOD11A2.061 Terra Land Surface Temperature and Emissivity 8-Day Global 1km
-       
-(https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD11A2)
-                
-3. MOD17A2H.061: Terra Gross Primary Productivity 8-Day Global 500m 
-       
-(https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD17A2H)
-                
-4. MOD16A2.061: Terra Net Evapotranspiration 8-Day Global 500m
-       
-(https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD16A2)
+For all regions, weather and MODIS data are processed into time series histograms similar to those demonstrated in the [pycrop-yield-prediction repository](https://github.com/gabrieltseng/pycrop-yield-prediction).
 
-
-Weather and MODIS data downloaded and interpolated to 500 meters grid. 
-
-For all regions Weather and MODIS data are processed to time series histograms like - https://github.com/gabrieltseng/pycrop-yield-prediction.
-
-For crop yield predicting this time series histograms are utilized by the Temporal Fusion Transformer in A0.py script and trained with A0.sh parameters. 
-
-
+To predict crop yield, the Temporal Fusion Transformer utilizes these time series histograms in the `A0.py` script, which is trained with the parameters specified in the `A0.sh` script.
 
