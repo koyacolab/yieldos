@@ -14,7 +14,7 @@ II. Satellite MODIS data:
    - MOD17A2H.061: Terra Gross Primary Productivity 8-Day Global 500m [MOD17A2H dataset](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD17A2H).
    - MOD16A2.061: Terra Net Evapotranspiration 8-Day Global 500m [MOD16A2 dataset](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD16A2).
 
-Both weather and MODIS data have been downloaded and interpolated to a 500-meter grid.
+Both Weather and MODIS data have been downloaded and interpolated to a 500-meter grid.
 
 For all regions, weather and MODIS data are processed into time series histograms similar to - [pycrop-yield-prediction repository](https://github.com/gabrieltseng/pycrop-yield-prediction).
 
