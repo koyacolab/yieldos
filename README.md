@@ -1,7 +1,7 @@
 # yieldos
-project for crop yield prediction for China regions level
+project for crop yield prediction for China region level
 
-This project for crop yield prediction at the regions level used the Temporal Fusion Transformer neural network from the pytorch-forecasting framework 
+This project for crop yield prediction at the region level use the Temporal Fusion Transformer neural network from the pytorch-forecasting framework 
 
 (https://pytorch-forecasting.readthedocs.io/en/stable/api/pytorch_forecasting.models.temporal_fusion_transformer.TemporalFusionTransformer.html#)
 
@@ -31,8 +31,10 @@ II. Sattelite MODIS data:
 
 
 Weather and MODIS data downloaded and interpolated to 500 meters grid. 
+
 For all regions weather and MODIS data are processed to time series histograms like - https://github.com/gabrieltseng/pycrop-yield-prediction.
-For crop yield predicting this time series histograms utilized by the Temporal Fusion Transformer in A0.py script and traned with A0.sh parameters. 
+
+For crop yield predicting this time series histograms are utilized by the Temporal Fusion Transformer in A0.py script and trained with A0.sh parameters. 
 
 
 
