@@ -21,9 +21,12 @@ For all regions, Weather and MODIS data are processed into time series histogram
 To predict crop yield, the Temporal Fusion Transformer utilizes these time series histograms in the `A0.py` script, which is trained with the parameters specified in the `A0.sh` script.
 
 
-![image (1)](https://github.com/koyacolab/yieldos/assets/115004547/c879907e-9697-499b-b09d-1cbe9cf2c64c)(wheat (T/Ha) example for 2017 year)
+![image (1)](https://github.com/koyacolab/yieldos/assets/115004547/c879907e-9697-499b-b09d-1cbe9cf2c64c)
+(Wheat (T/Ha) example for 2017 year)
 
 ![Corn_Ch](https://github.com/koyacolab/yieldos/assets/115004547/a80bb5d1-a10b-43f3-805a-f596482ab265)(Corn (T/Ha) example for 2018 year for China counties (Target/Predicted))
+
+***************************************************************************************************
 
 Given the significant variation in size among Chinese regions, the preparation of time series histograms is crucial for accurate crop yield prediction. Neural networks are renowned for their ability to perform unsupervised feature extraction. As a result, XGBoost techniques have been proposed for the preparation of time series histograms, and the corresponding code is available in the XGBoost folder.
 
