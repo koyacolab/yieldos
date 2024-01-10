@@ -32,7 +32,7 @@ II. Sattelite MODIS data:
 
 Weather and MODIS data downloaded and interpolated to 500 meters grid. 
 
-For all regions weather and MODIS data are processed to time series histograms like - https://github.com/gabrieltseng/pycrop-yield-prediction.
+For all regions Weather and MODIS data are processed to time series histograms like - https://github.com/gabrieltseng/pycrop-yield-prediction.
 
 For crop yield predicting this time series histograms are utilized by the Temporal Fusion Transformer in A0.py script and trained with A0.sh parameters. 
 
