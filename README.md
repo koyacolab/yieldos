@@ -1,7 +1,7 @@
 # yieldos
 Project for Predicting Crop Yields at the Regional Level in China.
 
-This project is dedicated to predicting crop yields at the regional level using the [Temporal Fusion Transformer](https://pytorch-forecasting.readthedocs.io/en/stable/api/pytorch_forecasting.models.temporal_fusion_transformer.TemporalFusionTransformer.html#) neural network from the pytorch-forecasting framework.
+This project is dedicated to predicting crop yields at the regional level using the [Temporal Fusion Transformer](https://pytorch-forecasting.readthedocs.io/en/stable/api/pytorch_forecasting.models.temporal_fusion_transformer.TemporalFusionTransformer.html#) neural network from the [pytorch.forecasting](https://pytorch-forecasting.readthedocs.io/) framework.
 
 The project utilizes the following data sources:
 
