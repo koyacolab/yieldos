@@ -25,7 +25,7 @@ Example, for wheat (T/Ha) for 2017 year:
 
 ![image (1)](https://github.com/koyacolab/yieldos/assets/115004547/c879907e-9697-499b-b09d-1cbe9cf2c64c)
 
-Corn (T/Ha) example for 2018 year for China counties (Target/Predicted):
+Corn (T/Ha) example for 2018 year for China 20 counties (Target/Predicted):
 
 ![Corn_Ch](https://github.com/koyacolab/yieldos/assets/115004547/a80bb5d1-a10b-43f3-805a-f596482ab265)
 ***************************************************************************************************
