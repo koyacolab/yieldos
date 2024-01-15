@@ -34,6 +34,6 @@ N.B.!!!
 
 Given the significant variation in size among Chinese regions, the preparation of time series histograms is crucial for accurate crop yield prediction. Neural networks are renowned for their ability to perform unsupervised feature extraction. 
 
-As a result, XGBoost (SKforecast) techniques have been proposed for the preparation of time series histograms, and the corresponding code is available in the XGBoost folder.
+As a result, XGBoost [SKForecast](https://skforecast.org/) techniques have been proposed for the preparation of time series histograms, and the corresponding code is available in the XGBoost folder.
 
 ***************************************************************************************************
